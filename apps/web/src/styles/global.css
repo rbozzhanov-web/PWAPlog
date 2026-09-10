@@ -12,6 +12,7 @@ body {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 button,
@@ -33,6 +34,14 @@ label {
 
 .logbook-placeholder {
   padding: 2rem;
+}
+
+@media (display-mode: standalone) {
+  .logbook-placeholder,
+  .settings-page {
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
 }
 
 .settings-page {

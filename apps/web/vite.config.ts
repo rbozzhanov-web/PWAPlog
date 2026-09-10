@@ -17,8 +17,17 @@ export default defineConfig({
         short_name: 'Pilot Logbook',
         display: 'standalone',
         start_url: '/',
+        scope: '/',
         theme_color: '#102a43',
-        background_color: '#f7fafc'
+        background_color: '#f7fafc',
+        icons: [
+          {
+            src: 'icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          }
+        ]
       },
       workbox: {
         navigateFallback: '/index.html'
