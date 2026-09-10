@@ -2,6 +2,8 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { FlightLogEntry } from '@pilot-logbook/core';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppRoutes } from '../../../app/routes';
@@ -12,6 +14,11 @@ import {
   getFlightEntry,
   listFlightEntries,
 } from '../../../db/repositories/flightEntries';
+
+const stylesheet = readFileSync(
+  resolve(process.cwd(), 'apps/web/src/styles/global.css'),
+  'utf8',
+);
 
 function entry(overrides: Partial<FlightLogEntry> = {}): FlightLogEntry {
   return {
@@ -48,6 +55,35 @@ describe('EntryEditorPage', () => {
 
   afterEach(async () => {
     await db?.delete();
+  });
+
+  test('keeps route fields in one column until the desktop breakpoint', () => {
+    const style = document.createElement('style');
+    style.textContent = stylesheet;
+    document.head.append(style);
+    const mobileRouteRule = Array.from(style.sheet?.cssRules ?? []).find(
+      (rule) => rule instanceof CSSStyleRule && rule.selectorText === '.entry-form__route',
+    ) as CSSStyleRule | undefined;
+    expect(mobileRouteRule?.style.getPropertyValue('grid-template-columns')).toBe(
+      'minmax(0, 1fr)',
+    );
+
+    const mediaRule = Array.from(style.sheet?.cssRules ?? []).find(
+      (rule) => rule instanceof CSSMediaRule && rule.conditionText === '(min-width: 38rem)',
+    ) as CSSMediaRule | undefined;
+    const desktopRouteRule = Array.from(mediaRule?.cssRules ?? []).find(
+      (rule) =>
+        rule instanceof CSSStyleRule &&
+        rule.selectorText
+          .split(',')
+          .map((selector) => selector.trim())
+          .includes('.entry-form__route'),
+    ) as CSSStyleRule | undefined;
+    expect(desktopRouteRule?.style.getPropertyValue('grid-template-columns')).toBe(
+      'repeat(2, minmax(0, 1fr))',
+    );
+
+    style.remove();
   });
 
   test('blocks an empty route and saves a valid manual flight', async () => {
