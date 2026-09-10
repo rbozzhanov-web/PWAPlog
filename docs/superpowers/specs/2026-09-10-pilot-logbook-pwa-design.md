@@ -97,6 +97,12 @@ Coordinates are normalized to top-origin positioning before the core parser sees
 
 ## Routes and UX
 
+### Primary visual direction
+
+Use the supplied crew-app reference as the primary visual concept, adapted to Pilot Logbook rather than copied. The PWA uses an airy off-white canvas, white elevated cards, soft gray dividers, deep navy typography, electric-blue primary actions and selection states, and muted gold only for supporting highlights. UI surfaces have generous rounded corners, compact metadata rows, and strong typographic emphasis for flight times, totals, and salary values.
+
+The responsive application shell follows the reference's clear mobile hierarchy: a concise title/month header, segmented controls or tabs when switching related content, scan-friendly cards for flights and pay components, and grouped Settings rows. Pilot Logbook branding and functionality remain distinct: no eScrew name, roster integration, AIMS portal, or copied copy/content is included.
+
 - `/logbook`: default route; month-grouped flights and totals across all data.
 - `/logbook/new` and `/logbook/:id`: manual entry create/edit flows.
 - `/import/logbook` and `/import/review`: PDF file selection, extraction, parser review, and approved save.
