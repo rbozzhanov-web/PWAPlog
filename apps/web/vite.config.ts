@@ -2,7 +2,10 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const base = process.env.GITHUB_ACTIONS ? '/PWAPlog/' : '/';
+
 export default defineConfig({
+  base,
   resolve: {
     alias: {
       '@pilot-logbook/core': new URL('../../packages/core/src', import.meta.url).pathname
@@ -16,8 +19,8 @@ export default defineConfig({
         name: 'Pilot Logbook',
         short_name: 'Pilot Logbook',
         display: 'standalone',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         theme_color: '#102a43',
         background_color: '#f7fafc',
         icons: [
