@@ -16,7 +16,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -27,7 +28,8 @@ label {
 }
 
 .logbook-placeholder,
-.settings-page {
+.settings-page,
+.entry-editor-page {
   box-sizing: border-box;
   min-height: 100vh;
 }
@@ -38,9 +40,198 @@ label {
 
 @media (display-mode: standalone) {
   .logbook-placeholder,
-  .settings-page {
+  .settings-page,
+  .entry-editor-page {
     padding-top: max(1.5rem, env(safe-area-inset-top));
     padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+}
+
+.entry-editor-page {
+  width: min(100%, 44rem);
+  margin: 0 auto;
+  padding: 1.5rem 1rem 5rem;
+}
+
+.entry-editor-header {
+  padding: 0.5rem 0.25rem 1.5rem;
+}
+
+.entry-editor-back-link {
+  display: inline-block;
+  margin-bottom: 2.5rem;
+  color: #0868f2;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.entry-editor-eyebrow,
+.entry-form__section-heading p {
+  margin: 0;
+  color: #a87518;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.entry-editor-header h1 {
+  margin: 0.3rem 0 0.7rem;
+  color: #10233f;
+  font-size: clamp(2.1rem, 9vw, 3.3rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.entry-editor-header > p:last-child {
+  margin: 0;
+  color: #596b82;
+  line-height: 1.55;
+}
+
+.entry-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.entry-form__card,
+.entry-delete-confirmation,
+.entry-editor-state {
+  border: 1px solid #e6e9ee;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 0.45rem 1.5rem rgb(16 35 63 / 5%);
+}
+
+.entry-form__card {
+  padding: 1.3rem;
+}
+
+.entry-form__section-heading {
+  margin-bottom: 1.2rem;
+}
+
+.entry-form__section-heading h2,
+.entry-delete-confirmation h2 {
+  margin: 0.3rem 0 0;
+  color: #10233f;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.entry-form__fields,
+.entry-form__number-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.entry-form__route {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.entry-field {
+  display: grid;
+  gap: 0.45rem;
+  color: #31455f;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.entry-field input,
+.entry-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #d8dee7;
+  border-radius: 0.8rem;
+  outline: none;
+  background: #fbfcfd;
+  color: #10233f;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.entry-field input {
+  min-height: 3rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.entry-field textarea {
+  min-height: 7rem;
+  padding: 0.8rem;
+  resize: vertical;
+}
+
+.entry-field input:focus,
+.entry-field textarea:focus {
+  border-color: #0868f2;
+  box-shadow: 0 0 0 0.2rem rgb(8 104 242 / 14%);
+}
+
+.entry-field input[aria-invalid="true"] {
+  border-color: #c44747;
+}
+
+.entry-field__error,
+.entry-submit-error {
+  color: #a32b2b;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.entry-form__actions {
+  display: grid;
+  gap: 0.7rem;
+  padding-top: 0.2rem;
+}
+
+.danger-action {
+  min-height: 2.75rem;
+  border: 1px solid #efcece;
+  border-radius: 0.8rem;
+  padding: 0.7rem 1rem;
+  background: #fff7f7;
+  color: #a32b2b;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.danger-action--filled {
+  background: #a32b2b;
+  color: #fff;
+}
+
+.entry-delete-confirmation,
+.entry-editor-state {
+  padding: 1.3rem;
+}
+
+.entry-delete-confirmation p,
+.entry-editor-state p {
+  color: #596b82;
+  line-height: 1.5;
+}
+
+.entry-delete-confirmation__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.entry-submit-error {
+  margin: 0;
+  border-radius: 0.8rem;
+  padding: 0.85rem 1rem;
+  background: #fff7f7;
+}
+
+.entry-editor-state--error {
+  color: #a32b2b;
+}
+
+@media (min-width: 38rem) {
+  .entry-form__number-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
