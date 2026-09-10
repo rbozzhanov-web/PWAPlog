@@ -2,7 +2,11 @@ import { serializeLogbookBackup, type FlightLogEntry } from '@pilot-logbook/core
 
 import type { PilotLogbookDb } from '../../database';
 import { createPilotLogbookDb } from '../../database';
-import { restoreLogbookBackup } from '../logbookBackup';
+import {
+  exportLogbookBackup,
+  previewLogbookBackup,
+  restoreLogbookBackup,
+} from '../logbookBackup';
 
 function entry(overrides: Partial<FlightLogEntry> = {}): FlightLogEntry {
   return {
@@ -90,5 +94,38 @@ describe('restoreLogbookBackup', () => {
       total: 1,
     });
     expect(await db.flightEntries.toArray()).toEqual([finalEntry]);
+  });
+
+  test('previews the canonical merge without writing any entries', async () => {
+    db = createPilotLogbookDb('preview-backup-test');
+    const existing = entry({ id: 'existing-entry' });
+    const finalIncoming = entry({ remarks: 'B' });
+    await db.flightEntries.add(existing);
+    const raw = serializeLogbookBackup(
+      [entry({ remarks: 'A' }), finalIncoming],
+      '2026-09-10T12:00:00.000Z',
+    );
+
+    await expect(previewLogbookBackup(db, raw)).resolves.toEqual({
+      added: 1,
+      updated: 0,
+      unchanged: 0,
+      total: 1,
+    });
+    expect(await db.flightEntries.toArray()).toEqual([existing]);
+  });
+
+  test('exports every stored entry through the repository', async () => {
+    db = createPilotLogbookDb('export-backup-test');
+    const storedEntries = [entry({ id: 'entry-1' }), entry({ id: 'entry-2' })];
+    await db.flightEntries.bulkAdd(storedEntries);
+
+    const exported = JSON.parse(await exportLogbookBackup(db)) as {
+      app: string;
+      entries: FlightLogEntry[];
+    };
+
+    expect(exported.app).toBe('pilot-logbook');
+    expect(exported.entries).toEqual(storedEntries);
   });
 });

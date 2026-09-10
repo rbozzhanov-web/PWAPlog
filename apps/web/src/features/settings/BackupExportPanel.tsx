@@ -1,7 +1,8 @@
-import { BACKUP_FILE_NAME, serializeLogbookBackup } from '@pilot-logbook/core';
+import { BACKUP_FILE_NAME } from '@pilot-logbook/core';
 import { useState } from 'react';
 
 import type { PilotLogbookDb } from '../../db/database';
+import { exportLogbookBackup } from '../../db/repositories/logbookBackup';
 import { shareOrDownloadJson } from '../../platform/files';
 
 interface BackupExportPanelProps {
@@ -19,7 +20,7 @@ export function BackupExportPanel({ db }: BackupExportPanelProps) {
     setError(undefined);
 
     try {
-      const body = serializeLogbookBackup(await db.flightEntries.toArray());
+      const body = await exportLogbookBackup(db);
       const file = new File([body], BACKUP_FILE_NAME, { type: 'application/json' });
       const result = await shareOrDownloadJson(file);
       setMessage(result === 'shared' ? 'Backup shared' : 'Backup downloaded');

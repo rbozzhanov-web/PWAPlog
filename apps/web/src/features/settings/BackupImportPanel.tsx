@@ -1,8 +1,10 @@
-import { mergeLogbookBackup, parseLogbookBackup } from '@pilot-logbook/core';
 import { useState, type ChangeEvent } from 'react';
 
 import type { PilotLogbookDb } from '../../db/database';
-import { restoreLogbookBackup } from '../../db/repositories/logbookBackup';
+import {
+  previewLogbookBackup,
+  restoreLogbookBackup,
+} from '../../db/repositories/logbookBackup';
 import { readTextFile } from '../../platform/files';
 
 interface BackupImportPanelProps {
@@ -36,23 +38,13 @@ export function BackupImportPanel({ db }: BackupImportPanelProps) {
 
     try {
       const raw = await readTextFile(file);
-      const result = parseLogbookBackup(raw);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-
-      const incoming = [
-        ...new Map(result.backup.entries.map((entry) => [entry.id, entry])).values(),
-      ];
-      const existing = await db.flightEntries.toArray();
-      const preview = mergeLogbookBackup(existing, incoming);
+      const preview = await previewLogbookBackup(db, raw);
       setPending({
         raw,
         added: preview.added,
         updated: preview.updated,
         unchanged: preview.unchanged,
-        total: incoming.length,
+        total: preview.total,
       });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The backup could not be read.');

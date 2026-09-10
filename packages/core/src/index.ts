@@ -77,4 +77,4 @@ export {
   type PayrollInput,
   type PayrollResult,
 } from './crew-pay/kzPayroll';
-export { fetchNbrkEurRate, lastDayOfMonthDdMmYyyy, parseNbrkEurRate } from './crew-pay/nbrkRate';
+export { lastDayOfMonthDdMmYyyy, parseNbrkEurRate } from './crew-pay/nbrkRate';

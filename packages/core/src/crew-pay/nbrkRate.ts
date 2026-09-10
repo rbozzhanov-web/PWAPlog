@@ -11,8 +11,6 @@
  * separate backward-fallback loop is needed here.
  */
 
-const NBRK_RATES_URL = 'https://nationalbank.kz/rss/get_rates.cfm';
-
 /** "2026-07" -> "31.07.2026", the last calendar day of that month. */
 export function lastDayOfMonthDdMmYyyy(month: string): string {
   const year = Number(month.slice(0, 4));
@@ -50,20 +48,4 @@ export function parseNbrkEurRate(xml: string): number | undefined {
   }
 
   return undefined;
-}
-
-/**
- * Fetches the official EUR/KZT rate for a month's last calendar day. Throws on a network failure
- * or a response with no EUR entry — callers treat that exactly like a rate nobody has typed in.
- */
-export async function fetchNbrkEurRate(month: string): Promise<number> {
-  const fdate = lastDayOfMonthDdMmYyyy(month);
-  const response = await fetch(`${NBRK_RATES_URL}?fdate=${fdate}`);
-  if (!response.ok) throw new Error(`NBRK rates request failed: ${response.status}`);
-
-  const xml = await response.text();
-  const rate = parseNbrkEurRate(xml);
-  if (rate === undefined) throw new Error(`No EUR rate in NBRK response for ${fdate}`);
-
-  return rate;
 }
