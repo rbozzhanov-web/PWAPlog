@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@pilot-logbook/core": ["../../packages/core/src"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}
