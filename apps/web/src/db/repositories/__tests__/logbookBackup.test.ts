@@ -68,4 +68,27 @@ describe('restoreLogbookBackup', () => {
     });
     expect(await db.flightEntries.toArray()).toEqual([entry()]);
   });
+
+  test('canonicalizes duplicate backup IDs so a repeated restore is unchanged', async () => {
+    db = createPilotLogbookDb('duplicate-id-restore-test');
+    const finalEntry = entry({ remarks: 'B' });
+    const raw = serializeLogbookBackup(
+      [entry({ remarks: 'A' }), finalEntry],
+      '2026-09-10T12:00:00.000Z',
+    );
+
+    await expect(restoreLogbookBackup(db, raw)).resolves.toEqual({
+      added: 1,
+      updated: 0,
+      unchanged: 0,
+      total: 1,
+    });
+    await expect(restoreLogbookBackup(db, raw)).resolves.toEqual({
+      added: 0,
+      updated: 0,
+      unchanged: 1,
+      total: 1,
+    });
+    expect(await db.flightEntries.toArray()).toEqual([finalEntry]);
+  });
 });

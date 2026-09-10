@@ -12,16 +12,18 @@ export async function restoreLogbookBackup(
     throw new Error(result.error);
   }
 
+  const incoming = [...new Map(result.backup.entries.map((entry) => [entry.id, entry])).values()];
+
   return db.transaction('rw', db.flightEntries, async () => {
     const existing = await db.flightEntries.toArray();
-    const merged = mergeLogbookBackup(existing, result.backup.entries);
+    const merged = mergeLogbookBackup(existing, incoming);
     await db.flightEntries.bulkPut(merged.merged);
 
     return {
       added: merged.added,
       updated: merged.updated,
       unchanged: merged.unchanged,
-      total: result.backup.entries.length,
+      total: incoming.length,
     };
   });
 }
