@@ -20,6 +20,7 @@
 - Dexie writes that affect multiple records run in transactions; schema changes use explicit versioned migrations.
 - Use Vitest and test-first Red/Green cycles. Every browser storage test uses a fresh fake IndexedDB database.
 - PWA app shell must remain usable offline after its first successful load; working data lives only in IndexedDB.
+- Use the approved aviation-inspired visual concept: off-white canvas, white rounded cards, soft gray dividers, deep navy typography, electric-blue primary actions, and restrained muted-gold highlights. Adapt the structure, never the eScrew branding or content.
 
 ---
 
@@ -345,7 +346,7 @@ Expected: FAIL because the feature and browser file adapter are absent.
 
 - [ ] **Step 3: Implement the browser adapter and Settings routes**
 
-Use `await file.text()` for input. Generate JSON download URLs with `URL.createObjectURL(new Blob([body], { type: 'application/json' }))`, click a temporary `<a download>`, then revoke the URL. For sharing, call `navigator.canShare?.({ files: [file] })` before `navigator.share({ files: [file], title: 'Pilot Logbook backup' })`; fall back to download on unsupported browsers or rejected share. Add `/settings` with headings for **Import existing PilotLogbook backup** and **Export logbook backup**, and text explaining that data is local to this browser/device and should be exported for recovery. Do not add salary backup controls in this first slice.
+Use `await file.text()` for input. Generate JSON download URLs with `URL.createObjectURL(new Blob([body], { type: 'application/json' }))`, click a temporary `<a download>`, then revoke the URL. For sharing, call `navigator.canShare?.({ files: [file] })` before `navigator.share({ files: [file], title: 'Pilot Logbook backup' })`; fall back to download on unsupported browsers or rejected share. Add `/settings` with headings for **Import existing PilotLogbook backup** and **Export logbook backup**, and text explaining that data is local to this browser/device and should be exported for recovery. Render Settings as grouped white rounded rows on the approved off-white/navy/blue visual system; do not add eScrew branding, roster/AIMS UI, or salary backup controls in this first slice.
 
 - [ ] **Step 4: Run feature tests, web suite, and build**
 
