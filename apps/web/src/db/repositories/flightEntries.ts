@@ -13,11 +13,25 @@ export async function getFlightEntry(
   return db.flightEntries.get(id);
 }
 
-export async function putFlightEntry(
+export async function createFlightEntry(
+  db: PilotLogbookDb,
+  entry: FlightLogEntry,
+): Promise<string> {
+  return db.flightEntries.add(entry);
+}
+
+export async function updateFlightEntry(
   db: PilotLogbookDb,
   entry: FlightLogEntry,
 ): Promise<string> {
   return db.flightEntries.put(entry);
+}
+
+export async function putFlightEntry(
+  db: PilotLogbookDb,
+  entry: FlightLogEntry,
+): Promise<string> {
+  return updateFlightEntry(db, entry);
 }
 
 export async function putFlightEntries(
