@@ -85,4 +85,20 @@ describe('annotateDuplicates', () => {
     const [annotated] = annotateDuplicates([candidate], []);
     expect(annotated.isDuplicate).toBe(false);
   });
+
+  it('flags a repeated candidate later in the same PDF', () => {
+    const first = makeCandidate({
+      date: '2026-07-02',
+      departureAirport: 'NQZ',
+      arrivalAirport: 'FRA',
+      aircraftRegistration: 'EI-KEC',
+      timeOut: '07:04',
+    });
+    const repeated = makeCandidate({ ...first.fields });
+
+    expect(annotateDuplicates([first, repeated], []).map(({ isDuplicate }) => isDuplicate)).toEqual([
+      false,
+      true,
+    ]);
+  });
 });

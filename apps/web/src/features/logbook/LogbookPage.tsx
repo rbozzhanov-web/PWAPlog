@@ -95,6 +95,7 @@ export function LogbookPage({ db }: LogbookPageProps) {
         </div>
         <div className="logbook-header__actions">
           <Link className="logbook-settings-link" to="/settings">Settings</Link>
+          <Link className="logbook-settings-link" to="/import/logbook">Import PDF</Link>
           <Link className="logbook-new-link" to="/logbook/new">
             <span aria-hidden="true">＋</span> New flight
           </Link>
