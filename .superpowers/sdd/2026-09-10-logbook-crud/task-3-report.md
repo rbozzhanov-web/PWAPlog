@@ -21,3 +21,19 @@
 - `npm run test` passed: 23 files, 139 tests.
 - `npm run build` passed, including TypeScript and production PWA/service-worker output. Vite emitted the existing large-chunk advisory only.
 - `git diff --check` passed.
+
+## Final Review Fix: Manual-entry integer validation
+
+- The manual-entry validator now rejects every non-integer minute or count input while retaining the existing zero-or-greater validation for negative values.
+- Added editor-level regression coverage for fractional total time and fractional day landings. Each verifies the validation message and that no flight is persisted to IndexedDB.
+
+### TDD Evidence
+
+- RED: `npm run test:web -- apps/web/src/features/logbook/__tests__/EntryEditorPage.test.tsx` failed 2 tests because `0.5` total minutes and `0.5` day landings were saved.
+- GREEN: the same focused suite passed 7/7 after adding integer validation.
+
+### Final Verification
+
+- `npm test` passed: 23 files, 141 tests.
+- `npm run build` passed, including TypeScript and production PWA/service-worker output. Vite emitted the existing large-chunk advisory only.
+- `git diff --check` passed.

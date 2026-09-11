@@ -114,6 +114,8 @@ export function validateManualEntry(input: ManualEntryInput): ValidationResult {
       errors[field] = `${label} is required`;
     } else if (!Number.isFinite(value) || value < 0) {
       errors[field] = `${label} must be zero or greater`;
+    } else if (!Number.isInteger(value)) {
+      errors[field] = `${label} must be a whole number`;
     } else {
       numericValues[field] = value;
     }

@@ -138,6 +138,27 @@ describe('EntryEditorPage', () => {
     await expect(listFlightEntries(db)).resolves.toEqual([]);
   });
 
+  test.each([
+    ['Total minutes', 'totalTimeMinutes'],
+    ['Day landings', 'dayLandings'],
+  ] as const)('rejects fractional %s without mutating the logbook', async (label, field) => {
+    db = createPilotLogbookDb(`manual-entry-editor-${field}-integer-test`);
+
+    render(
+      <MemoryRouter initialEntries={['/logbook/new']}>
+        <AppRoutes db={db} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(await screen.findByLabelText('Departure'), { target: { value: 'UAAA' } });
+    fireEvent.change(screen.getByLabelText('Arrival'), { target: { value: 'UACC' } });
+    fireEvent.change(screen.getByLabelText(label), { target: { value: '0.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save flight' }));
+
+    expect(await screen.findByText(`${label} must be a whole number`)).toBeVisible();
+    await expect(listFlightEntries(db)).resolves.toEqual([]);
+  });
+
   test('loads and updates an entry while preserving its identity and creation time', async () => {
     db = createPilotLogbookDb('manual-entry-editor-update-test');
     const original = entry();
