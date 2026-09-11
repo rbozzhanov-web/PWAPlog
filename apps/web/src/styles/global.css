@@ -27,23 +27,365 @@ label {
   -webkit-tap-highlight-color: transparent;
 }
 
-.logbook-placeholder,
+.logbook-page,
 .settings-page,
 .entry-editor-page {
   box-sizing: border-box;
   min-height: 100vh;
 }
 
-.logbook-placeholder {
-  padding: 2rem;
-}
-
 @media (display-mode: standalone) {
-  .logbook-placeholder,
+  .logbook-page,
   .settings-page,
   .entry-editor-page {
     padding-top: max(1.5rem, env(safe-area-inset-top));
     padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+}
+
+.logbook-page {
+  width: min(100%, 68rem);
+  margin: 0 auto;
+  padding: 1.5rem 1rem 5rem;
+}
+
+.logbook-header {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.5rem 0.25rem 1.5rem;
+}
+
+.logbook-header__eyebrow,
+.logbook-empty__eyebrow,
+.month-card__eyebrow {
+  margin: 0;
+  color: #a87518;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.logbook-header h1 {
+  margin: 0.3rem 0 0.65rem;
+  color: #10233f;
+  font-size: clamp(2.2rem, 8vw, 3.5rem);
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.logbook-header__intro {
+  margin: 0;
+  color: #596b82;
+  line-height: 1.5;
+}
+
+.logbook-header__actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.logbook-settings-link,
+.logbook-new-link {
+  display: inline-flex;
+  box-sizing: border-box;
+  min-height: 2.8rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.85rem;
+  padding: 0.7rem 1rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.logbook-settings-link {
+  color: #496079;
+}
+
+.logbook-new-link {
+  gap: 0.35rem;
+  background: #0868f2;
+  box-shadow: 0 0.5rem 1.2rem rgb(8 104 242 / 18%);
+  color: #fff;
+}
+
+.logbook-summary {
+  display: flex;
+  min-height: 8rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  padding: 1.35rem;
+  background: linear-gradient(135deg, #10233f, #173f75);
+  box-shadow: 0 0.75rem 2rem rgb(16 35 63 / 16%);
+  color: #fff;
+}
+
+.logbook-summary div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.logbook-summary span {
+  color: #c8d7eb;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.logbook-summary div > strong {
+  font-size: clamp(2.35rem, 9vw, 4rem);
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.logbook-summary p {
+  margin: 0;
+  color: #dbe7f5;
+}
+
+.logbook-summary p strong {
+  color: #f0c36a;
+}
+
+.year-chips-shell {
+  position: sticky;
+  z-index: 3;
+  top: 0;
+  margin: 1rem -1rem 0;
+  padding: 0.7rem 1rem;
+  background: rgb(246 247 249 / 94%);
+  backdrop-filter: blur(0.75rem);
+}
+
+.year-chips {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.year-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.year-chip {
+  min-width: 4.5rem;
+  min-height: 2.55rem;
+  flex: 0 0 auto;
+  border: 1px solid #dce2ea;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  background: #fff;
+  color: #496079;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.year-chip[aria-pressed="true"] {
+  border-color: #0868f2;
+  background: #0868f2;
+  box-shadow: 0 0.35rem 1rem rgb(8 104 242 / 17%);
+  color: #fff;
+}
+
+.logbook-list {
+  display: grid;
+  gap: 1rem;
+  padding-top: 0.3rem;
+}
+
+.month-card {
+  overflow: hidden;
+  scroll-margin-top: 4.5rem;
+  border: 1px solid #e3e7ed;
+  border-radius: 1.3rem;
+  background: #fff;
+  box-shadow: 0 0.45rem 1.5rem rgb(16 35 63 / 5%);
+}
+
+.month-card__header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 1.25rem 1.3rem 1.1rem;
+}
+
+.month-card__header h2 {
+  margin: 0.25rem 0 0;
+  color: #10233f;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.month-card__total {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.1rem;
+  text-align: right;
+}
+
+.month-card__total span {
+  color: #718197;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.month-card__total strong {
+  color: #10233f;
+  font-size: 1.35rem;
+  letter-spacing: -0.035em;
+}
+
+.flight-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 5.25rem;
+  border-top: 1px solid #e8ebf0;
+  padding: 0.9rem 1.3rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.flight-row:focus-visible,
+.flight-row:hover {
+  outline: none;
+  background: #f7faff;
+}
+
+.flight-row__main {
+  display: grid;
+  min-width: 0;
+  gap: 0.22rem;
+}
+
+.flight-row__route {
+  color: #10233f;
+  font-size: 1.05rem;
+  letter-spacing: 0.015em;
+}
+
+.flight-row__route span {
+  color: #0868f2;
+}
+
+.flight-row__meta,
+.flight-row__aircraft {
+  overflow: hidden;
+  color: #596b82;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flight-row__aircraft {
+  color: #8a6a2c;
+}
+
+.flight-row__time {
+  color: #10233f;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.flight-row__chevron {
+  color: #9aa7b7;
+  font-size: 1.65rem;
+}
+
+.logbook-state,
+.logbook-empty {
+  border: 1px solid #e3e7ed;
+  border-radius: 1.3rem;
+  padding: 1.5rem;
+  background: #fff;
+  box-shadow: 0 0.45rem 1.5rem rgb(16 35 63 / 5%);
+}
+
+.logbook-state {
+  color: #596b82;
+}
+
+.logbook-state--error {
+  color: #a32b2b;
+}
+
+.logbook-empty {
+  display: grid;
+  min-height: 16rem;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.logbook-empty__icon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  background: #eff5ff;
+  color: #0868f2;
+  font-size: 1.35rem;
+}
+
+.logbook-empty h2 {
+  margin: 0.3rem 0 0.5rem;
+  color: #10233f;
+  font-size: 1.55rem;
+}
+
+.logbook-empty > p:not(.logbook-empty__eyebrow) {
+  max-width: 28rem;
+  margin: 0 0 1.25rem;
+  color: #596b82;
+  line-height: 1.5;
+}
+
+@media (max-width: 40rem) {
+  .logbook-header {
+    display: grid;
+  }
+
+  .logbook-header__actions {
+    width: 100%;
+  }
+
+  .logbook-settings-link,
+  .logbook-new-link {
+    flex: 1;
+  }
+
+  .logbook-summary {
+    min-height: 7rem;
+  }
+}
+
+@media (max-width: 28rem) {
+  .logbook-summary {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .flight-row {
+    gap: 0.6rem;
+    padding-inline: 1rem;
+  }
+
+  .flight-row__chevron {
+    display: none;
   }
 }
 

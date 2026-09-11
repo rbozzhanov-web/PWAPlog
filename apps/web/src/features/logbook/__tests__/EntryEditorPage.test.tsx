@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { FlightLogEntry } from '@pilot-logbook/core';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -103,7 +103,11 @@ describe('EntryEditorPage', () => {
     fireEvent.change(screen.getByLabelText('Total minutes'), { target: { value: '95' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save flight' }));
 
-    expect(await screen.findByRole('heading', { name: 'Pilot Logbook' })).toBeVisible();
+    expect(
+      await within(await screen.findByRole('region', { name: 'Logbook summary' })).findByText(
+        '1h 35m',
+      ),
+    ).toBeVisible();
     await waitFor(async () => {
       await expect(listFlightEntries(db!)).resolves.toMatchObject([
         {
@@ -149,7 +153,11 @@ describe('EntryEditorPage', () => {
     fireEvent.change(screen.getByLabelText('Remarks'), { target: { value: 'Training sector' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save flight' }));
 
-    expect(await screen.findByRole('heading', { name: 'Pilot Logbook' })).toBeVisible();
+    expect(
+      await within(await screen.findByRole('region', { name: 'Logbook summary' })).findByText(
+        '1h 30m',
+      ),
+    ).toBeVisible();
     await expect(getFlightEntry(db, 'entry-1')).resolves.toMatchObject({
       id: 'entry-1',
       createdAt: original.createdAt,
@@ -174,7 +182,7 @@ describe('EntryEditorPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete flight permanently' }));
 
-    expect(await screen.findByRole('heading', { name: 'Pilot Logbook' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'No flights yet' })).toBeVisible();
     await expect(getFlightEntry(db, 'entry-1')).resolves.toBeUndefined();
   });
 });
