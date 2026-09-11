@@ -37,3 +37,15 @@
 - `npm test` passed: 23 files, 141 tests.
 - `npm run build` passed, including TypeScript and production PWA/service-worker output. Vite emitted the existing large-chunk advisory only.
 - `git diff --check` passed.
+
+## Post-merge Fix: Deterministic active-chip test
+
+- Root cause: the active-chip test invoked a shared optional observer callback before the mounted page's passive effect was guaranteed to register it. The callback also survived between tests, so a loaded suite could silently no-op or invoke a stale unmounted-page callback.
+- Reset the observer callback for every test and wait explicitly for the current observer registration before simulating a visible month.
+- The production IntersectionObserver and active-chip scrolling behavior are unchanged.
+
+### Post-merge Verification
+
+- `npm run test` passed: 23 files, 141 tests.
+- `npm run build` passed, including TypeScript and production PWA/service-worker output. Vite emitted the existing large-chunk advisory only.
+- `git diff --check` passed.

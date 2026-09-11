@@ -45,6 +45,7 @@ describe('LogbookPage', () => {
   let scrolledElements: Element[];
 
   beforeEach(() => {
+    intersectionCallback = undefined;
     scrolledElements = [];
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
@@ -156,6 +157,10 @@ describe('LogbookPage', () => {
 
     const april = await screen.findByRole('region', { name: 'April 2024' });
     const year2024 = screen.getByRole('button', { name: '2024' });
+    const observerCallback = await waitFor(() => {
+      if (!intersectionCallback) throw new Error('IntersectionObserver was not registered');
+      return intersectionCallback;
+    });
     scrolledElements.length = 0;
     const bounds: DOMRectReadOnly = {
       bottom: 220,
@@ -170,7 +175,7 @@ describe('LogbookPage', () => {
     };
 
     act(() => {
-      intersectionCallback?.(
+      observerCallback(
         [
           {
             boundingClientRect: bounds,
