@@ -100,6 +100,42 @@ describe('logbook PDF import routes', () => {
     await expect(db.flightEntries.count()).resolves.toBe(0);
   });
 
+  test('ignores another dropped report while the selected report is still processing', async () => {
+    db = createPilotLogbookDb('pdf-import-concurrent-drop-test');
+    const selectedFile = pdfFile('selected-report.pdf');
+    const droppedFile = pdfFile('dropped-report.pdf');
+    let finishExtraction: ((pages: ExtractedPage[]) => void) | undefined;
+    extractPdfText.mockImplementationOnce(
+      () => new Promise<ExtractedPage[]>((resolve) => {
+        finishExtraction = resolve;
+      }),
+    );
+    render(
+      <MemoryRouter initialEntries={['/import/logbook']}>
+        <AppRoutes db={db} />
+      </MemoryRouter>,
+    );
+
+    const input = await screen.findByLabelText('Choose PDF file');
+    const dropZone = screen.getByRole('button', { name: /drop a pdf here/i });
+    fireEvent.change(input, { target: { files: [selectedFile] } });
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Extracting and checking flights');
+    expect(input).toBeDisabled();
+    fireEvent.drop(dropZone, { dataTransfer: { files: [droppedFile] } });
+    expect(extractPdfText).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finishExtraction?.(
+        pageWithLine(['11/09/2026', 'UAAA', 'UACC', '08:00', '09:30']),
+      );
+    });
+
+    expect(await screen.findByText('selected-report.pdf')).toBeVisible();
+    expect(screen.queryByText('dropped-report.pdf')).not.toBeInTheDocument();
+    await expect(db.flightEntries.count()).resolves.toBe(0);
+  });
+
   test('shows an actionable extraction error and offers another file', async () => {
     db = createPilotLogbookDb('pdf-import-extraction-error-test');
     extractPdfText.mockRejectedValue(new Error('Encrypted PDF'));
@@ -176,5 +212,35 @@ describe('logbook PDF import routes', () => {
         },
       ]);
     });
+  });
+
+  test('shows field errors and does not persist invalid approved-candidate edits', async () => {
+    db = createPilotLogbookDb('pdf-import-review-validation-test');
+    extractPdfText.mockResolvedValue(
+      pageWithLine(['11/09/2026', 'UAAA', 'UACC', '08:00', '09:30']),
+    );
+    render(
+      <MemoryRouter initialEntries={['/import/logbook']}>
+        <AppRoutes db={db} />
+      </MemoryRouter>,
+    );
+
+    await choosePdf();
+    expect(await screen.findByRole('heading', { name: 'Review imported flights' })).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Departure'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Arrival'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Total minutes'), { target: { value: '-1' } });
+    fireEvent.change(screen.getByLabelText('Day landings'), { target: { value: '0.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import 1 flight' }));
+
+    expect(await screen.findByText('Date is required')).toBeVisible();
+    expect(screen.getByText('Departure is required')).toBeVisible();
+    expect(screen.getByText('Arrival is required')).toBeVisible();
+    expect(screen.getByText('Total minutes must be zero or greater')).toBeVisible();
+    expect(screen.getByText('Day landings must be a whole number')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Review imported flights' })).toBeVisible();
+    await expect(db.flightEntries.count()).resolves.toBe(0);
   });
 });

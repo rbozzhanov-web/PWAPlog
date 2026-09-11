@@ -373,6 +373,16 @@ label {
   box-shadow: 0 0 0 0.2rem rgb(8 104 242 / 14%);
 }
 
+.review-field input[aria-invalid='true'] {
+  border-color: #c44c4c;
+}
+
+.review-field__error {
+  color: #a32b2b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .pdf-candidate__source {
   margin-top: 1rem;
   color: #718197;

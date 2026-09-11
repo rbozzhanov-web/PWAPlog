@@ -26,12 +26,14 @@ function isPdf(file: File): boolean {
 export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const processingRef = useRef(false);
   const { clearDraft, setDraft } = useImportDraft();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>();
 
   async function processFile(file: File) {
+    if (processingRef.current) return;
     clearDraft();
     setError(undefined);
     if (!isPdf(file)) {
@@ -39,6 +41,7 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
       return;
     }
 
+    processingRef.current = true;
     setIsProcessing(true);
     try {
       const result = parseRoster(await extractPdfText(file));
@@ -57,6 +60,7 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
     } catch {
       setError(EXTRACTION_ERROR);
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   }
@@ -70,6 +74,7 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
   function dropFile(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     setIsDragging(false);
+    if (processingRef.current) return;
     const file = event.dataTransfer.files[0];
     if (file) void processFile(file);
   }
@@ -77,6 +82,7 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
   function activatePicker(event: KeyboardEvent<HTMLLabelElement>) {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
+    if (processingRef.current) return;
     inputRef.current?.click();
   }
 
@@ -99,18 +105,19 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
         </div>
 
         <label
+          aria-disabled={isProcessing}
           aria-label="Drop a PDF here or choose a file"
           className={`pdf-drop-zone${isDragging ? ' pdf-drop-zone--active' : ''}`}
           onDragEnter={(event) => {
             event.preventDefault();
-            setIsDragging(true);
+            if (!processingRef.current) setIsDragging(true);
           }}
           onDragLeave={() => setIsDragging(false)}
           onDragOver={(event) => event.preventDefault()}
           onDrop={dropFile}
           onKeyDown={activatePicker}
           role="button"
-          tabIndex={0}
+          tabIndex={isProcessing ? -1 : 0}
         >
           <strong>{isProcessing ? 'Reading your report…' : 'Drop a PDF here'}</strong>
           <span>{isProcessing ? 'Extraction stays on this device.' : 'or choose a file from this device'}</span>

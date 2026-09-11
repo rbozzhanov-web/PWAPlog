@@ -7,6 +7,13 @@ import {
   type PdfImportCandidateDraft,
   type PdfImportEntryDraft,
 } from '../../db/repositories/pdfImport';
+import {
+  manualEntryInput,
+  numericEntryFields,
+  validateManualEntry,
+  type EntryFieldErrors,
+  type ManualEntryInput,
+} from '../logbook/entryForm';
 import { useImportDraft } from './importDraft';
 
 interface ReviewImportPageProps {
@@ -24,14 +31,7 @@ type TextField =
   | 'timeIn'
   | 'simulatorType';
 
-type NumberField =
-  | 'totalTimeMinutes'
-  | 'picMinutes'
-  | 'sicMinutes'
-  | 'dualGivenMinutes'
-  | 'dayMinutes'
-  | 'nightMinutes'
-  | 'simulatorMinutes';
+type NumberField = (typeof numericEntryFields)[number][0];
 
 const textFields: Array<[TextField, string, 'date' | 'text' | 'time']> = [
   ['date', 'Date', 'date'],
@@ -45,18 +45,37 @@ const textFields: Array<[TextField, string, 'date' | 'text' | 'time']> = [
   ['simulatorType', 'Simulator type', 'text'],
 ];
 
-const numberFields: Array<[NumberField, string]> = [
-  ['totalTimeMinutes', 'Total minutes'],
-  ['picMinutes', 'PIC minutes'],
-  ['sicMinutes', 'SIC minutes'],
-  ['dualGivenMinutes', 'Instructor minutes'],
-  ['dayMinutes', 'Day minutes'],
-  ['nightMinutes', 'Night minutes'],
-  ['simulatorMinutes', 'Simulator minutes'],
-];
-
 function countLabel(count: number): string {
   return `${count} ${count === 1 ? 'flight' : 'flights'}`;
+}
+
+function validationInput(fields: PdfImportEntryDraft): ManualEntryInput {
+  const input = manualEntryInput({
+    ...fields,
+    id: 'pdf-import-review',
+    source: 'pdf_import',
+    createdAt: '',
+    updatedAt: '',
+  });
+  input.date = fields.date ?? '';
+  for (const [field] of numericEntryFields) {
+    input[field] = Number.isNaN(fields[field]) ? '' : String(fields[field]);
+  }
+  return input;
+}
+
+function toEntryDraft(
+  result: Extract<ReturnType<typeof validateManualEntry>, { success: true }>,
+): PdfImportEntryDraft {
+  const {
+    id: _id,
+    source: _source,
+    importBatchId: _importBatchId,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...fields
+  } = result.entry;
+  return fields;
 }
 
 function normalizeText(field: TextField, value: string): string {
@@ -71,6 +90,7 @@ function CandidateField({
   field,
   label,
   onChange,
+  error,
   type,
   value,
 }: {
@@ -78,22 +98,28 @@ function CandidateField({
   field: TextField | NumberField;
   label: string;
   onChange(field: TextField | NumberField, value: string): void;
+  error?: string;
   type: 'date' | 'number' | 'text' | 'time';
   value: string | number | undefined;
 }) {
   const id = `candidate-${candidateIndex}-${field}`;
+  const errorId = `${id}-error`;
+  const inputValue = typeof value === 'number' && Number.isNaN(value) ? '' : value ?? '';
   return (
-    <label className="review-field" htmlFor={id}>
-      <span>{label}</span>
+    <div className="review-field">
+      <label htmlFor={id}>{label}</label>
       <input
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={Boolean(error)}
         id={id}
         min={type === 'number' ? 0 : undefined}
         onChange={(event) => onChange(field, event.target.value)}
         step={type === 'number' ? 1 : undefined}
         type={type}
-        value={value ?? ''}
+        value={inputValue}
       />
-    </label>
+      {error ? <span className="review-field__error" id={errorId}>{error}</span> : null}
+    </div>
   );
 }
 
@@ -102,6 +128,7 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
   const { clearDraft, draft, setDraft } = useImportDraft();
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string>();
+  const [fieldErrors, setFieldErrors] = useState<Record<number, EntryFieldErrors>>({});
   const approvedCount = useMemo(
     () => draft?.candidates.filter(({ approved }) => approved).length ?? 0,
     [draft],
@@ -131,10 +158,14 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
   }
 
   function updateField(index: number, field: TextField | NumberField, value: string) {
+    setFieldErrors((current) => ({
+      ...current,
+      [index]: { ...current[index], [field as keyof ManualEntryInput]: undefined },
+    }));
     updateCandidate(index, (candidate) => {
       const fields: PdfImportEntryDraft = { ...candidate.fields };
-      if (numberFields.some(([numberField]) => numberField === field)) {
-        (fields[field as NumberField] as number) = value === '' ? 0 : Number(value);
+      if (numericEntryFields.some(([numberField]) => numberField === field)) {
+        (fields[field as NumberField] as number) = value === '' ? Number.NaN : Number(value);
       } else {
         (fields[field as TextField] as string | undefined) = normalizeText(field as TextField, value) || undefined;
       }
@@ -144,10 +175,26 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
 
   async function confirmImport() {
     if (!draft || approvedCount === 0) return;
+    const nextFieldErrors: Record<number, EntryFieldErrors> = {};
+    const validatedCandidates = draft.candidates.map((candidate, index) => {
+      if (!candidate.approved) return candidate;
+      const result = validateManualEntry(validationInput(candidate.fields));
+      if (!result.success) {
+        nextFieldErrors[index] = result.errors;
+        return candidate;
+      }
+      return { ...candidate, fields: toEntryDraft(result) };
+    });
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      return;
+    }
+
+    setFieldErrors({});
     setIsImporting(true);
     setError(undefined);
     try {
-      await importApprovedPdfCandidates(db, draft.candidates);
+      await importApprovedPdfCandidates(db, validatedCandidates);
       clearDraft();
       navigate('/logbook');
     } catch {
@@ -221,6 +268,7 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
                 <CandidateField
                   candidateIndex={index}
                   field={field}
+                  error={fieldErrors[index]?.[field as keyof ManualEntryInput]}
                   key={field}
                   label={label}
                   onChange={(nextField, value) => updateField(index, nextField, value)}
@@ -228,9 +276,10 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
                   value={candidate.fields[field]}
                 />
               ))}
-              {numberFields.map(([field, label]) => (
+              {numericEntryFields.map(([field, label]) => (
                 <CandidateField
                   candidateIndex={index}
+                  error={fieldErrors[index]?.[field]}
                   field={field}
                   key={field}
                   label={label}
