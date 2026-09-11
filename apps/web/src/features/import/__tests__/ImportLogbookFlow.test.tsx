@@ -136,6 +136,37 @@ describe('logbook PDF import routes', () => {
     await expect(db.flightEntries.count()).resolves.toBe(0);
   });
 
+  test('does not open review after the picker is left while extraction is pending', async () => {
+    db = createPilotLogbookDb('pdf-import-leave-picker-test');
+    let finishExtraction: ((pages: ExtractedPage[]) => void) | undefined;
+    extractPdfText.mockImplementationOnce(
+      () => new Promise<ExtractedPage[]>((resolve) => {
+        finishExtraction = resolve;
+      }),
+    );
+    render(
+      <MemoryRouter initialEntries={['/import/logbook']}>
+        <AppRoutes db={db} />
+      </MemoryRouter>,
+    );
+
+    await choosePdf();
+    fireEvent.click(screen.getByRole('link', { name: /logbook/i }));
+    expect(await screen.findByRole('heading', { name: 'Pilot Logbook' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'No flights yet' })).toBeVisible();
+
+    await act(async () => {
+      finishExtraction?.(
+        pageWithLine(['11/09/2026', 'UAAA', 'UACC', '08:00', '09:30']),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(screen.getByRole('heading', { name: 'Pilot Logbook' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Review imported flights' })).toBeNull();
+    await expect(db.flightEntries.count()).resolves.toBe(0);
+  });
+
   test('shows an actionable extraction error and offers another file', async () => {
     db = createPilotLogbookDb('pdf-import-extraction-error-test');
     extractPdfText.mockRejectedValue(new Error('Encrypted PDF'));

@@ -9,26 +9,33 @@ GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 /** Extracts positioned text from a PDF using PDF.js in the browser. */
 export async function extractPdfText(file: File): Promise<ExtractedPage[]> {
   const loadingTask = getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
-  const document = await loadingTask.promise;
-  const pages: ExtractedPage[] = [];
+  let document: Awaited<typeof loadingTask.promise> | undefined;
 
-  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
-    const page = await document.getPage(pageNumber);
-    const viewport = page.getViewport({ scale: 1 });
-    const content = await page.getTextContent();
+  try {
+    document = await loadingTask.promise;
+    const pages: ExtractedPage[] = [];
 
-    const items = content.items
-      .filter((item) => 'str' in item)
-      .map((item) => ({
-        str: item.str,
-        x: item.transform[4],
-        // PDF text space is bottom-origin; core expects ascending y in reading order.
-        y: viewport.height - item.transform[5],
-        width: item.width,
-      }));
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1 });
+      const content = await page.getTextContent();
 
-    pages.push({ items, width: viewport.width, height: viewport.height });
+      const items = content.items
+        .filter((item) => 'str' in item)
+        .map((item) => {
+          const [x, y] = viewport.convertToViewportPoint(item.transform[4], item.transform[5]);
+          return { str: item.str, x, y, width: item.width };
+        });
+
+      pages.push({ items, width: viewport.width, height: viewport.height });
+    }
+
+    return pages;
+  } finally {
+    try {
+      await document?.cleanup();
+    } finally {
+      await loadingTask.destroy();
+    }
   }
-
-  return pages;
 }

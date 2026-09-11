@@ -44,11 +44,13 @@ export async function preparePdfImportCandidates(
 ): Promise<PdfImportCandidateDraft[]> {
   const existingEntries = await db.flightEntries.toArray();
 
-  return annotateDuplicates([...candidates], existingEntries).map((candidate) => ({
-    ...candidate,
-    fields: toEntryDraft(candidate.fields),
-    approved: !candidate.isDuplicate,
-  }));
+  return annotateDuplicates([...candidates], existingEntries)
+    .filter(({ isDuplicate }) => !isDuplicate)
+    .map((candidate) => ({
+      ...candidate,
+      fields: toEntryDraft(candidate.fields),
+      approved: true,
+    }));
 }
 
 export async function importApprovedPdfCandidates(

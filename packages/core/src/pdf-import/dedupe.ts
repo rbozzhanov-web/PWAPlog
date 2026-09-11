@@ -9,21 +9,27 @@ export interface AnnotatedCandidate extends ParsedCandidate {
  * Flags candidates that already exist in the logbook (same date + departure + arrival airport,
  * and matching registration/timeOut when both sides have one). Airline reports commonly cover
  * overlapping periods — e.g. two monthly downloads sharing a few days — so re-importing must not
- * silently double-count hours. Flagged rows are still returned (never dropped): the review screen
- * default-excludes them but lets the user re-include a deliberate re-import.
+ * silently double-count hours. Repeats later in the same candidate list are also flagged so a
+ * caller can keep the first occurrence and remove the rest before review.
  */
 export function annotateDuplicates(
   candidates: ParsedCandidate[],
   existingEntries: FlightLogEntry[],
 ): AnnotatedCandidate[] {
-  return candidates.map((candidate) => {
-    const isDuplicate = existingEntries.some((existing) => isLikelyDuplicate(candidate, existing));
+  return candidates.map((candidate, index) => {
+    const isDuplicate = existingEntries.some((existing) =>
+      isLikelyDuplicateFields(candidate.fields, existing),
+    ) || candidates.slice(0, index).some((previous) =>
+      isLikelyDuplicateFields(candidate.fields, previous.fields),
+    );
     return { ...candidate, isDuplicate };
   });
 }
 
-function isLikelyDuplicate(candidate: ParsedCandidate, existing: FlightLogEntry): boolean {
-  const fields = candidate.fields;
+function isLikelyDuplicateFields(
+  fields: Partial<FlightLogEntry>,
+  existing: Partial<FlightLogEntry>,
+): boolean {
   if (!fields.date || !fields.departureAirport || !fields.arrivalAirport) return false;
 
   if (fields.date !== existing.date) return false;

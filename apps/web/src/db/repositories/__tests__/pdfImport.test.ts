@@ -50,31 +50,31 @@ describe('PDF import repository', () => {
     await db?.delete();
   });
 
-  test('prepares typed review drafts with core duplicates defaulted to unapproved and performs no writes', async () => {
+  test('removes persisted and same-PDF duplicates before review and performs no writes', async () => {
     db = createPilotLogbookDb('pdf-import-prepare-test');
     await db.flightEntries.add(storedEntry());
 
     const candidates = await preparePdfImportCandidates(db, [
       parsedCandidate(),
       parsedCandidate({ aircraftRegistration: 'EI-KEB' }),
+      parsedCandidate({ aircraftRegistration: 'EI-KEB' }),
+      parsedCandidate({ aircraftRegistration: 'EI-KEC', date: '2026-07-03' }),
     ]);
 
     expect(candidates).toMatchObject([
       {
-        isDuplicate: true,
-        approved: false,
+        isDuplicate: false,
+        approved: true,
         fields: {
-          date: '2026-07-02',
-          departureAirport: 'UACC',
-          arrivalAirport: 'EDDF',
-          totalTimeMinutes: 457,
+          aircraftRegistration: 'EI-KEB',
         },
       },
       {
         isDuplicate: false,
         approved: true,
         fields: {
-          aircraftRegistration: 'EI-KEB',
+          date: '2026-07-03',
+          aircraftRegistration: 'EI-KEC',
         },
       },
     ]);

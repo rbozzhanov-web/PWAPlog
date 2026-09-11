@@ -109,6 +109,10 @@ describe('LogbookPage', () => {
       'href',
       '/logbook/new',
     );
+    expect(screen.getByRole('link', { name: 'Import PDF' })).toHaveAttribute(
+      'href',
+      '/import/logbook',
+    );
   });
 
   test('renders a useful empty state', async () => {

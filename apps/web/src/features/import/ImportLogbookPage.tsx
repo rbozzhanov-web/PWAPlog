@@ -1,5 +1,6 @@
 import { parseRoster } from '@pilot-logbook/core';
 import {
+  useEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -27,10 +28,16 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const processingRef = useRef(false);
+  const processingTokenRef = useRef(0);
   const { clearDraft, setDraft } = useImportDraft();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>();
+
+  useEffect(() => () => {
+    processingTokenRef.current += 1;
+    processingRef.current = false;
+  }, []);
 
   async function processFile(file: File) {
     if (processingRef.current) return;
@@ -42,14 +49,18 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
     }
 
     processingRef.current = true;
+    const processingToken = ++processingTokenRef.current;
     setIsProcessing(true);
     try {
-      const result = parseRoster(await extractPdfText(file));
+      const pages = await extractPdfText(file);
+      if (processingToken !== processingTokenRef.current) return;
+      const result = parseRoster(pages);
       if (result.candidates.length === 0) {
         setError('No flight entries were found. Check the report and choose another PDF.');
         return;
       }
       const candidates = await preparePdfImportCandidates(db, result.candidates);
+      if (processingToken !== processingTokenRef.current) return;
       setDraft({
         candidates,
         crossChecks: result.crossChecks,
@@ -58,10 +69,12 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
       });
       navigate('/import/review');
     } catch {
-      setError(EXTRACTION_ERROR);
+      if (processingToken === processingTokenRef.current) setError(EXTRACTION_ERROR);
     } finally {
-      processingRef.current = false;
-      setIsProcessing(false);
+      if (processingToken === processingTokenRef.current) {
+        processingRef.current = false;
+        setIsProcessing(false);
+      }
     }
   }
 

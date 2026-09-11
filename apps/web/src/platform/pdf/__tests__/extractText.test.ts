@@ -35,11 +35,21 @@ function textItem(str: string, x: number, y: number, width: number) {
 }
 
 describe('browser PDF text extraction', () => {
-  test('normalizes PDF.js text items into top-origin extracted pages', async () => {
+  beforeEach(() => {
+    getDocument.mockReset();
+  });
+
+  test('normalizes cropped and rotated PDF.js coordinates through each page viewport', async () => {
     let loadedData: Uint8Array | undefined;
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+    const destroy = vi.fn().mockResolvedValue(undefined);
     const pages = [
       {
-        getViewport: () => ({ width: 612, height: 792 }),
+        getViewport: () => ({
+          width: 540,
+          height: 720,
+          convertToViewportPoint: (x: number, y: number) => [x - 36, 756 - y],
+        }),
         getTextContent: async () => ({
           items: [
             textItem('DATE', 72, 720, 28),
@@ -49,7 +59,11 @@ describe('browser PDF text extraction', () => {
         }),
       },
       {
-        getViewport: () => ({ width: 595, height: 842 }),
+        getViewport: () => ({
+          width: 842,
+          height: 595,
+          convertToViewportPoint: (x: number, y: number) => [842 - y, x],
+        }),
         getTextContent: async () => ({
           items: [textItem('TOTAL', 48, 80, 36)],
         }),
@@ -59,7 +73,9 @@ describe('browser PDF text extraction', () => {
     getDocument.mockImplementation(({ data }: { data: Uint8Array }) => {
       loadedData = data;
       return {
+        destroy,
         promise: Promise.resolve({
+          cleanup,
           numPages: pages.length,
           getPage: async (pageNumber: number) => pages[pageNumber - 1],
         }),
@@ -68,20 +84,59 @@ describe('browser PDF text extraction', () => {
 
     await expect(extractPdfText(pdfFile([37, 80, 68, 70]))).resolves.toEqual([
       {
-        width: 612,
-        height: 792,
+        width: 540,
+        height: 720,
         items: [
-          { str: 'DATE', x: 72, y: 72, width: 28 },
-          { str: '01.09.2026', x: 120, y: 92, width: 64 },
+          { str: 'DATE', x: 36, y: 36, width: 28 },
+          { str: '01.09.2026', x: 84, y: 56, width: 64 },
         ],
       },
       {
-        width: 595,
-        height: 842,
-        items: [{ str: 'TOTAL', x: 48, y: 762, width: 36 }],
+        width: 842,
+        height: 595,
+        items: [{ str: 'TOTAL', x: 762, y: 48, width: 36 }],
       },
     ]);
     expect(Array.from(loadedData ?? [])).toEqual([37, 80, 68, 70]);
     expect(workerOptions.workerSrc).toBe('/assets/pdf.worker.min.mjs');
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(destroy).toHaveBeenCalledOnce();
+  });
+
+  test('releases the document and loading task when page extraction fails', async () => {
+    const extractionError = new Error('broken text stream');
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    getDocument.mockReturnValue({
+      destroy,
+      promise: Promise.resolve({
+        cleanup,
+        numPages: 1,
+        getPage: async () => ({
+          getViewport: () => ({
+            width: 612,
+            height: 792,
+            convertToViewportPoint: (x: number, y: number) => [x, 792 - y],
+          }),
+          getTextContent: async () => { throw extractionError; },
+        }),
+      }),
+    });
+
+    await expect(extractPdfText(pdfFile([37, 80, 68, 70]))).rejects.toBe(extractionError);
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(destroy).toHaveBeenCalledOnce();
+  });
+
+  test('destroys the loading task when document loading fails', async () => {
+    const loadingError = new Error('encrypted document');
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    getDocument.mockReturnValue({
+      destroy,
+      promise: Promise.reject(loadingError),
+    });
+
+    await expect(extractPdfText(pdfFile([37, 80, 68, 70]))).rejects.toBe(loadingError);
+    expect(destroy).toHaveBeenCalledOnce();
   });
 });
