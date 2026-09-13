@@ -3,7 +3,8 @@ export type AimsFlight = { flightNumber: string; date: string; origin: string; d
 export type AimsDuty = { date: string; start?: string; end?: string; report?: string; release?: string; flights: AimsFlight[] };
 export type AimsHotel = { station: string; address?: string; phone?: string; locator?: string };
 export type AimsAbsence = { code: 'SICK' | 'UFF' | 'VAC' | 'CHLD'; date: string };
-export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; absences: AimsAbsence[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
+export type AimsActivity = { date: string; code: string; title?: string; type: string; location?: string; start?: string; end?: string };
+export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; absences: AimsAbsence[]; activities: AimsActivity[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
 
 type RecordValue = Record<string, unknown>;
 const storageKey = 'pwaplog.aims-roster.v1';
@@ -26,6 +27,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
   const events = Array.isArray(result.SchedulerEvents) ? result.SchedulerEvents : assignedArray(html, /var\s+Events\s*=/);
   const duties: AimsDuty[] = [];
   const absences: AimsAbsence[] = [];
+  const activities: AimsActivity[] = [];
   for (const event of events) {
     if (!record(event)) continue;
     const dutyDate = datePart(text(event.start));
@@ -33,6 +35,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     const absence = absenceCode(event); if (absence) absences.push({ code: absence, date: dutyDate });
     const flights = sectors(event, dutyDate);
     if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report), dutyDate), release: boundary(text(event.debrief), dutyDate), flights });
+    else { const code = eventCode(event); if (code) activities.push({ date: dutyDate, code, title: text(event.text).split(/\r?\n/)[1]?.trim() || undefined, type: text(event.type), location: text(event.location).trim() || undefined, start: boundary(text(event.start)), end: boundary(text(event.end)) }); }
   }
   if (!duties.length) throw new Error('The saved AIMS schedule contains no flight sectors. Make sure the calendar was fully loaded before saving it.');
   duties.sort((a, b) => (a.start ?? a.date).localeCompare(b.start ?? b.date));
@@ -44,7 +47,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     if (value !== undefined && label.includes('night')) summary.nightMinutes = value;
     return summary;
   }, {}) : {};
-  return { period: { start: periodStart, end: periodEnd }, duties, hotels: hotels(findElement(result.elementList, 'hotels')), absences, totals, importedAt: new Date().toISOString() };
+  return { period: { start: periodStart, end: periodEnd }, duties, hotels: hotels(findElement(result.elementList, 'hotels')), absences, activities, totals, importedAt: new Date().toISOString() };
 }
 
 function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
@@ -59,6 +62,7 @@ function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
 }
 function aircraft(event: RecordValue) { return ['aircraftType', 'AircraftType', 'aircraft', 'Aircraft', 'acType', 'ACType'].map((key) => scalar(event[key])).find(Boolean) || undefined; }
 function absenceCode(event: RecordValue): AimsAbsence['code'] | undefined { const value = `${text(event.type)} ${text(event.text)} ${text(event.details)}`.toUpperCase(); return (['SICK', 'UFF', 'VAC', 'CHLD'] as const).find((code) => new RegExp(`\\b${code}\\b`).test(value)); }
+function eventCode(event: RecordValue) { return /^([A-Z0-9]{2,8})\b/i.exec(text(event.text).trim())?.[1]?.toUpperCase(); }
 function attachCrew(duties: AimsDuty[], members?: RecordValue) {
   const groups = Array.isArray(members?.data) ? members.data : [];
   for (const group of groups) {
