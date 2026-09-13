@@ -74,6 +74,25 @@ body {
 .roster-flight-list strong { font-size: 0.94rem; letter-spacing: 0.01em; }
 .roster-flight-list i { color: #2f80ed; font-style: normal; }
 .roster-flight-list small { grid-column: 2; color: #617a95; font-size: 0.72rem; }
+.roster-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; margin: 0.95rem 0; }
+.roster-summary > div { display: grid; gap: 0.25rem; border: 1px solid rgb(255 255 255 / 68%); border-radius: 1rem; padding: 0.8rem; background: rgb(255 255 255 / 54%); box-shadow: 0 0.45rem 1.1rem rgb(35 91 145 / 7%); }
+.roster-summary span { color: #6c839a; font-size: 0.59rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.roster-summary strong { font-size: 1.05rem; letter-spacing: -.04em; }
+.roster-duty-list { display: grid; gap: 0.75rem; }
+.roster-duty-card { overflow: hidden; border: 1px solid rgb(255 255 255 / 72%); border-radius: 1.25rem; background: rgb(255 255 255 / 59%); box-shadow: 0 .7rem 1.6rem rgb(35 91 145 / 8%); backdrop-filter: blur(1rem); }
+.roster-duty-card > header { display: flex; align-items: center; justify-content: space-between; padding: .85rem 1rem; }
+.roster-duty-card > header p { margin: 0; color: #2f80ed; font-size: .61rem; font-weight: 850; letter-spacing: .1em; }
+.roster-duty-card > header h2 { margin: .14rem 0 0; font-size: 1.12rem; letter-spacing: -.04em; }
+.roster-duty-card > header > span { color: #56728e; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; font-weight: 700; }
+.roster-duty-card__sectors { border-top: 1px solid rgb(31 92 149 / 9%); }
+.roster-sector { display: flex; min-height: 3.7rem; align-items: center; justify-content: space-between; border-top: 1px solid rgb(31 92 149 / 7%); padding: .55rem 1rem; }
+.roster-sector:first-child { border-top: 0; }
+.roster-sector > div { display: grid; gap: .13rem; }
+.roster-sector strong { font-size: .93rem; letter-spacing: .01em; }
+.roster-sector i { color: #2f80ed; font-style: normal; }
+.roster-sector small { color: #66809b; font-size: .68rem; font-weight: 650; }
+.roster-sector > span { display: grid; gap: .12rem; color: #213c57; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .76rem; font-weight: 800; text-align: right; }
+.roster-sector > span small { font-family: inherit; }
 
 /* Logbook redraw: same information and routes, new eScrew material system. */
 .logbook-page { width: min(100%, 42rem); padding: max(1.25rem, env(safe-area-inset-top)) 1rem 2rem; }
