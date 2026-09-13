@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { loadAimsRoster, parseAimsArchive, saveAimsRoster, type AimsRoster } from './aims';
+import { id } from './FlightDetailPage';
 
 export function RosterPage() {
   const [roster, setRoster] = useState<AimsRoster>();
@@ -22,7 +24,7 @@ export function RosterPage() {
       {roster ? <section className="roster-summary" aria-label="Imported roster summary"><div><span>Duties</span><strong>{dutyCount}</strong></div><div><span>Sectors</span><strong>{flights.length}</strong></div><div><span>Source</span><strong>AIMS</strong></div></section> : null}
       {roster ? <section className="roster-duty-list">{roster.duties.map((duty, dutyIndex) => <article className="roster-duty-card" key={`${duty.date}-${dutyIndex}`}>
         <header><div><p>{new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${duty.date}T00:00:00Z`)).toUpperCase()}</p><h2>{new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${duty.date}T00:00:00Z`))}</h2></div><span>{duty.start?.slice(11) ?? duty.flights[0]?.departure} — {duty.end?.slice(11) ?? duty.flights.at(-1)?.arrival}</span></header>
-        <div className="roster-duty-card__sectors">{duty.flights.map((flight, index) => <div className="roster-sector" key={`${flight.date}-${flight.flightNumber}-${index}`}><div><strong>{flight.origin} <i>→</i> {flight.destination}</strong><small>{flight.flightNumber}{flight.deadhead ? ' · DHC' : ''}{flight.actualTimes ? ' · ACT' : ''}{flight.crew?.length ? ` · Crew ${flight.crew.length}` : ''}</small></div><span>{flight.departure}<small>{flight.arrival}</small></span></div>)}</div>
+        <div className="roster-duty-card__sectors">{duty.flights.map((flight, index) => <Link className="roster-sector" to={`/flight/${encodeURIComponent(id(flight))}`} key={`${flight.date}-${flight.flightNumber}-${index}`}><div><strong>{flight.origin} <i>→</i> {flight.destination}</strong><small>{flight.flightNumber}{flight.deadhead ? ' · DHC' : ''}{flight.actualTimes ? ' · ACT' : ''}{flight.crew?.length ? ` · Crew ${flight.crew.length}` : ''}</small></div><span>{flight.departure}<small>{flight.arrival}</small></span></Link>)}</div>
       </article>)}</section> : null}
     </main>
   );
