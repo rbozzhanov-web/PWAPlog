@@ -23,7 +23,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
   const periodStart = readLocalStorage(html, 'PeriodStart');
   const periodEnd = readLocalStorage(html, 'PeriodEnd');
   if (!validDate(periodStart) || !validDate(periodEnd)) throw new Error('Could not read the roster period from this AIMS archive.');
-  const events = Array.isArray(result.SchedulerEvents) ? result.SchedulerEvents : [];
+  const events = Array.isArray(result.SchedulerEvents) ? result.SchedulerEvents : assignedArray(html, /var\s+Events\s*=/);
   const duties: AimsDuty[] = [];
   const absences: AimsAbsence[] = [];
   for (const event of events) {
@@ -32,7 +32,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     if (!dutyDate) continue;
     const absence = absenceCode(event); if (absence) absences.push({ code: absence, date: dutyDate });
     const flights = sectors(event, dutyDate);
-    if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report)), release: boundary(text(event.debrief)), flights });
+    if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report), dutyDate), release: boundary(text(event.debrief), dutyDate), flights });
   }
   if (!duties.length) throw new Error('The saved AIMS schedule contains no flight sectors. Make sure the calendar was fully loaded before saving it.');
   duties.sort((a, b) => (a.start ?? a.date).localeCompare(b.start ?? b.date));
@@ -79,6 +79,7 @@ function attachCrew(duties: AimsDuty[], members?: RecordValue) {
 function hotels(element?: RecordValue): AimsHotel[] { return (Array.isArray(element?.data) ? element.data : []).flatMap((row): AimsHotel[] => { if (!record(row)) return []; const station = clean(text(row.port)); if (!station) return []; return [{ station, address: clean(text(row.addresses)) || undefined, phone: clean(text(row.phones)) || undefined, locator: clean(text(row.locators)) || undefined }]; }); }
 function findElement(value: unknown, id: string): RecordValue | undefined { if (Array.isArray(value)) return value.map((child) => findElement(child, id)).find(Boolean); if (!record(value)) return undefined; if (value.id === id) return value; return Object.values(value).map((child) => findElement(child, id)).find(Boolean); }
 function assignedJson(source: string): RecordValue { const marker = /var\s+initialResult\s*=/.exec(source); if (!marker) throw new Error('Could not find AIMS data in this saved file.'); const start = source.indexOf('{', marker.index); let depth = 0, quoted = false, escaped = false; for (let i = start; i < source.length; i += 1) { const char = source[i]; if (quoted) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === '"') quoted = false; continue; } if (char === '"') { quoted = true; continue; } if (char === '{') depth += 1; if (char === '}' && --depth === 0) { const parsed: unknown = JSON.parse(source.slice(start, i + 1)); if (record(parsed)) return parsed; } } throw new Error('AIMS schedule data is incomplete.'); }
+function assignedArray(source: string, pattern: RegExp): unknown[] { const marker = pattern.exec(source); if (!marker) return []; const start = source.indexOf('[', marker.index); let depth = 0, quoted = false, escaped = false; for (let i = start; i < source.length; i += 1) { const char = source[i]; if (quoted) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === '"') quoted = false; continue; } if (char === '"') { quoted = true; continue; } if (char === '[') depth += 1; if (char === ']' && --depth === 0) { const parsed: unknown = JSON.parse(source.slice(start, i + 1)); return Array.isArray(parsed) ? parsed : []; } } return []; }
 function decodeArchive(data: ArrayBuffer) { const bytes = new Uint8Array(data); const probe = new TextDecoder('windows-1252').decode(bytes.subarray(0, 256 * 1024)); const declared = /charset\s*=\s*["']?\s*([a-z0-9._-]+)/i.exec(probe)?.[1]?.toLowerCase(); return new TextDecoder(declared === 'windows-1251' || declared === 'cp1251' ? 'windows-1251' : 'utf-8').decode(bytes); }
 function readLocalStorage(source: string, key: string) { return new RegExp(`localStorage\\[['"]${key}['"]\\]\\s*=\\s*['"]([^'"]+)['"]`).exec(source)?.[1]; }
 function text(value: unknown) { return typeof value === 'string' ? value : ''; }
@@ -88,6 +89,6 @@ function minutes(value: string) { const match = /^(\d{1,3}):(\d{2})$/.exec(value
 function record(value: unknown): value is RecordValue { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
 function validDate(value?: string): value is string { return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value)); }
 function datePart(value: string) { const result = /^\d{4}-\d{2}-\d{2}/.exec(value); return result?.[0]; }
-function boundary(value: string) { const result = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(value); return result?.slice(1, 3).join('T'); }
+function boundary(value: string, date?: string) { const result = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(value); if (result) return result.slice(1, 3).join('T'); return date && /^\d{2}:\d{2}/.test(value) ? `${date}T${value.slice(0, 5)}` : undefined; }
 function time(value: string) { return `${value.slice(0, 2)}:${value.slice(2, 4)}`; }
 function addDays(value: string, days: number) { const [y, m, d] = value.split('-').map(Number); const date = new Date(Date.UTC(y, m - 1, d + days)); return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`; }
