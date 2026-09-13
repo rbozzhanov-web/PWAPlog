@@ -1,6 +1,6 @@
 export type AimsCrewMember = { id?: string; name: string; role: 'Flight deck' | 'Cabin'; position?: string; deadhead?: boolean };
-export type AimsFlight = { flightNumber: string; date: string; origin: string; destination: string; departure: string; arrival: string; arrivalDate?: string; deadhead: boolean; actualTimes: boolean; crew?: AimsCrewMember[] };
-export type AimsDuty = { date: string; start?: string; end?: string; flights: AimsFlight[] };
+export type AimsFlight = { flightNumber: string; date: string; origin: string; destination: string; departure: string; arrival: string; arrivalDate?: string; deadhead: boolean; actualTimes: boolean; aircraftType?: string; crew?: AimsCrewMember[] };
+export type AimsDuty = { date: string; start?: string; end?: string; report?: string; release?: string; flights: AimsFlight[] };
 export type AimsHotel = { station: string; address?: string; phone?: string; locator?: string };
 export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
 
@@ -29,7 +29,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     const dutyDate = datePart(text(event.start));
     if (!dutyDate) continue;
     const flights = sectors(event, dutyDate);
-    if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), flights });
+    if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report)), release: boundary(text(event.debrief)), flights });
   }
   if (!duties.length) throw new Error('The saved AIMS schedule contains no flight sectors. Make sure the calendar was fully loaded before saving it.');
   duties.sort((a, b) => (a.start ?? a.date).localeCompare(b.start ?? b.date));
@@ -50,10 +50,11 @@ function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
     const [, flightNumber, origin, outPrefix, out, outNext, destination, inPrefix, incoming, inNext] = match;
     const date = addDays(dutyDate, outNext ? 1 : 0); const arrivalDate = addDays(dutyDate, inNext ? 1 : 0);
     if (!date || !arrivalDate) continue;
-    parsed.push({ flightNumber: /^KC/i.test(flightNumber) ? flightNumber : `KC${flightNumber}`, date, origin, destination, departure: time(out), arrival: time(incoming), arrivalDate: arrivalDate !== date ? arrivalDate : undefined, deadhead: Boolean(event.IsDeadhead), actualTimes: outPrefix === 'A' && inPrefix === 'A' });
+    parsed.push({ flightNumber: /^KC/i.test(flightNumber) ? flightNumber : `KC${flightNumber}`, date, origin, destination, departure: time(out), arrival: time(incoming), arrivalDate: arrivalDate !== date ? arrivalDate : undefined, deadhead: Boolean(event.IsDeadhead), actualTimes: outPrefix === 'A' && inPrefix === 'A', aircraftType: aircraft(event) });
   }
   return parsed;
 }
+function aircraft(event: RecordValue) { return ['aircraftType', 'AircraftType', 'aircraft', 'Aircraft', 'acType', 'ACType'].map((key) => scalar(event[key])).find(Boolean) || undefined; }
 function attachCrew(duties: AimsDuty[], members?: RecordValue) {
   const groups = Array.isArray(members?.data) ? members.data : [];
   for (const group of groups) {
