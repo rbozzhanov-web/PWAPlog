@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 const items = [
   { to: '/', label: 'Home', icon: '⌂', end: true },
   { to: '/roster', label: 'Roster', icon: '✈' },
+  { to: '/pay', label: 'Pay', icon: '₸' },
   { to: '/logbook', label: 'Logbook', ariaLabel: 'Open flight records', icon: '◷' },
   { to: '/settings', label: 'More', icon: '•••' },
 ];
@@ -12,7 +13,7 @@ export function AppFrame() {
     <div className="app-frame">
       <div className="app-wallpaper" aria-hidden="true" />
       <div className="app-frame__content"><Outlet /></div>
-      <nav className="tab-dock" aria-label="Primary navigation">
+      <nav className="tab-dock tab-dock--five" aria-label="Primary navigation">
         {items.map((item) => (
           <NavLink
             className={({ isActive }) => `tab-dock__item${isActive ? ' tab-dock__item--active' : ''}`}
