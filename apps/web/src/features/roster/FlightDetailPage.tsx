@@ -15,6 +15,9 @@ export function FlightDetailPage() {
   const flight = useMemo(() => { const decoded = key ? decodeURIComponent(key) : ''; return duty?.flights.find((item) => id(item) === decoded); }, [key, duty]);
   const weatherWindow = flight ? layoverWindow(roster, flight) : undefined;
   const arrivalWeather = useArrivalWeather(flight?.destination, weatherWindow?.startDate, weatherWindow?.days);
+  const ordered = roster?.duties.flatMap((item) => item.flights).sort((a, b) => `${a.date}T${a.departure}`.localeCompare(`${b.date}T${b.departure}`)) ?? [];
+  const index = flight ? ordered.findIndex((item) => id(item) === id(flight)) : -1;
+  const hotel = flight ? roster?.hotels.find((item) => item.station.toUpperCase() === flight.destination.toUpperCase()) : undefined;
   if (!flight) return <main className="flight-detail-page"><Link to="/roster">‹ Roster</Link><section className="roster-empty-card"><h2>Flight not found</h2><p>Import the relevant AIMS roster again to view this sector.</p></section></main>;
   return <main className="flight-detail-page">
     <header className="flight-detail-header"><Link to="/roster">‹ Roster</Link><span>•••</span></header>
@@ -25,7 +28,8 @@ export function FlightDetailPage() {
     {tab === 'Times' ? <WeatherCard destination={flight.destination} date={arrivalDate(flight)} state={arrivalWeather} /> : null}
     {tab === 'Crew' ? <section className="flight-detail-card"><p>CREW</p>{flight.crew?.length ? flight.crew.map((member, index) => <div className="flight-crew-row" key={`${member.name}-${index}`}><b>{initials(member.name)}</b><span><strong>{member.name}</strong><small>{member.position ?? member.role}</small></span><i>›</i></div>) : <span className="flight-detail-empty">Crew is not present in this AIMS archive.</span>}</section> : null}
     {tab === 'Aircraft' ? <section className="flight-detail-card"><p>AIRCRAFT</p>{flight.aircraftType ? <strong className="flight-aircraft">{flight.aircraftType}</strong> : <span className="flight-detail-empty">Aircraft details are not present for this sector in the imported AIMS archive.</span>}</section> : null}
-    {tab === 'Notes' ? <section className="flight-detail-card"><p>NOTES</p><span className="flight-detail-empty">No local notes yet.</span></section> : null}
+    {tab === 'Notes' ? <section className="flight-detail-card"><p>LAYOVER · AIMS</p>{hotel ? <div className="flight-hotel"><strong>{hotel.station}</strong><span>{hotel.address}</span><span>{hotel.phone}</span><span>{hotel.locator ? `Locator: ${hotel.locator}` : null}</span></div> : <span className="flight-detail-empty">No hotel information for this arrival station in the imported archive.</span>}</section> : null}
+    {index >= 0 ? <nav className="flight-adjacent" aria-label="Adjacent flights">{ordered[index - 1] ? <Link to={`/flight/${encodeURIComponent(id(ordered[index - 1]))}`}>‹ {ordered[index - 1].origin}–{ordered[index - 1].destination}</Link> : <span />}{ordered[index + 1] ? <Link to={`/flight/${encodeURIComponent(id(ordered[index + 1]))}`}>{ordered[index + 1].origin}–{ordered[index + 1].destination} ›</Link> : <span />}</nav> : null}
   </main>;
 }
 
