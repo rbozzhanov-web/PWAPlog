@@ -26,7 +26,10 @@ export function PayPage({ db }: PayPageProps) {
   const days: MonthlyDays = useMemo(() => {
     const vacation = roster?.absences.filter((item) => item.code === 'VAC' && item.date.startsWith(month ?? '')).map((item) => item.date) ?? [];
     const paidVacationDays = vacation.filter((date) => new Date(`${date}T00:00:00Z`).getUTCDay() !== 0).length;
-    return { vacationDays: vacation.length, paidVacationDays, trainingDays: 0, medicalExamDays: 0 };
+    const activities = roster?.activities?.filter((item) => item.date.startsWith(month ?? '')) ?? [];
+    const medicalExamDays = activities.filter((item) => /^MED(?:\d|A)/.test(item.code)).length;
+    const trainingDays = activities.filter((item) => /^(GRTC|TRN|SIM|LPC|OPC)/.test(item.code)).length;
+    return { vacationDays: vacation.length, paidVacationDays, trainingDays, medicalExamDays };
   }, [roster, month]);
   const result = month && rate > 0 ? calculatePayPeriod(sectors, month, settings, { [month]: rate }, { [month]: days }) : undefined;
   const save = async () => { await db.settings.put({ id: 'pay-settings', ...settings }); if (month && rate > 0) await db.exchangeRates.put({ month, rate, source: 'manual', updatedAt: new Date().toISOString() }); setSaved(true); };
@@ -36,7 +39,7 @@ export function PayPage({ db }: PayPageProps) {
     <header className="suite-page-header"><p>CREW PAY</p><h1>Pay</h1><span>AIMS sectors → CrewPay norms → payroll rules already built into PWAPlog.</span></header>
     {!roster || !month ? <section className="roster-empty-card"><span aria-hidden="true">₸</span><h2>Import an AIMS roster first</h2><p>Pay uses the factual sector dates and routes from your locally saved Web Archive.</p></section> : <>
       <section className="pay-setup"><label>EUR / KZT for {month}<input inputMode="decimal" value={rate || ''} placeholder="Rate" onChange={(event) => setRate(Number(event.target.value) || 0)} /></label>{labels.map(([key, label, unit]) => <label key={key}>{label}<span>{unit}</span><input inputMode="decimal" value={settings[key] || ''} onChange={(event) => setValue(key, event.target.value)} /></label>)}<button type="button" onClick={() => void save()}>Save local pay settings</button>{saved ? <p>Saved only on this device.</p> : null}</section>
-      {result ? <section className="pay-result"><p>{month} · {result.hours.totalMinutes / 60} norm hours</p><h2>{money(result.payroll.netPay)} ₸</h2><span>Estimated take-home</span><div><p>Gross <strong>{money(result.earnings.total)} ₸</strong></p><p>Flight pay <strong>{money(result.earnings.flightPay)} ₸</strong></p><p>Tax & deductions <strong>{money(result.payroll.totalDeductions)} ₸</strong></p>{days.vacationDays ? <p>Vacation from AIMS <strong>{days.vacationDays} days · {days.paidVacationDays} paid</strong></p> : null}</div></section> : <p className="pay-hint">Enter the EUR/KZT rate and your stored terms to calculate this roster.</p>}
+      {result ? <section className="pay-result"><p>{month} · {result.hours.totalMinutes / 60} norm hours</p><h2>{money(result.payroll.netPay)} ₸</h2><span>Estimated take-home</span><div><p>Gross <strong>{money(result.earnings.total)} ₸</strong></p><p>Salary <strong>{money(result.earnings.salary)} ₸</strong></p><p>Flight pay <strong>{money(result.earnings.flightPay)} ₸</strong></p><p>Night allowance <strong>{money(result.earnings.nightAllowance)} ₸</strong></p><p>Productivity <strong>{money(result.earnings.productivityAllowance)} ₸</strong></p><p>Transport <strong>{money(result.earnings.transportAllowance)} ₸</strong></p><p>Tax & deductions <strong>{money(result.payroll.totalDeductions)} ₸</strong></p>{days.vacationDays || days.trainingDays || days.medicalExamDays ? <p>AIMS paid days <strong>VAC {days.paidVacationDays} · TRN {days.trainingDays} · MED {days.medicalExamDays}</strong></p> : null}</div></section> : <p className="pay-hint">Enter the EUR/KZT rate and your stored terms to calculate this roster.</p>}
     </>}
   </main>;
 }
