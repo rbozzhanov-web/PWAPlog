@@ -10,6 +10,7 @@ import { LogbookPage } from '../features/logbook/LogbookPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { HomePage } from '../features/home/HomePage';
 import { RosterPage } from '../features/roster/RosterPage';
+import { FlightDetailPage } from '../features/roster/FlightDetailPage';
 import { PayPage } from '../features/pay/PayPage';
 
 const db = createPilotLogbookDb();
@@ -33,6 +34,7 @@ export function AppRoutes({ db: routeDb = db }: AppRoutesProps) {
           <Route element={<AppFrame />}>
             <Route path="/" element={<HomePage db={routeDb} />} />
             <Route path="/roster" element={<RosterPage />} />
+            <Route path="/flight/:key" element={<FlightDetailPage />} />
             <Route path="/pay" element={<PayPage db={routeDb} />} />
             <Route path="/logbook" element={<LogbookPage db={routeDb} />} />
             <Route path="/logbook/new" element={<EntryEditorPage db={routeDb} />} />
