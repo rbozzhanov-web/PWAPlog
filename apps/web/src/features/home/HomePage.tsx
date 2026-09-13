@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import type { PilotLogbookDb } from '../../db/database';
 import { listFlightEntries } from '../../db/repositories/flightEntries';
 import { formatFlightMinutes, sumFlightMinutes } from '../logbook/totals';
+import { loadAimsRoster, type AimsFlight } from '../roster/aims';
+import { id as flightId } from '../roster/FlightDetailPage';
 
 interface HomePageProps { db: PilotLogbookDb }
 
@@ -16,15 +18,20 @@ function dateLabel(date: string) {
 export function HomePage({ db }: HomePageProps) {
   const [entries, setEntries] = useState<FlightLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => Date.now());
+  const roster = useMemo(() => loadAimsRoster(), []);
 
   useEffect(() => {
     let live = true;
     listFlightEntries(db).then((next) => { if (live) setEntries(next); }).finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
   }, [db]);
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
 
   const recent = useMemo(() => entries.slice(0, 3), [entries]);
   const totalTime = useMemo(() => sumFlightMinutes(entries), [entries]);
+  const nextFlight = useMemo(() => roster?.duties.flatMap((duty) => duty.flights).filter((flight) => Date.parse(`${flight.date}T${flight.departure}:00`) >= now).sort((a, b) => `${a.date}T${a.departure}`.localeCompare(`${b.date}T${b.departure}`))[0], [roster, now]);
+  const countdown = nextFlight ? Math.max(0, Date.parse(`${nextFlight.date}T${nextFlight.departure}:00`) - now) : 0;
 
   return (
     <main className="home-page">
@@ -35,12 +42,12 @@ export function HomePage({ db }: HomePageProps) {
       </header>
 
       <section className="home-hero">
-        <p className="home-hero__eyebrow">Pilot logbook</p>
-        <h2>{loading ? 'Loading your flights' : entries.length ? 'Your flying, in one place.' : 'Ready for your next sector.'}</h2>
-        <p>Private to this device. Designed for roster context and a clean flight record.</p>
+        <p className="home-hero__eyebrow">{nextFlight ? 'NEXT AIMS SECTOR' : 'PILOT LOGBOOK'}</p>
+        <h2>{nextFlight ? `${nextFlight.origin} → ${nextFlight.destination}` : loading ? 'Loading your flights' : entries.length ? 'Your flying, in one place.' : 'Ready for your next sector.'}</h2>
+        <p>{nextFlight ? `${nextFlight.flightNumber} · ${nextFlight.date} · ${nextFlight.departure} · in ${clock(countdown)}` : 'Private to this device. Designed for roster context and a clean flight record.'}</p>
         <div className="home-hero__actions">
-          <Link to="/logbook/new">Log a flight <span>＋</span></Link>
-          <Link to="/import/logbook">Import PDF</Link>
+          {nextFlight ? <Link to={`/flight/${encodeURIComponent(flightId(nextFlight))}`}>Open flight <span>›</span></Link> : <Link to="/logbook/new">Log a flight <span>＋</span></Link>}
+          <Link to={roster ? "/roster" : "/import/logbook"}>{roster ? 'Open roster' : 'Import PDF'}</Link>
         </div>
       </section>
 
@@ -62,3 +69,4 @@ export function HomePage({ db }: HomePageProps) {
     </main>
   );
 }
+function clock(value: number) { const seconds = Math.floor(value / 1000); return `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
