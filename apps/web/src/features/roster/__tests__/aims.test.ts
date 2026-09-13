@@ -13,4 +13,10 @@ describe('parseAimsArchive', () => {
     expect(roster.absences).toEqual([{ code: 'VAC', date: '2026-09-15' }]);
     expect(roster.hotels[0].station).toBe('NQZ');
   });
+  it('accepts the real Web Archive Events shape and clock-only duty times', async () => {
+    const archive = `<script>localStorage['PeriodStart']='2026-09-01';localStorage['PeriodEnd']='2026-09-30';var initialResult={};var Events=[{"start":"2026-09-04T10:40:00","end":"2026-09-04T17:24:00","report":"10:40","debrief":"17:24","type":"Flight","details":"921 - NQZ (A1217) - FRA (A1654)","IsDeadhead":false}];</script>CrewSchedule`;
+    const roster = await parseAimsArchive({ arrayBuffer: async () => new TextEncoder().encode(archive).buffer } as File);
+    expect(roster.duties[0]).toMatchObject({ report: '2026-09-04T10:40', release: '2026-09-04T17:24' });
+    expect(roster.duties[0].flights[0]).toMatchObject({ flightNumber: 'KC921', origin: 'NQZ', destination: 'FRA' });
+  });
 });
