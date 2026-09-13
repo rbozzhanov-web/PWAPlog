@@ -32,19 +32,23 @@ export function HomePage({ db }: HomePageProps) {
   const totalTime = useMemo(() => sumFlightMinutes(entries), [entries]);
   const nextFlight = useMemo(() => roster?.duties.flatMap((duty) => duty.flights).filter((flight) => Date.parse(`${flight.date}T${flight.departure}:00`) >= now).sort((a, b) => `${a.date}T${a.departure}`.localeCompare(`${b.date}T${b.departure}`))[0], [roster, now]);
   const countdown = nextFlight ? Math.max(0, Date.parse(`${nextFlight.date}T${nextFlight.departure}:00`) - now) : 0;
+  const today = new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date()).toUpperCase();
 
   return (
     <main className="home-page">
       <header className="suite-header">
         <div className="suite-mark" aria-hidden="true">✈</div>
-        <div><p>PRIVATE FLIGHT COMPANION</p><h1>eScrew</h1></div>
+        <div><h1>eScrew</h1><p>{today}</p></div>
         <Link className="suite-header__more" to="/settings" aria-label="Open settings">•••</Link>
       </header>
 
       <section className="home-hero">
-        <p className="home-hero__eyebrow">{nextFlight ? 'NEXT AIMS SECTOR' : 'PILOT LOGBOOK'}</p>
-        <h2>{nextFlight ? `${nextFlight.origin} → ${nextFlight.destination}` : loading ? 'Loading your flights' : entries.length ? 'Your flying, in one place.' : 'Ready for your next sector.'}</h2>
-        <p>{nextFlight ? `${nextFlight.flightNumber} · ${nextFlight.date} · ${nextFlight.departure} · in ${clock(countdown)}` : 'Private to this device. Designed for roster context and a clean flight record.'}</p>
+        <p className="home-hero__eyebrow">{nextFlight ? 'TODAY · NEXT SECTOR' : 'PILOT LOGBOOK'}</p>
+        {nextFlight ? <>
+          <div className="home-route"><span><strong>{nextFlight.origin}</strong><small>{airportName(nextFlight.origin)}</small></span><b aria-hidden="true">✈</b><span><strong>{nextFlight.destination}</strong><small>{airportName(nextFlight.destination)}</small></span></div>
+          <p className="home-flight-meta">{nextFlight.flightNumber} · {nextFlight.aircraftType ?? 'AIMS'} · DEP {nextFlight.departure} · IN {clock(countdown)}</p>
+          <div className="home-time-grid"><div><span>Report</span><strong>{reportTime(nextFlight)}</strong><small>UTC</small></div><div><span>Departure</span><strong>{nextFlight.departure}</strong><small>UTC</small></div><div><span>Landing</span><strong>{nextFlight.arrival}</strong><small>UTC</small></div></div>
+        </> : <><h2>{loading ? 'Loading your flights' : entries.length ? 'Your flying, in one place.' : 'Ready for your next sector.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
         <div className="home-hero__actions">
           {nextFlight ? <Link to={`/flight/${encodeURIComponent(flightId(nextFlight))}`}>Open flight <span>›</span></Link> : <Link to="/logbook/new">Log a flight <span>＋</span></Link>}
           <Link to={roster ? "/roster" : "/import/logbook"}>{roster ? 'Open roster' : 'Import PDF'}</Link>
@@ -70,3 +74,5 @@ export function HomePage({ db }: HomePageProps) {
   );
 }
 function clock(value: number) { const seconds = Math.floor(value / 1000); return `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
+function reportTime(flight: AimsFlight) { const value = new Date(`${flight.date}T${flight.departure}:00Z`).getTime() - 60 * 60 * 1000; return new Date(value).toISOString().slice(11, 16); }
+function airportName(code: string) { return ({ ALA: 'ALMATY', NQZ: 'ASTANA', FRA: 'FRANKFURT', ICN: 'SEOUL', AYT: 'ANTALYA' } as Record<string, string>)[code] ?? code; }
