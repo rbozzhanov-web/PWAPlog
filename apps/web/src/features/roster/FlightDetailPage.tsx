@@ -11,7 +11,8 @@ function initials(name: string) { return name.split(/\s+/).map((part) => part[0]
 export function FlightDetailPage() {
   const { key } = useParams(); const [tab, setTab] = useState<DetailTab>('Times');
   const roster = useMemo(() => loadAimsRoster(), []);
-  const flight = useMemo(() => { const decoded = key ? decodeURIComponent(key) : ''; return roster?.duties.flatMap((duty) => duty.flights).find((item) => id(item) === decoded); }, [key, roster]);
+  const duty = useMemo(() => { const decoded = key ? decodeURIComponent(key) : ''; return roster?.duties.find((item) => item.flights.some((flight) => id(flight) === decoded)); }, [key, roster]);
+  const flight = useMemo(() => { const decoded = key ? decodeURIComponent(key) : ''; return duty?.flights.find((item) => id(item) === decoded); }, [key, duty]);
   const weatherWindow = flight ? layoverWindow(roster, flight) : undefined;
   const arrivalWeather = useArrivalWeather(flight?.destination, weatherWindow?.startDate, weatherWindow?.days);
   if (!flight) return <main className="flight-detail-page"><Link to="/roster">‹ Roster</Link><section className="roster-empty-card"><h2>Flight not found</h2><p>Import the relevant AIMS roster again to view this sector.</p></section></main>;
@@ -20,10 +21,10 @@ export function FlightDetailPage() {
     <p className="flight-detail__eyebrow">FLIGHT <i>●</i></p><h1>{flight.flightNumber}</h1><p className="flight-detail__date">{label(flight.date)}</p>
     <section className="flight-detail-hero"><strong>{flight.origin} <i>→</i> {flight.destination}</strong><p>{flight.actualTimes ? 'Actual times' : 'Scheduled times'} · {flight.deadhead ? 'Deadhead' : 'Operating'}</p></section>
     <div className="flight-detail-tabs" role="tablist">{tabs.map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>{item}</button>)}</div>
-    {tab === 'Times' ? <section className="flight-detail-card"><p>TIMES · LOCAL</p><div className="flight-times"><span>DEP<strong>{flight.departure}</strong></span><span>ARR<strong>{flight.arrival}</strong></span><span>DATE<strong>{flight.arrivalDate ?? flight.date}</strong></span></div></section> : null}
+    {tab === 'Times' ? <section className="flight-detail-card"><p>TIMES · LOCAL</p><div className="flight-times"><span>DEP<strong>{flight.departure}</strong></span><span>ARR<strong>{flight.arrival}</strong></span><span>DATE<strong>{flight.arrivalDate ?? flight.date}</strong></span></div>{duty?.report || duty?.release ? <div className="flight-duty-times"><span>REPORT <strong>{duty.report?.slice(11) ?? '—'}</strong></span><span>RELEASE <strong>{duty.release?.slice(11) ?? '—'}</strong></span></div> : null}</section> : null}
     {tab === 'Times' ? <WeatherCard destination={flight.destination} date={arrivalDate(flight)} state={arrivalWeather} /> : null}
     {tab === 'Crew' ? <section className="flight-detail-card"><p>CREW</p>{flight.crew?.length ? flight.crew.map((member, index) => <div className="flight-crew-row" key={`${member.name}-${index}`}><b>{initials(member.name)}</b><span><strong>{member.name}</strong><small>{member.position ?? member.role}</small></span><i>›</i></div>) : <span className="flight-detail-empty">Crew is not present in this AIMS archive.</span>}</section> : null}
-    {tab === 'Aircraft' ? <section className="flight-detail-card"><p>AIRCRAFT</p><span className="flight-detail-empty">Aircraft details are not present for this sector in the imported AIMS archive.</span></section> : null}
+    {tab === 'Aircraft' ? <section className="flight-detail-card"><p>AIRCRAFT</p>{flight.aircraftType ? <strong className="flight-aircraft">{flight.aircraftType}</strong> : <span className="flight-detail-empty">Aircraft details are not present for this sector in the imported AIMS archive.</span>}</section> : null}
     {tab === 'Notes' ? <section className="flight-detail-card"><p>NOTES</p><span className="flight-detail-empty">No local notes yet.</span></section> : null}
   </main>;
 }
