@@ -2,7 +2,8 @@ export type AimsCrewMember = { id?: string; name: string; role: 'Flight deck' | 
 export type AimsFlight = { flightNumber: string; date: string; origin: string; destination: string; departure: string; arrival: string; arrivalDate?: string; deadhead: boolean; actualTimes: boolean; aircraftType?: string; crew?: AimsCrewMember[] };
 export type AimsDuty = { date: string; start?: string; end?: string; report?: string; release?: string; flights: AimsFlight[] };
 export type AimsHotel = { station: string; address?: string; phone?: string; locator?: string };
-export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
+export type AimsAbsence = { code: 'SICK' | 'UFF' | 'VAC' | 'CHLD'; date: string };
+export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; absences: AimsAbsence[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
 
 type RecordValue = Record<string, unknown>;
 const storageKey = 'pwaplog.aims-roster.v1';
@@ -24,10 +25,12 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
   if (!validDate(periodStart) || !validDate(periodEnd)) throw new Error('Could not read the roster period from this AIMS archive.');
   const events = Array.isArray(result.SchedulerEvents) ? result.SchedulerEvents : [];
   const duties: AimsDuty[] = [];
+  const absences: AimsAbsence[] = [];
   for (const event of events) {
     if (!record(event)) continue;
     const dutyDate = datePart(text(event.start));
     if (!dutyDate) continue;
+    const absence = absenceCode(event); if (absence) absences.push({ code: absence, date: dutyDate });
     const flights = sectors(event, dutyDate);
     if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report)), release: boundary(text(event.debrief)), flights });
   }
@@ -41,7 +44,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     if (value !== undefined && label.includes('night')) summary.nightMinutes = value;
     return summary;
   }, {}) : {};
-  return { period: { start: periodStart, end: periodEnd }, duties, hotels: hotels(findElement(result.elementList, 'hotels')), totals, importedAt: new Date().toISOString() };
+  return { period: { start: periodStart, end: periodEnd }, duties, hotels: hotels(findElement(result.elementList, 'hotels')), absences, totals, importedAt: new Date().toISOString() };
 }
 
 function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
@@ -55,6 +58,7 @@ function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
   return parsed;
 }
 function aircraft(event: RecordValue) { return ['aircraftType', 'AircraftType', 'aircraft', 'Aircraft', 'acType', 'ACType'].map((key) => scalar(event[key])).find(Boolean) || undefined; }
+function absenceCode(event: RecordValue): AimsAbsence['code'] | undefined { const value = `${text(event.type)} ${text(event.text)} ${text(event.details)}`.toUpperCase(); return (['SICK', 'UFF', 'VAC', 'CHLD'] as const).find((code) => new RegExp(`\\b${code}\\b`).test(value)); }
 function attachCrew(duties: AimsDuty[], members?: RecordValue) {
   const groups = Array.isArray(members?.data) ? members.data : [];
   for (const group of groups) {
