@@ -109,6 +109,7 @@ body {
 .pay-result > div p { display: flex; justify-content: space-between; margin: 0; color: #557089; font-size: .82rem; }
 .pay-result > div strong { color: #152b43; }
 .pay-hint { margin: 1rem 0; color: #607a94; text-align: center; }
+.pay-pdf-check { margin-top: .9rem; text-align: center; }.pay-pdf-check .roster-import-action { margin-top: 0; }.pay-pdf-check p { margin: .7rem 0 0; color: #607a94; font-size: .78rem; line-height: 1.4; }
 .flight-detail-page { width: min(100%, 42rem); box-sizing: border-box; margin: auto; padding: max(1.25rem, env(safe-area-inset-top)) 1rem 2rem; }
 .flight-detail-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
 .flight-detail-header a { color: #2f80ed; font-size: .86rem; font-weight: 800; text-decoration: none; }.flight-detail-header span { color: #45617d; font-weight: 800; }
@@ -996,4 +997,3 @@ label {
   color: #596b82;
   line-height: 1.55;
 }
-
