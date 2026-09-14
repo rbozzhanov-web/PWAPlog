@@ -14,14 +14,33 @@ export function RosterPage() {
   const importArchive = async (file?: File) => { if (!file) return; setImporting(true); setError(undefined); try { const next = await parseAimsArchive(file); saveAimsRoster(next); setRoster(next); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not import this AIMS archive.'); } finally { setImporting(false); } };
   return (
     <main className="roster-page">
-      <header className="suite-page-header"><p>CREW SCHEDULE</p><h1>Roster</h1><span>Import your saved AIMS Crew Schedule. It stays only on this device.</span></header>
-      <section className="roster-empty-card">
+      <header className="suite-page-header">
+        <p>CREW SCHEDULE</p>
+        <div className="roster-header__title">
+          <h1>Roster</h1>
+          <label className="roster-header__import">
+            <span aria-hidden="true">{roster ? '↻' : '+'}</span>
+            {importing ? 'Reading…' : roster ? 'Replace AIMS' : 'Add AIMS'}
+            <input
+              aria-label={roster ? 'Replace AIMS Web Archive' : 'Import AIMS Web Archive'}
+              type="file"
+              accept=".webarchive,text/html,application/octet-stream"
+              disabled={importing}
+              onChange={(event) => {
+                const input = event.currentTarget;
+                void importArchive(input.files?.[0]).finally(() => { input.value = ''; });
+              }}
+            />
+          </label>
+        </div>
+        <span>{roster ? `${roster.period.start} — ${roster.period.end} · saved locally` : 'Add a saved AIMS Crew Schedule Web Archive.'}</span>
+      </header>
+      {error ? <p className="roster-import-error" role="alert">{error}</p> : null}
+      {!roster ? <section className="roster-empty-card roster-empty-card--compact">
         <span aria-hidden="true">✈</span>
-        <h2>{roster ? `${flights.length} sectors imported` : 'Bring in your AIMS roster'}</h2>
-        <p>{roster ? `${roster.period.start} — ${roster.period.end}. This local schedule is the source for roster and future pay calculations.` : 'In AIMS, open Crew Schedule, wait for it to load, then save it as a Web Archive and select it here.'}</p>
-        <label className="roster-import-action">{importing ? 'Reading schedule…' : roster ? 'Replace AIMS archive' : 'Import Web Archive'}<input aria-label="Import AIMS Web Archive" type="file" accept=".webarchive,text/html,application/octet-stream" disabled={importing} onChange={(event) => void importArchive(event.target.files?.[0])} /></label>
-        {error ? <p className="roster-import-error" role="alert">{error}</p> : null}
-      </section>
+        <h2>Bring in your AIMS roster</h2>
+        <p>In AIMS, open Crew Schedule, wait for it to load, save it as a Web Archive, then use Add AIMS above.</p>
+      </section> : null}
       {roster ? <section className="roster-summary" aria-label="Imported roster summary"><div><span>Duties</span><strong>{dutyCount}</strong></div><div><span>Sectors</span><strong>{flights.length}</strong></div><div><span>Source</span><strong>AIMS</strong></div></section> : null}
       {roster ? <div className="roster-view-switch" role="tablist">{(['list', 'calendar', 'stats'] as const).map((item) => <button key={item} type="button" role="tab" aria-selected={view === item} onClick={() => setView(item)}>{item}</button>)}</div> : null}
       {roster && view === 'list' ? <section className="roster-duty-list">{roster.duties.map((duty, dutyIndex) => <article className="roster-duty-card" key={`${duty.date}-${dutyIndex}`}>
