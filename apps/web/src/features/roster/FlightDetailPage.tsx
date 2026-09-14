@@ -20,7 +20,7 @@ export function FlightDetailPage() {
   const hotel = flight ? roster?.hotels.find((item) => item.station.toUpperCase() === flight.destination.toUpperCase()) : undefined;
   if (!flight) return <main className="flight-detail-page"><Link to="/roster">‹ Roster</Link><section className="roster-empty-card"><h2>Flight not found</h2><p>Import the relevant AIMS roster again to view this sector.</p></section></main>;
   return <main className="flight-detail-page">
-    <header className="flight-detail-header"><Link to="/roster">‹ Roster</Link><span>•••</span></header>
+    <header className="flight-detail-header"><Link to="/roster">‹ Roster</Link></header>
     <p className="flight-detail__eyebrow">FLIGHT <i>●</i></p><h1>{flight.flightNumber}</h1><p className="flight-detail__date">{label(flight.date)}</p>
     <section className="flight-detail-hero"><strong>{flight.origin} <i>→</i> {flight.destination}</strong><p>{flight.actualTimes ? 'Actual times' : 'Scheduled times'} · {flight.deadhead ? 'Deadhead' : 'Operating'}</p></section>
     <div className="flight-detail-tabs" role="tablist">{tabs.map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>{item}</button>)}</div>
