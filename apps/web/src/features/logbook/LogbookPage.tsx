@@ -99,7 +99,6 @@ export function LogbookPage({ db }: LogbookPageProps) {
           <p className="logbook-header__intro">Your flights, saved privately on this device.</p>
         </div>
         <div className="logbook-header__actions">
-          <Link className="logbook-settings-link" to="/settings">Settings</Link>
           <Link className="logbook-settings-link" to="/import/logbook">Import PDF</Link>
           <button className="logbook-settings-link" type="button" onClick={() => void importCompletedAims()}>Import AIMS</button>
           <Link className="logbook-new-link" to="/logbook/new">
@@ -117,8 +116,7 @@ export function LogbookPage({ db }: LogbookPageProps) {
           <span className="logbook-empty__icon" aria-hidden="true">✈</span>
           <p className="logbook-empty__eyebrow">Ready for departure</p>
           <h2>No flights yet</h2>
-          <p>Add your first sector to start building this device’s local logbook.</p>
-          <Link className="logbook-new-link" to="/logbook/new">Log your first flight</Link>
+          <p>Use New flight above to start building this device’s local logbook.</p>
         </section>
       ) : null}
 
