@@ -108,32 +108,50 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
         <h2>Bring in your AIMS roster</h2>
         <p>In AIMS, open Crew Schedule, wait for it to load, save it as a Web Archive, then use Add AIMS above.</p>
       </section> : null}
-      {roster ? <section className="roster-duty-list">{rosterDays.map((day) => {
-        const isToday = day.date === today;
-        const codes = new Set(day.activities.map((activity) => activity.code.toUpperCase()));
-        const state = codes.has('OFF') ? 'off' : codes.has('DOFF') ? 'doff' : undefined;
-        return <article
-          className={`roster-duty-card roster-day-card${state ? ` roster-day-card--${state}` : ''}${isToday ? ' roster-day-card--today' : ''}`}
-          data-date={day.date}
-          key={day.date}
-          ref={isToday ? todayElement : undefined}
-        >
-          <header>
-            <div>
-              <p>{weekday(day.date)}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
-              <h2>{displayDate(day.date)}</h2>
-            </div>
-            <span>{dayTimeRange(day)}</span>
-          </header>
-          <div className="roster-duty-card__sectors">
-            {day.activities.map((activity, index) => <div className={`roster-activity roster-activity--${activity.code.toLowerCase()}`} key={`${activity.code}-${index}`}>
-              <div><strong>{activity.code}</strong><small>{activity.title || activity.type || 'Roster activity'}{activity.location ? ` · ${activity.location}` : ''}</small></div>
-              <span>{activityTime(activity)}</span>
-            </div>)}
-            {day.duties.flatMap((duty) => duty.flights).map((flight, index) => <Link className="roster-sector" to={`/flight/${encodeURIComponent(id(flight))}`} key={`${flight.date}-${flight.flightNumber}-${index}`}><div><strong>{flight.origin} <i>→</i> {flight.destination}</strong><small>{flight.flightNumber}{flight.deadhead ? ' · DHC' : ''}{flight.actualTimes ? ' · ACT' : ''}{flight.crew?.length ? ` · Crew ${flight.crew.length}` : ''}</small></div><span>{flight.departure}<small>{flight.arrival}</small></span></Link>)}
-          </div>
-        </article>;
-      })}</section> : null}
+      {roster ? <section aria-label="Crew schedule" className="roster-timeline">
+        {rosterDays.map((day) => {
+          const isToday = day.date === today;
+          const codes = new Set(day.activities.map((activity) => activity.code.toUpperCase()));
+          const state = codes.has('OFF') ? 'off' : codes.has('DOFF') ? 'doff' : undefined;
+          const dateLabel = compactDateLabel(day.date);
+          const stateClass = state ? ' roster-timeline__day--' + state : '';
+          const todayClass = isToday ? ' roster-timeline__day--today' : '';
+          return <div
+            aria-label={'Schedule for ' + displayDate(day.date) + ' · ' + dayTimeRange(day)}
+            className={'roster-timeline__day' + stateClass + todayClass}
+            data-date={day.date}
+            key={day.date}
+            ref={isToday ? todayElement : undefined}
+          >
+            {day.activities.map((activity, index) => {
+              const detail = [activity.type, activity.location].filter(Boolean).join(' · ');
+              const time = activityTime(activity);
+              return <article className={'roster-timeline-card roster-timeline-card--activity roster-timeline-card--' + activity.code.toLowerCase()} key={activity.code + '-' + index}>
+                <header className="roster-timeline-card__top">
+                  <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
+                  <span>{activity.code}</span>
+                </header>
+                <h2>{activity.title || activity.type || activity.code}</h2>
+                {detail ? <p>{detail}</p> : null}
+                {time !== 'ALL DAY' ? <small>{time}</small> : null}
+              </article>;
+            })}
+            {day.duties.flatMap((duty) => duty.flights.map((flight) => ({ duty, flight }))).map(({ duty, flight }, index) => {
+              const report = shortTime(duty.report) ?? shortTime(duty.start);
+              const status = [flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.actualTimes ? 'ACT' : undefined].filter(Boolean).join(' · ');
+              const timing = [flight.departure + ' – ' + flight.arrival, report ? 'Report ' + report : undefined, flight.crew?.length ? 'Crew ' + (flight.crew?.length ?? 0) : undefined].filter(Boolean).join(' · ');
+              return <Link className="roster-timeline-card roster-timeline-card--flight" to={'/flight/' + encodeURIComponent(id(flight))} key={flight.date + '-' + flight.flightNumber + '-' + index}>
+                <div className="roster-timeline-card__top">
+                  <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
+                  <span>{status}</span>
+                </div>
+                <strong>{flight.origin} <i>→</i> {flight.destination}</strong>
+                <p>{timing}</p>
+              </Link>;
+            })}
+          </div>;
+        })}
+      </section> : null}
       {importFlowOpen ? <div className="aims-import-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) closeImportFlow(); }}>
         <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog">
           <div className="aims-import-sheet__handle" aria-hidden="true" />
@@ -189,6 +207,7 @@ function localDateKey(value = new Date()) {
 function rosterDate(value: string) { return new Date(`${value}T00:00:00Z`); }
 function weekday(value: string) { return new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'UTC' }).format(rosterDate(value)).toUpperCase(); }
 function displayDate(value: string) { return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(rosterDate(value)); }
+function compactDateLabel(value: string) { const date = rosterDate(value); const month = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(date).toUpperCase(); return String(date.getUTCDate()).padStart(2, '0') + ' ' + month + ' · ' + weekday(value); }
 function shortTime(value?: string) { return value?.includes('T') ? value.slice(11, 16) : undefined; }
 function dayTimeRange(day: RosterDay) {
   const firstDuty = day.duties[0];
