@@ -43,7 +43,7 @@ describe('RosterPage AIMS import flow', () => {
     expect(screen.getByRole('dialog', { name: 'Import from AIMS' })).toBeVisible();
   });
 
-  it('shows flights and every roster activity in one list and highlights OFF, DOFF and today', () => {
+  it('shows flights and every roster activity in one list, highlights OFF, DOFF and today, and focuses today', async () => {
     const dateKey = (offset: number) => {
       const value = new Date();
       value.setDate(value.getDate() + offset);
@@ -52,6 +52,10 @@ describe('RosterPage AIMS import flow', () => {
     const offDate = dateKey(-1);
     const today = dateKey(0);
     const doffDate = dateKey(1);
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 1; });
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
     saveAimsRoster({
       period: { start: offDate, end: doffDate },
       duties: [{
@@ -82,5 +86,8 @@ describe('RosterPage AIMS import flow', () => {
     expect(container.querySelector(`[data-date="${doffDate}"]`)).toHaveClass('roster-day-card--doff');
     expect(container.querySelector(`[data-date="${today}"]`)).toHaveClass('roster-day-card--today');
     expect(screen.getByText('TODAY')).toBeVisible();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'auto' }));
+
+    vi.unstubAllGlobals();
   });
 });

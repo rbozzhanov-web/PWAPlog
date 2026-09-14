@@ -25,7 +25,7 @@ export function AppFrame() {
             key={item.to}
             to={item.to}
             aria-label={item.ariaLabel}
-            onClick={openTabFromTop}
+            onClick={item.to === '/roster' ? undefined : openTabFromTop}
           >
             <span aria-hidden="true">{item.icon}</span>
             <span aria-hidden={Boolean(item.ariaLabel)}>{item.label}</span>

@@ -19,11 +19,14 @@ test('opens backup onboarding from the settings route', async () => {
   expect(screen.getByText(/local to this browser and device/i)).toBeVisible();
 });
 
-test('opens every primary tab at the top of the page', () => {
+test('opens primary tabs at the top but leaves Roster focus behavior intact', () => {
   const scrollTo = vi.fn();
   vi.stubGlobal('scrollTo', scrollTo);
 
   render(<MemoryRouter><App /></MemoryRouter>);
+  fireEvent.click(screen.getByRole('link', { name: 'Roster' }));
+  expect(scrollTo).not.toHaveBeenCalled();
+
   fireEvent.click(screen.getByRole('link', { name: 'Pay' }));
 
   expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
