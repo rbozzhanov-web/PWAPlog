@@ -121,7 +121,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           const state = codes.has('OFF') ? 'off' : codes.has('DOFF') ? 'doff' : undefined;
           const dateLabel = compactDateLabel(day.date);
           const stateClass = state ? ' roster-timeline__day--' + state : '';
-          const flightDayClass = day.entries.some((entry) => entry.kind === 'flight') ? ' roster-timeline__day--flight' : '';
+          const flightDayClass = day.entries.some((entry) => entry.kind === 'flight' || (entry.kind === 'activity' && isFlightActivity(entry.activity))) ? ' roster-timeline__day--flight' : '';
           const todayClass = isToday ? ' roster-timeline__day--today' : '';
           return <div
             aria-label={'Schedule for ' + displayDate(day.date) + ' · ' + dayTimeRange(day)}
@@ -134,7 +134,18 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
               if (entry.kind === 'activity') {
                 const { activity } = entry;
                 const time = activityTime(activity);
+                const isFlight = isFlightActivity(activity);
                 const isHotel = isHotelActivity(activity);
+                if (isFlight) {
+                  return <article className="roster-timeline-card roster-timeline-card--flight roster-timeline-card--fallback-flight" key={'flight-activity-' + activity.code + '-' + index}>
+                    <header className="roster-timeline-card__top">
+                      <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
+                      <span>{activity.code}</span>
+                    </header>
+                    <strong>{activity.title || activity.location || activity.code}</strong>
+                    {time !== 'ALL DAY' ? <p>{time}</p> : null}
+                  </article>;
+                }
                 const hotel = isHotel ? hotelForActivity(roster.hotels, activity) : undefined;
                 const hotelName = hotel?.name || hotelActivityName(activity) || hotelNameFromAddress(hotel?.address);
                 const hotelAddress = hotelAddressWithoutName(hotel?.address, hotelName);
@@ -257,6 +268,9 @@ function activityTime(activity: AimsActivity) {
   return start || end ? `${start ?? '—'}–${end ?? '—'}` : 'ALL DAY';
 }
 
+function isFlightActivity(activity: AimsActivity) {
+  return /\bFLIGHT\b/i.test(activity.type) || /^F\d{1,5}$/i.test(activity.code) || /^[A-Z]{3}(?:-[A-Z]{3})+$/i.test(activity.title ?? '');
+}
 function isHotelActivity(activity: AimsActivity) {
   return /\bHOTEL\b/i.test([activity.code, activity.type, activity.title].filter(Boolean).join(' '));
 }
