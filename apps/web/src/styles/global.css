@@ -2756,3 +2756,228 @@ body,
 .pdf-review-actions {
   bottom: calc(var(--tab-dock-safe-clearance) + env(safe-area-inset-bottom, 0px));
 }
+
+
+/* The dock uses centered optical layers: each tab receives the same material at every position. */
+.tab-dock {
+  --tab-count: 5;
+  --tab-dock-inset: .28rem;
+  background:
+    radial-gradient(150% 125% at 50% -42%, rgb(255 255 255 / 92%) 0%, rgb(255 255 255 / 0%) 62%),
+    linear-gradient(180deg, rgb(255 255 255 / 76%) 0%, rgb(230 242 255 / 56%) 100%);
+}
+
+.tab-dock__indicator {
+  top: var(--tab-dock-inset);
+  right: auto;
+  bottom: var(--tab-dock-inset);
+  left: var(--tab-dock-inset);
+  width: calc((100% - .56rem) / var(--tab-count));
+  background:
+    radial-gradient(135% 95% at 50% 0%, rgb(255 255 255 / 98%) 0%, rgb(255 255 255 / 0%) 62%),
+    linear-gradient(180deg, rgb(255 255 255 / 86%) 0%, rgb(211 230 255 / 70%) 100%);
+}
+
+/* Appearance is global and persisted locally. */
+.settings-theme-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .3rem;
+  border-top: 1px solid var(--es-border);
+  padding: .55rem;
+  background: rgb(246 249 253 / 76%);
+}
+
+.settings-theme-picker button {
+  min-height: 2.5rem;
+  border: 1px solid transparent;
+  border-radius: .72rem;
+  background: transparent;
+  color: var(--es-muted);
+  cursor: pointer;
+  font-size: .76rem;
+  font-weight: 750;
+}
+
+.settings-theme-picker button.is-selected {
+  border-color: rgb(112 165 240 / 28%);
+  background: rgb(255 255 255 / 84%);
+  box-shadow: 0 .25rem .7rem rgb(21 80 147 / 10%), inset 0 1px 0 rgb(255 255 255 / 92%);
+  color: var(--es-blue);
+}
+
+/* Dark material reaches every route, including PDF import and logbook review. */
+html.theme-dark,
+html.theme-dark body {
+  color-scheme: dark;
+  background: #07111f;
+  color: #edf5ff;
+}
+
+.app-frame--dark {
+  --es-bg: #07111f;
+  --es-card: rgb(13 28 49 / 88%);
+  --es-border: rgb(181 213 247 / 16%);
+  --es-ink: #edf5ff;
+  --es-muted: #a9bad0;
+  --es-blue: #66a8ff;
+  --es-gold: #d7b66e;
+  color: var(--es-ink);
+}
+
+.app-frame--dark .app-wallpaper {
+  background:
+    linear-gradient(180deg, rgb(3 12 25 / 50%), rgb(3 12 25 / 78%)),
+    url('../assets/escrew-sky-background.webp') center top / cover no-repeat;
+}
+
+.app-frame--dark .primary-tab-header,
+.app-frame--dark .suite-header,
+.app-frame--dark .suite-page-header,
+.app-frame--dark .logbook-header,
+.app-frame--dark .settings-header {
+  border-color: rgb(198 224 255 / 19%);
+  background: linear-gradient(180deg, rgb(10 27 48 / 72%), rgb(10 27 48 / 42%));
+  box-shadow: inset 0 -1px 0 rgb(200 227 255 / 13%), 0 .7rem 1.6rem rgb(0 0 0 / 18%);
+}
+
+.app-frame--dark .primary-tab-header::after {
+  background: linear-gradient(180deg, rgb(133 190 255 / 13%), rgb(133 190 255 / 0%));
+}
+
+.app-frame--dark .primary-tab-header__titles span,
+.app-frame--dark .suite-header h1,
+.app-frame--dark .suite-page-header h1,
+.app-frame--dark .logbook-header h1,
+.app-frame--dark .settings-header h1 {
+  color: #f4f8ff;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 45%), 0 0 12px rgb(130 184 255 / 18%);
+}
+
+.app-frame--dark .tab-dock {
+  border-color: rgb(205 229 255 / 25%);
+  background:
+    radial-gradient(150% 125% at 50% -42%, rgb(174 216 255 / 26%) 0%, rgb(174 216 255 / 0%) 62%),
+    linear-gradient(180deg, rgb(13 32 57 / 83%) 0%, rgb(8 22 41 / 78%) 100%);
+  box-shadow: inset 0 1px 0 rgb(220 239 255 / 19%), 0 .7rem 2rem rgb(0 0 0 / 35%);
+}
+
+.app-frame--dark .tab-dock__indicator {
+  border-color: rgb(202 228 255 / 46%);
+  background:
+    radial-gradient(135% 95% at 50% 0%, rgb(233 246 255 / 40%) 0%, rgb(233 246 255 / 0%) 62%),
+    linear-gradient(180deg, rgb(50 112 190 / 78%) 0%, rgb(25 70 132 / 82%) 100%);
+  box-shadow: inset 0 1px 0 rgb(235 247 255 / 56%), inset 0 -1px 0 rgb(6 22 48 / 48%), 0 .38rem .95rem rgb(0 0 0 / 28%);
+}
+
+.app-frame--dark .tab-dock__item { color: #afbed1; }
+.app-frame--dark .tab-dock__item--active,
+.app-frame--dark .tab-dock__item--active > span:first-child { color: #b8dcff; }
+
+.app-frame--dark :is(
+  .home-hero,
+  .home-crew-list,
+  .home-recent-list,
+  .home-stat,
+  .home-stats > div,
+  .roster-empty-card,
+  .roster-timeline-card,
+  .roster-day-card,
+  .roster-duty-card,
+  .flight-detail-hero,
+  .flight-detail-card,
+  .pay-setup,
+  .pay-result,
+  .pay-source-list,
+  .pay-audit__group,
+  .logbook-empty,
+  .logbook-state,
+  .month-card,
+  .settings-card,
+  .pdf-import-card,
+  .pdf-review-empty,
+  .pdf-review-summary,
+  .pdf-cross-checks,
+  .pdf-candidate,
+  .pdf-review-actions,
+  .entry-form__card,
+  .entry-editor-state
+) {
+  border-color: var(--es-border);
+  background: rgb(12 28 49 / 88%);
+  box-shadow: 0 .45rem 1.5rem rgb(0 0 0 / 20%);
+  color: var(--es-ink);
+}
+
+.app-frame--dark :is(
+  .roster-timeline-card--flight,
+  .roster-timeline__day--flight .roster-timeline-card--flight,
+  .roster-timeline__day--today.roster-timeline__day--flight .roster-timeline-card--flight,
+  .roster-timeline__day--today .roster-timeline-card
+) {
+  border-color: rgb(103 166 255 / 34%);
+  background: rgb(24 62 108 / 83%);
+}
+
+.app-frame--dark :is(
+  .roster-timeline-card--off,
+  .roster-timeline-card--doff,
+  .roster-timeline__day--off .roster-timeline-card,
+  .roster-timeline__day--doff .roster-timeline-card
+) {
+  border-color: rgb(86 195 151 / 32%);
+  background: rgb(18 71 58 / 82%);
+}
+
+.app-frame--dark :is(
+  .home-page h1, .home-page h2, .home-page h3,
+  .roster-page h1, .roster-page h2, .roster-page h3, .roster-page strong,
+  .pay-page h1, .pay-page h2, .pay-page h3,
+  .logbook-page h1, .logbook-page h2, .logbook-page h3,
+  .settings-page h1, .settings-page h2, .settings-page h3,
+  .flight-detail-page h1, .flight-detail-page h2, .flight-detail-page h3,
+  .pdf-import-page h1, .pdf-import-page h2,
+  .pdf-review-page h1, .pdf-review-page h2,
+  .entry-editor-page h1, .entry-editor-page h2
+) {
+  color: var(--es-ink);
+}
+
+.app-frame--dark :is(
+  .home-page p, .home-page small,
+  .roster-page p, .roster-page small,
+  .pay-page p, .pay-page small,
+  .logbook-page p, .logbook-page small,
+  .settings-page p,
+  .flight-detail-page p, .flight-detail-page small,
+  .pdf-import-page p, .pdf-review-page p,
+  .entry-editor-page p, .entry-editor-page label
+) {
+  color: var(--es-muted);
+}
+
+.app-frame--dark :is(input, textarea, select) {
+  border-color: var(--es-border);
+  background: rgb(5 17 33 / 72%);
+  color: var(--es-ink);
+}
+
+.app-frame--dark .secondary-action,
+.app-frame--dark .settings-theme-picker {
+  border-color: var(--es-border);
+  background: rgb(7 21 39 / 72%);
+  color: var(--es-blue);
+}
+
+.app-frame--dark .settings-theme-picker button.is-selected {
+  border-color: rgb(158 204 255 / 35%);
+  background: rgb(36 78 129 / 74%);
+  box-shadow: inset 0 1px 0 rgb(231 245 255 / 27%), 0 .25rem .7rem rgb(0 0 0 / 22%);
+  color: #c5e1ff;
+}
+
+.app-frame--dark .settings-file-action,
+.app-frame--dark .backup-preview,
+.app-frame--dark .settings-message {
+  border-color: var(--es-border);
+}
