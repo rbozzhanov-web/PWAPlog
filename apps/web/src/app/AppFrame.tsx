@@ -10,6 +10,10 @@ import { loadAimsRoster } from '../features/roster/aims';
 import { RosterPage } from '../features/roster/RosterPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 
+type ThemePreference = 'system' | 'light' | 'dark';
+
+const themeStorageKey = 'escrew.theme-preference.v1';
+
 const items = [
   { to: '/', label: 'Home', title: 'eScrew', icon: '⌂', end: true },
   { to: '/roster', label: 'Roster', title: 'Roster', icon: '✈' },
@@ -50,6 +54,18 @@ export function AppFrame({ db }: AppFrameProps) {
         : location.pathname.startsWith('/settings') ? 4 : 0;
   const [visualIndex, setVisualIndex] = useState(routeIndex >= 0 ? routeIndex : fallbackIndex);
   const [hasAimsRoster, setHasAimsRoster] = useState(() => Boolean(loadAimsRoster()));
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
+    try {
+      const value = window.localStorage.getItem(themeStorageKey);
+      return value === 'light' || value === 'dark' || value === 'system' ? value : 'system';
+    } catch {
+      return 'system';
+    }
+  });
+  const [systemPrefersDark, setSystemPrefersDark] = useState(() =>
+    window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false,
+  );
+  const usesDarkTheme = themePreference === 'dark' || (themePreference === 'system' && systemPrefersDark);
   const launchRouteHandled = useRef(false);
 
   // A fresh PWA/document launch always starts at Home. Dedicated import and detail links remain intact.
@@ -125,6 +141,23 @@ export function AppFrame({ db }: AppFrameProps) {
     });
   }, []);
   useEffect(() => {
+    const query = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!query) return undefined;
+    const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
+    query.addEventListener?.('change', onChange);
+    return () => query.removeEventListener?.('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-dark', usesDarkTheme);
+    try {
+      window.localStorage.setItem(themeStorageKey, themePreference);
+    } catch {
+      // Theme preference is optional; the view still follows the current selection.
+    }
+  }, [themePreference, usesDarkTheme]);
+
+  useEffect(() => {
     const refreshAimsState = () => setHasAimsRoster(Boolean(loadAimsRoster()));
     window.addEventListener('aims-roster-updated', refreshAimsState);
     return () => window.removeEventListener('aims-roster-updated', refreshAimsState);
@@ -173,7 +206,7 @@ export function AppFrame({ db }: AppFrameProps) {
   };
 
   return (
-    <div className="app-frame">
+    <div className={'app-frame' + (usesDarkTheme ? ' app-frame--dark' : '')}>
       <div className="app-wallpaper" aria-hidden="true" />
       {isPrimaryRoute ? <header className="primary-tab-header">
         <h1 className="primary-tab-header__accessible-title">{items[visualIndex].title}</h1>
@@ -190,7 +223,7 @@ export function AppFrame({ db }: AppFrameProps) {
           <div aria-hidden={visualIndex !== 1} className="primary-tab-pager__page" inert={visualIndex !== 1} ref={(element) => { pageRefs.current[1] = element; }}><RosterPage isActive={visualIndex === 1} /></div>
           <div aria-hidden={visualIndex !== 2} className="primary-tab-pager__page" inert={visualIndex !== 2} ref={(element) => { pageRefs.current[2] = element; }}><PayPage db={db} /></div>
           <div aria-hidden={visualIndex !== 3} className="primary-tab-pager__page" inert={visualIndex !== 3} ref={(element) => { pageRefs.current[3] = element; }}><LogbookPage db={db} /></div>
-          <div aria-hidden={visualIndex !== 4} className="primary-tab-pager__page" inert={visualIndex !== 4} ref={(element) => { pageRefs.current[4] = element; }}><SettingsPage db={db} /></div>
+          <div aria-hidden={visualIndex !== 4} className="primary-tab-pager__page" inert={visualIndex !== 4} ref={(element) => { pageRefs.current[4] = element; }}><SettingsPage db={db} theme={themePreference} onThemeChange={setThemePreference} /></div>
         </div> : <Outlet />}
       </div>
       <nav
