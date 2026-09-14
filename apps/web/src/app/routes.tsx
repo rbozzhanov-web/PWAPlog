@@ -42,7 +42,7 @@ export function AppRoutes({ db: routeDb = db }: AppRoutesProps) {
             <Route path="/import/logbook" element={<ImportLogbookPage db={routeDb} />} />
             <Route path="/import/review" element={<ReviewImportPage db={routeDb} />} />
             <Route path="/settings" element={<SettingsPage db={routeDb} />} />
-            <Route path="*" element={<Navigate to="/logbook" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </Suspense>
