@@ -50,6 +50,17 @@ export function AppFrame({ db }: AppFrameProps) {
         : location.pathname.startsWith('/settings') ? 4 : 0;
   const [visualIndex, setVisualIndex] = useState(routeIndex >= 0 ? routeIndex : fallbackIndex);
   const [hasAimsRoster, setHasAimsRoster] = useState(() => Boolean(loadAimsRoster()));
+  const launchRouteHandled = useRef(false);
+
+  // A fresh PWA/document launch always starts at Home. Dedicated import and detail links remain intact.
+  useLayoutEffect(() => {
+    if (launchRouteHandled.current) return;
+    launchRouteHandled.current = true;
+    const isDirectTaskRoute = location.pathname.startsWith('/import/')
+      || location.pathname.startsWith('/flight/')
+      || location.pathname.startsWith('/logbook/');
+    if (location.pathname !== '/' && !isDirectTaskRoute) navigate('/', { replace: true });
+  }, [location.pathname, navigate]);
 
   const displayProgress = useCallback((value: number) => {
     navRef.current?.style.setProperty('--tab-progress', String(value));
