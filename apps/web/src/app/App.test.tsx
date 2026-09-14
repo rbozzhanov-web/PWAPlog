@@ -4,9 +4,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
 
-test('redirects an unknown location to the logbook shell', async () => {
+test('redirects an unknown location to the home shell', async () => {
   render(<MemoryRouter initialEntries={['/unknown']}><App /></MemoryRouter>);
-  expect(await screen.findByRole('heading', { name: 'Pilot Logbook' })).toBeVisible();
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page'));
+});
+
+test('opens a new primary-tab session on Home', async () => {
+  render(<MemoryRouter initialEntries={['/logbook']}><App /></MemoryRouter>);
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page'));
 });
 
 test('opens backup onboarding from the settings route', async () => {
