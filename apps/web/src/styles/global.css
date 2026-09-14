@@ -1478,9 +1478,12 @@ html {
   top: 0;
   left: 50%;
   box-sizing: border-box;
-  width: min(calc(100% - 1.7rem), var(--tab-header-width));
+  width: 100%;
+  max-width: none;
   margin: 0;
   padding-top: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 6mm);
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
   transform: translateX(-50%);
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 76%);
