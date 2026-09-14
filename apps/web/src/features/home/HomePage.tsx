@@ -10,11 +10,6 @@ import { id as flightId } from '../roster/FlightDetailPage';
 
 interface HomePageProps { db: PilotLogbookDb }
 
-function dateLabel(date: string) {
-  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-    .format(new Date(`${date}T00:00:00.000Z`));
-}
-
 export function HomePage({ db }: HomePageProps) {
   const [entries, setEntries] = useState<FlightLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +28,9 @@ export function HomePage({ db }: HomePageProps) {
     return () => window.removeEventListener('aims-roster-updated', refreshRoster);
   }, []);
 
-  const recent = useMemo(() => entries.slice(0, 3), [entries]);
-  const totalTime = useMemo(() => sumFlightMinutes(entries), [entries]);
+  const currentMonth = `${new Date(now).getFullYear()}-${String(new Date(now).getMonth() + 1).padStart(2, '0')}`;
+  const monthlyEntries = useMemo(() => entries.filter((entry) => entry.date.startsWith(currentMonth)), [entries, currentMonth]);
+  const totalTime = useMemo(() => sumFlightMinutes(monthlyEntries), [monthlyEntries]);
   const nextDuty = useMemo(() => roster?.duties
     .filter((duty) => dutyEndTimestamp(duty) >= now)
     .sort((a, b) => dutyReportBoundary(a).localeCompare(dutyReportBoundary(b)))[0], [roster, now]);
@@ -55,7 +51,7 @@ export function HomePage({ db }: HomePageProps) {
         {nextFlight ? <>
           <div className="home-route"><span><strong>{nextFlight.origin}</strong><small>{airportName(nextFlight.origin)}</small></span><svg className="home-route__plane" aria-hidden="true" viewBox="0 0 32 20"><path d="M29 10 18 2h-4l5 8H9L5 6H2l2 4-2 4h3l4-4h10l-5 8h4z" /></svg><span><strong>{nextFlight.destination}</strong><small>{airportName(nextFlight.destination)}</small></span></div>
           <p className="home-flight-meta">{[nextFlight.flightNumber, nextFlight.aircraftType].filter(Boolean).join(' · ')}</p>
-          <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock(nextDuty)}</strong><small>{countdown > 0 ? 'D · H · M · S' : 'LOCAL'}</small></div>
+          <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock(nextDuty)}</strong></div>
           <div className="home-time-grid"><div><span>Report</span><strong>{reportClock(nextDuty)}</strong><small>LOCAL</small></div><div><span>Departure</span><strong>{nextFlight.departure}</strong><small>LOCAL</small></div><div><span>Landing</span><strong>{nextFlight.arrival}</strong><small>LOCAL</small></div></div>
         </> : <><h2>{loading ? 'Loading your flights' : entries.length ? 'Your flying, in one place.' : 'Ready for your next sector.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
         <div className="home-hero__actions">
@@ -64,22 +60,19 @@ export function HomePage({ db }: HomePageProps) {
       </section>
 
       <section className="home-stats" aria-label="Logbook overview">
-        <div><span>Total time</span><strong>{formatFlightMinutes(totalTime)}</strong></div>
-        <div><span>Flights</span><strong>{entries.length}</strong></div>
+        <div><span>This month</span><strong>{formatFlightMinutes(totalTime)}</strong></div>
+        <div><span>Flights</span><strong>{monthlyEntries.length}</strong></div>
       </section>
       <section className="home-section">
-        <div className="home-section__title"><div><p>LOGBOOK</p><h2>Recent flights</h2></div></div>
-        {recent.length ? <div className="home-recent-list">{recent.map((entry) => (
-          <Link className="home-recent-row" key={entry.id} to={`/logbook/${entry.id}`}>
-            <span className="home-recent-row__date">{dateLabel(entry.date)}</span>
-            <strong>{entry.departureAirport} <i>→</i> {entry.arrivalAirport}</strong>
-            <span>{formatFlightMinutes(entry.totalTimeMinutes)} ›</span>
-          </Link>
-        ))}</div> : <div className="home-empty">Your first logged flight will appear here.</div>}
+        <div className="home-section__title"><div><p>CREW</p><h2>Crew on this flight</h2></div></div>
+        {nextFlight?.crew?.length ? <div className="home-crew-list">{nextFlight.crew.map((member, index) => (
+          <div className="home-crew-row" key={`${member.name}-${index}`}><b>{crewInitials(member.name)}</b><span><strong>{member.name}</strong><small>{member.position ?? member.role ?? 'Crew'}</small></span></div>
+        ))}</div> : <div className="home-empty">{nextFlight ? 'Crew is not present in this AIMS archive.' : 'Crew will appear when your next AIMS sector is available.'}</div>}
       </section>
     </main>
   );
 }
+function crewInitials(name: string) { return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2); }
 function countdownClock(value: number) { const seconds = Math.max(0, Math.floor(value / 1000)); return `${Math.floor(seconds / 86_400)}d ${String(Math.floor(seconds / 3_600) % 24).padStart(2, '0')}h ${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}m ${String(seconds % 60).padStart(2, '0')}s`; }
 function dutyReportBoundary(duty: AimsDuty) { return duty.report ?? duty.start ?? `${duty.date}T${duty.flights[0]?.departure ?? '00:00'}`; }
 function dutyEndTimestamp(duty: AimsDuty) { const last = duty.flights.at(-1); const fallback = last ? `${last.arrivalDate ?? last.date}T${last.arrival}:00` : dutyReportBoundary(duty); return Date.parse(duty.end ?? fallback); }
