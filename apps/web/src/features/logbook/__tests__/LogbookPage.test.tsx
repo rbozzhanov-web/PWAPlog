@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { FlightLogEntry } from '@pilot-logbook/core';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -41,11 +41,9 @@ function entry(overrides: Partial<FlightLogEntry> = {}): FlightLogEntry {
 
 describe('LogbookPage', () => {
   let db: PilotLogbookDb | undefined;
-  let intersectionCallback: IntersectionObserverCallback | undefined;
   let scrolledElements: Element[];
 
   beforeEach(() => {
-    intersectionCallback = undefined;
     scrolledElements = [];
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
@@ -53,21 +51,6 @@ describe('LogbookPage', () => {
         scrolledElements.push(this);
       }),
     });
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        constructor(callback: IntersectionObserverCallback) {
-          intersectionCallback = callback;
-        }
-
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-        takeRecords() {
-          return [];
-        }
-      },
-    );
   });
 
   afterEach(async () => {
@@ -98,7 +81,7 @@ describe('LogbookPage', () => {
 
     expect(await screen.findByText('2h 30m')).toBeVisible();
     expect(screen.getByRole('region', { name: 'January 2025' })).toBeVisible();
-    expect(screen.getByRole('region', { name: 'December 2024' })).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'December 2024' })).toBeNull();
     expect(screen.getByRole('link', { name: /UAAA to UACC.*January 2, 2025/i })).toHaveAttribute(
       'href',
       '/logbook/jan-2025',
@@ -113,6 +96,9 @@ describe('LogbookPage', () => {
       'href',
       '/import/logbook',
     );
+    fireEvent.click(screen.getByRole('button', { name: '2024' }));
+    expect(await screen.findByRole('region', { name: 'December 2024' })).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'January 2025' })).toBeNull();
   });
 
   test('renders a useful empty state', async () => {
@@ -127,7 +113,7 @@ describe('LogbookPage', () => {
     );
   });
 
-  test('selects December when present and falls back to the newest available month', async () => {
+  test('renders only the selected year to keep large logbooks responsive', async () => {
     db = createPilotLogbookDb('year-navigation-test');
     await seedEntries([
       entry({ id: 'latest', date: '2026-02-01' }),
@@ -138,20 +124,21 @@ describe('LogbookPage', () => {
     ]);
     renderLogbook();
 
-    const december = await screen.findByRole('region', { name: 'December 2025' });
-    const november = screen.getByRole('region', { name: 'November 2024' });
-    scrolledElements.length = 0;
+    expect(await screen.findByRole('region', { name: 'February 2026' })).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'December 2025' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: '2025' }));
-    expect(scrolledElements).toContain(december);
+    expect(await screen.findByRole('region', { name: 'December 2025' })).toBeVisible();
+    expect(screen.getByRole('region', { name: 'July 2025' })).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'February 2026' })).toBeNull();
 
-    scrolledElements.length = 0;
     fireEvent.click(screen.getByRole('button', { name: '2024' }));
-    expect(scrolledElements).toContain(november);
+    expect(await screen.findByRole('region', { name: 'November 2024' })).toBeVisible();
+    expect(screen.getByRole('region', { name: 'March 2024' })).toBeVisible();
     expect(screen.queryByRole('region', { name: 'December 2024' })).toBeNull();
   });
 
-  test('updates and horizontally reveals the active chip from visible month state', async () => {
+  test('marks the newest year active and updates the active chip on selection', async () => {
     db = createPilotLogbookDb('active-year-scroll-test');
     await seedEntries([
       entry({ id: 'latest', date: '2026-08-01' }),
@@ -159,43 +146,12 @@ describe('LogbookPage', () => {
     ]);
     renderLogbook();
 
-    const april = await screen.findByRole('region', { name: 'April 2024' });
+    expect(await screen.findByRole('region', { name: 'August 2026' })).toBeVisible();
     const year2024 = screen.getByRole('button', { name: '2024' });
-    const observerCallback = await waitFor(() => {
-      if (!intersectionCallback) throw new Error('IntersectionObserver was not registered');
-      return intersectionCallback;
-    });
-    scrolledElements.length = 0;
-    const bounds: DOMRectReadOnly = {
-      bottom: 220,
-      height: 100,
-      left: 0,
-      right: 320,
-      top: 120,
-      width: 320,
-      x: 0,
-      y: 120,
-      toJSON: () => ({}),
-    };
-
-    act(() => {
-      observerCallback(
-        [
-          {
-            boundingClientRect: bounds,
-            intersectionRatio: 1,
-            intersectionRect: bounds,
-            isIntersecting: true,
-            rootBounds: null,
-            target: april,
-            time: 0,
-          },
-        ],
-        {} as IntersectionObserver,
-      );
-    });
-
-    await waitFor(() => expect(year2024).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByRole('button', { name: '2026' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(year2024);
+    expect(await screen.findByRole('region', { name: 'April 2024' })).toBeVisible();
+    expect(year2024).toHaveAttribute('aria-pressed', 'true');
     expect(scrolledElements).toContain(year2024);
   });
 });
