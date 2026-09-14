@@ -1439,6 +1439,47 @@ html {
   }
 }
 
+/* Full-viewport iOS shell: the inner scroller, not body, travels beneath Safe Area. */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.app-frame {
+  position: relative;
+  height: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.app-frame__content {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-frame::before {
+  position: fixed;
+  z-index: 14;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: env(safe-area-inset-top, 0px);
+  pointer-events: none;
+  background: rgb(237 243 251 / 18%);
+  backdrop-filter: blur(14px) saturate(1.06);
+  -webkit-backdrop-filter: blur(14px) saturate(1.06);
+  content: '';
+}
+
 /* Fixed tab chrome: unlike sticky, it never releases at the end of a short page. */
 .home-page {
   --tab-header-space: 5.4rem;
@@ -1482,17 +1523,30 @@ html {
   margin: 0;
   padding-top: max(.7rem, env(safe-area-inset-top, 0px));
   transform: translateX(-50%);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.suite-header::before,
+.suite-page-header::before,
+.logbook-header::before,
+.settings-header::before {
+  position: absolute;
+  z-index: -1;
+  top: env(safe-area-inset-top, 0px);
+  right: 0;
+  bottom: 0;
+  left: 0;
   border-bottom: 1px solid rgb(185 199 218 / 34%);
-  background: linear-gradient(
-    180deg,
-    rgb(237 243 251 / 38%) 0,
-    rgb(237 243 251 / 52%) calc(env(safe-area-inset-top, 0px) + .25rem),
-    rgb(246 247 250 / 92%) calc(env(safe-area-inset-top, 0px) + .75rem),
-    rgb(246 247 250 / 96%) 100%
-  );
+  border-radius: 0 0 1rem 1rem;
+  background: rgb(246 247 250 / 94%);
   box-shadow: 0 .45rem 1.1rem rgb(15 23 42 / 5%);
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  content: '';
 }
 
 @media (max-width: 31rem) {
