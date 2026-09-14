@@ -52,7 +52,7 @@ export function HomePage({ db }: HomePageProps) {
         <div><h1>eScrew</h1><p>{today}</p></div>
       </header>
 
-      <section className="home-hero">
+      <section className="home-hero home-hero--escrew">
         <p className="home-hero__eyebrow">{nextFlight ? 'NEXT SECTOR' : 'PILOT LOGBOOK'}</p>
         {nextFlight ? <>
           <div className="home-route"><span><strong>{nextFlight.origin}</strong><small>{airportName(nextFlight.origin)}</small></span><svg className="home-route__plane" aria-hidden="true" viewBox="0 0 32 20"><path d="M29 10 18 2h-4l5 8H9L5 6H2l2 4-2 4h3l4-4h10l-5 8h4z" /></svg><span><strong>{nextFlight.destination}</strong><small>{airportName(nextFlight.destination)}</small></span></div>
@@ -70,11 +70,11 @@ export function HomePage({ db }: HomePageProps) {
         </div>
       </section>
 
-      <section className="home-stats" aria-label="Logbook overview">
+      <section className="home-stats home-stats--escrew" aria-label="Logbook overview">
         <div><span>This month</span><strong>{formatFlightMinutes(totalTime)}</strong></div>
         <div><span>Flights</span><strong>{monthlyEntries.length}</strong></div>
       </section>
-      <section className="home-section">
+      <section className="home-section home-section--crew">
         <div className="home-section__title"><div><p>CREW</p><h2>Crew on this flight</h2></div></div>
         {nextFlight?.crew?.length ? <div className="home-crew-list">{nextFlight.crew.map((member, index) => (
           <div className="home-crew-row" key={`${member.name}-${index}`}><b>{crewInitials(member.name)}</b><span><strong>{member.name}</strong><small>{member.position ?? member.role ?? 'Crew'}</small></span></div>
