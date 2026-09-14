@@ -69,6 +69,8 @@ describe('logbook PDF import routes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Review imported flights' })).toBeVisible();
     expect(extractPdfText).toHaveBeenCalledWith(file);
+    expect(screen.queryByDisplayValue('UAAA')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit details' }));
     expect(screen.getByDisplayValue('UAAA')).toBeVisible();
     await expect(db.flightEntries.count()).resolves.toBe(0);
 
@@ -221,6 +223,7 @@ describe('logbook PDF import routes', () => {
       screen.getByText('Departure or arrival airport could not be read from this row.'),
     ).toBeVisible();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Edit details' }));
     fireEvent.change(screen.getByLabelText('Departure'), { target: { value: 'uaaa' } });
     fireEvent.change(screen.getByLabelText('Arrival'), { target: { value: 'uacc' } });
     fireEvent.change(screen.getByLabelText('Total minutes'), { target: { value: '95' } });
@@ -259,6 +262,7 @@ describe('logbook PDF import routes', () => {
     await choosePdf();
     expect(await screen.findByRole('heading', { name: 'Review imported flights' })).toBeVisible();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Edit details' }));
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '' } });
     fireEvent.change(screen.getByLabelText('Departure'), { target: { value: '' } });
     fireEvent.change(screen.getByLabelText('Arrival'), { target: { value: '' } });
