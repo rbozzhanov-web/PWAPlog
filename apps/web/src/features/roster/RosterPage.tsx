@@ -17,7 +17,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
   const [error, setError] = useState<string>();
   const [importing, setImporting] = useState(false);
   const [importFlowOpen, setImportFlowOpen] = useState(false);
-  const todayElement = useRef<HTMLElement>(null);
+  const todayElement = useRef<HTMLDivElement>(null);
   const focusAnimation = useRef<number | undefined>(undefined);
   const today = localDateKey();
   const openImportFlow = useCallback(() => {
