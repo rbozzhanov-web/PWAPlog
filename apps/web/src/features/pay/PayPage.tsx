@@ -48,7 +48,8 @@ export function PayPage({ db }: PayPageProps) {
   const importSchedulePdf = async (file?: File) => { if (!file) return; setPdfError(undefined); try { const parsed = parseCrewSchedule(await extractPdfText(file)); await db.crewSchedules.put({ ...parsed, importedAt: new Date().toISOString() }); setPdfSchedules((current) => [...current.filter((item) => item.month !== parsed.month), parsed]); setActivePdfMonth(parsed.month); } catch (reason) { setPdfError(reason instanceof Error ? reason.message : 'Could not read this Crew Schedule PDF.'); } };
 
   return <main className="pay-page">
-    <header className="suite-page-header"><p>CREW PAY</p><h1>Pay</h1><span>AIMS sectors → CrewPay norms → payroll rules already built into PWAPlog.</span></header>
+    <header className="suite-page-header"><div className="tab-header__identity"><p>CREW PAY</p><h1>Pay</h1></div></header>
+    <p className="tab-page-note">AIMS sectors → CrewPay norms → payroll rules already built into PWAPlog.</p>
     <section className="pay-pdf-check">
       <p>Current month uses the locally imported AIMS Web Archive. For completed months, import the AIMS Personal Crew Schedule PDF.</p>
       <label className="roster-import-action">Import Crew Schedule PDF<input type="file" accept="application/pdf" onChange={(event) => void importSchedulePdf(event.target.files?.[0])} /></label>

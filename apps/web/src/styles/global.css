@@ -1439,33 +1439,13 @@ html {
   }
 }
 
-/* Fixed tab chrome: unlike sticky, it never releases at the end of a short page. */
-.home-page {
-  --tab-header-space: 5.4rem;
-  --tab-header-width: 26rem;
-}
-
-.roster-page,
-.pay-page {
-  --tab-header-space: 7.5rem;
-  --tab-header-width: 26rem;
-}
-
-.logbook-page {
-  --tab-header-space: 10.5rem;
-  --tab-header-width: 68rem;
-}
-
-.settings-page {
-  --tab-header-space: 9.5rem;
-  --tab-header-width: 48rem;
-}
-
+/* Every primary tab uses the same compact, fixed two-line title bar as Home. */
 .home-page,
 .roster-page,
 .pay-page,
 .logbook-page,
 .settings-page {
+  --tab-header-space: 5.4rem;
   padding-top: calc(env(safe-area-inset-top, 0px) + var(--tab-header-space) + 6mm);
 }
 
@@ -1479,10 +1459,12 @@ html {
   left: 50%;
   box-sizing: border-box;
   width: 100%;
+  height: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 6mm + 3.9rem);
   max-width: none;
   margin: 0;
   padding-top: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 6mm);
   padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: 1.15rem;
   padding-left: max(1rem, env(safe-area-inset-left, 0px));
   transform: translateX(-50%);
   overflow: hidden;
@@ -1504,9 +1486,90 @@ html {
   text-shadow: 0 1px 0 rgb(255 255 255 / 92%), 0 0 12px rgb(255 255 255 / 78%);
 }
 
-@media (max-width: 31rem) {
-  .logbook-page {
-    --tab-header-space: 12rem;
+.suite-page-header,
+.logbook-header,
+.settings-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.tab-header__identity {
+  display: grid;
+  min-width: 0;
+  gap: .12rem;
+}
+
+.suite-page-header .tab-header__identity h1,
+.logbook-header .tab-header__identity h1,
+.settings-header .tab-header__identity h1 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1;
+  letter-spacing: -.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suite-page-header .tab-header__identity p,
+.logbook-header .tab-header__identity p,
+.settings-header .tab-header__identity p {
+  margin: 0;
+  font-size: .61rem;
+  line-height: 1.15;
+}
+
+.tab-page-note,
+.settings-intro--body {
+  box-sizing: border-box;
+  margin: 0 0 .75rem;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: .85rem;
+  padding: .65rem .75rem;
+  background: rgb(255 255 255 / 58%);
+  box-shadow: 0 .3rem .9rem rgb(47 91 143 / 6%);
+  color: #58718b;
+  font-size: .72rem;
+  line-height: 1.4;
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+}
+
+.logbook-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .9rem;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 1rem;
+  padding: .65rem;
+  background: rgb(255 255 255 / 58%);
+  box-shadow: 0 .3rem .9rem rgb(47 91 143 / 6%);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+}
+
+.logbook-toolbar .logbook-header__intro {
+  min-width: 0;
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+.settings-intro--body {
+  max-width: none;
+}
+
+.roster-day-card {
+  scroll-margin-top: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 6mm + 4.4rem);
+}
+
+@media (max-width: 38rem) {
+  .logbook-toolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

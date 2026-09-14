@@ -93,11 +93,13 @@ export function LogbookPage({ db }: LogbookPageProps) {
   return (
     <main className="logbook-page">
       <header className="logbook-header">
-        <div>
+        <div className="tab-header__identity">
           <p className="logbook-header__eyebrow">Flight records</p>
           <h1>Pilot Logbook</h1>
-          <p className="logbook-header__intro">Your flights, saved privately on this device.</p>
         </div>
+      </header>
+      <section className="logbook-toolbar" aria-label="Logbook actions">
+        <p className="logbook-header__intro">Your flights, saved privately on this device.</p>
         <div className="logbook-header__actions">
           <Link className="logbook-settings-link" to="/import/logbook">Import PDF</Link>
           <button className="logbook-settings-link" type="button" onClick={() => void importCompletedAims()}>Import AIMS</button>
@@ -105,7 +107,7 @@ export function LogbookPage({ db }: LogbookPageProps) {
             <span aria-hidden="true">＋</span> New flight
           </Link>
         </div>
-      </header>
+      </section>
 
       {isLoading ? <p className="logbook-state" role="status">Loading flights…</p> : null}
       {loadError ? <p className="logbook-state logbook-state--error" role="alert">{loadError}</p> : null}

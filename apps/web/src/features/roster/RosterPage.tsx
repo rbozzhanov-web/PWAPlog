@@ -69,16 +69,16 @@ export function RosterPage() {
   return (
     <main className="roster-page">
       <header className="suite-page-header">
-        <p>CREW SCHEDULE</p>
-        <div className="roster-header__title">
+        <div className="tab-header__identity">
+          <p>CREW SCHEDULE</p>
           <h1>Roster</h1>
-          <button className="roster-header__import" disabled={importing} onClick={openImportFlow} type="button">
-            <span aria-hidden="true">{roster ? '↻' : '+'}</span>
-            {importing ? 'Reading…' : roster ? 'Replace AIMS' : 'Add AIMS'}
-          </button>
         </div>
-        <span>{roster ? `${roster.period.start} — ${roster.period.end} · saved locally` : 'Add a saved AIMS Crew Schedule Web Archive.'}</span>
+        <button className="roster-header__import" disabled={importing} onClick={openImportFlow} type="button">
+          <span aria-hidden="true">{roster ? '↻' : '+'}</span>
+          {importing ? 'Reading…' : roster ? 'Replace AIMS' : 'Add AIMS'}
+        </button>
       </header>
+      {roster ? <p className="tab-page-note">{roster.period.start} — {roster.period.end} · saved locally</p> : null}
       {!roster ? <section className="roster-empty-card roster-empty-card--compact">
         <span aria-hidden="true">✈</span>
         <h2>Bring in your AIMS roster</h2>
