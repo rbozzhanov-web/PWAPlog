@@ -263,6 +263,9 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
               </div>
             ) : null}
 
+            <p className="pdf-candidate__compact">{candidate.fields.date ?? '—'} · {candidate.fields.aircraftType ?? '—'} · {minutes(candidate.fields.totalTimeMinutes)}{candidate.fields.simulatorMinutes ? ` · SIM ${minutes(candidate.fields.simulatorMinutes)}` : ''}</p>
+            <details className="pdf-candidate__edit">
+              <summary>Edit details</summary>
             <div className="pdf-candidate__fields">
               {textFields.map(([field, label, type]) => (
                 <CandidateField
@@ -289,6 +292,7 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
                 />
               ))}
             </div>
+            </details>
 
             <details className="pdf-candidate__source">
               <summary>Show source row</summary>
@@ -322,3 +326,4 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
     </main>
   );
 }
+function minutes(value: number | undefined) { const total = value ?? 0; return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; }
