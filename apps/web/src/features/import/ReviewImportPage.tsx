@@ -20,6 +20,8 @@ interface ReviewImportPageProps {
   db: PilotLogbookDb;
 }
 
+const REVIEW_PAGE_SIZE = 20;
+
 type TextField =
   | 'date'
   | 'departureAirport'
@@ -130,6 +132,7 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<Record<number, EntryFieldErrors>>({});
   const [expandedCandidate, setExpandedCandidate] = useState<number>();
+  const [reviewPage, setReviewPage] = useState(0);
   const approvedCount = useMemo(
     () => draft?.candidates.filter(({ approved }) => approved).length ?? 0,
     [draft],
@@ -138,6 +141,9 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
     flight: totals.flight + (candidate.fields.totalTimeMinutes ?? 0),
     simulator: totals.simulator + (candidate.fields.simulatorMinutes ?? 0),
   }), { flight: 0, simulator: 0 }) ?? { flight: 0, simulator: 0 }, [draft]);
+  const reviewPageCount = Math.max(1, Math.ceil((draft?.candidates.length ?? 0) / REVIEW_PAGE_SIZE));
+  const reviewStart = reviewPage * REVIEW_PAGE_SIZE;
+  const visibleCandidates = draft?.candidates.slice(reviewStart, reviewStart + REVIEW_PAGE_SIZE) ?? [];
 
   if (!draft) {
     return (
@@ -192,6 +198,9 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
     });
     if (Object.keys(nextFieldErrors).length > 0) {
       setFieldErrors(nextFieldErrors);
+      const firstInvalidCandidate = Number(Object.keys(nextFieldErrors)[0]);
+      setReviewPage(Math.floor(firstInvalidCandidate / REVIEW_PAGE_SIZE));
+      setExpandedCandidate(firstInvalidCandidate);
       return;
     }
 
@@ -244,7 +253,9 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
       ) : null}
 
       <div className="pdf-candidate-list">
-        {draft.candidates.map((candidate, index) => (
+        {visibleCandidates.map((candidate, pageIndex) => {
+          const index = reviewStart + pageIndex;
+          return (
           <article
             className={`pdf-candidate${candidate.approved ? '' : ' pdf-candidate--excluded'}`}
             key={`${candidate.rawSourceLine}-${index}`}
@@ -313,8 +324,37 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
               {candidate.approved ? 'Discard flight' : 'Restore flight'}
             </button>
           </article>
-        ))}
+          );
+        })}
       </div>
+
+      {reviewPageCount > 1 ? (
+        <nav className="pdf-review-pagination" aria-label="Review pages">
+          <button
+            disabled={reviewPage === 0}
+            onClick={() => {
+              setExpandedCandidate(undefined);
+              setReviewPage((page) => Math.max(0, page - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            type="button"
+          >
+            Previous
+          </button>
+          <span>Page {reviewPage + 1} of {reviewPageCount}</span>
+          <button
+            disabled={reviewPage >= reviewPageCount - 1}
+            onClick={() => {
+              setExpandedCandidate(undefined);
+              setReviewPage((page) => Math.min(reviewPageCount - 1, page + 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            type="button"
+          >
+            Next
+          </button>
+        </nav>
+      ) : null}
 
       {error ? <p className="pdf-import-error" role="alert">{error}</p> : null}
 
