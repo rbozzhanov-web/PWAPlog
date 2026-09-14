@@ -2730,3 +2730,29 @@ body,
 .tab-dock__item--active > span:first-child {
   color: #1478f2;
 }
+
+
+/* Floating flows use the dock clearance too; their final actions must remain tappable. */
+.aims-import-overlay {
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding:
+    1rem
+    max(1rem, env(safe-area-inset-right, 0px))
+    calc(var(--tab-dock-safe-clearance) + env(safe-area-inset-bottom, 0px))
+    max(1rem, env(safe-area-inset-left, 0px));
+}
+
+.aims-import-sheet {
+  margin-bottom: 0;
+}
+
+.pdf-import-page,
+.pdf-review-page,
+.entry-editor-page {
+  padding-bottom: calc(var(--tab-dock-safe-clearance) + env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+.pdf-review-actions {
+  bottom: calc(var(--tab-dock-safe-clearance) + env(safe-area-inset-bottom, 0px));
+}
