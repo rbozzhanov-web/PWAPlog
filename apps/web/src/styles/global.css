@@ -1466,7 +1466,7 @@ html {
 .pay-page,
 .logbook-page,
 .settings-page {
-  padding-top: calc(env(safe-area-inset-top, 0px) + var(--tab-header-space));
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--tab-header-space) + 6mm);
 }
 
 .suite-header,
@@ -1480,7 +1480,7 @@ html {
   box-sizing: border-box;
   width: min(calc(100% - 1.7rem), var(--tab-header-width));
   margin: 0;
-  padding-top: max(.7rem, env(safe-area-inset-top, 0px));
+  padding-top: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 6mm);
   transform: translateX(-50%);
   background: linear-gradient(180deg, rgb(246 247 250 / 82%), rgb(246 247 250 / 58%));
   backdrop-filter: blur(18px) saturate(1.1);
