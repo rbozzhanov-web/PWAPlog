@@ -17,8 +17,8 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
   const [error, setError] = useState<string>();
   const [importing, setImporting] = useState(false);
   const [importFlowOpen, setImportFlowOpen] = useState(false);
-  const [view, setView] = useState<'list' | 'stats'>('list');
   const todayElement = useRef<HTMLElement>(null);
+  const focusAnimation = useRef<number | undefined>(undefined);
   const today = localDateKey();
   const openImportFlow = useCallback(() => {
     setError(undefined);
@@ -42,16 +42,36 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
       window.removeEventListener('keydown', closeOnEscape);
     };
   }, [importFlowOpen, importing]);
-  const flights = useMemo(() => roster?.duties.flatMap((duty) => duty.flights) ?? [], [roster]);
   const rosterDays = useMemo(() => roster ? buildRosterDays(roster) : [], [roster]);
   useEffect(() => {
-    if (!isActive || !roster || view !== 'list' || !todayElement.current) return;
+    if (!isActive || !roster || !todayElement.current) return;
     const frame = window.requestAnimationFrame(() => {
-      todayElement.current?.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+      const bubble = todayElement.current;
+      const page = bubble?.closest<HTMLElement>('.primary-tab-pager__page');
+      if (!bubble || !page) {
+        bubble?.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'smooth' });
+        return;
+      }
+      window.cancelAnimationFrame(focusAnimation.current ?? 0);
+      const headerHeight = document.querySelector('.primary-tab-header')?.getBoundingClientRect().height ?? 94;
+      const target = Math.max(0, page.scrollTop + bubble.getBoundingClientRect().top - page.getBoundingClientRect().top - headerHeight - 12);
+      const start = page.scrollTop;
+      const distance = target - start;
+      const duration = Math.min(1250, Math.max(700, Math.abs(distance) * .58));
+      const startedAt = performance.now();
+      const easeOut = (progress: number) => 1 - ((1 - progress) ** 3);
+      const animate = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / duration);
+        page.scrollTop = start + distance * easeOut(progress);
+        if (progress < 1) focusAnimation.current = window.requestAnimationFrame(animate);
+      };
+      focusAnimation.current = window.requestAnimationFrame(animate);
     });
-    return () => window.cancelAnimationFrame(frame);
-  }, [isActive, roster, view]);
-  const dutyCount = roster?.duties.length ?? 0;
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(focusAnimation.current ?? 0);
+    };
+  }, [isActive, roster]);
   const importArchive = async (file?: File) => {
     if (!file) return;
     setImporting(true);
@@ -83,15 +103,12 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           {importing ? 'Reading…' : roster ? 'Replace AIMS' : 'Add AIMS'}
         </button>
       </header>
-      {roster ? <p className="tab-page-note">{roster.period.start} — {roster.period.end} · saved locally</p> : null}
       {!roster ? <section className="roster-empty-card roster-empty-card--compact">
         <span aria-hidden="true">✈</span>
         <h2>Bring in your AIMS roster</h2>
         <p>In AIMS, open Crew Schedule, wait for it to load, save it as a Web Archive, then use Add AIMS above.</p>
       </section> : null}
-      {roster ? <section className="roster-summary" aria-label="Imported roster summary"><div><span>Duties</span><strong>{dutyCount}</strong></div><div><span>Sectors</span><strong>{flights.length}</strong></div><div><span>Source</span><strong>AIMS</strong></div></section> : null}
-      {roster ? <div className="roster-view-switch roster-view-switch--two" role="tablist">{(['list', 'stats'] as const).map((item) => <button key={item} type="button" role="tab" aria-selected={view === item} onClick={() => setView(item)}>{item}</button>)}</div> : null}
-      {roster && view === 'list' ? <section className="roster-duty-list">{rosterDays.map((day) => {
+      {roster ? <section className="roster-duty-list">{rosterDays.map((day) => {
         const isToday = day.date === today;
         const codes = new Set(day.activities.map((activity) => activity.code.toUpperCase()));
         const state = codes.has('OFF') ? 'off' : codes.has('DOFF') ? 'doff' : undefined;
@@ -117,7 +134,6 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           </div>
         </article>;
       })}</section> : null}
-      {roster && view === 'stats' ? <section className="roster-empty-card roster-stats"><span>Σ</span><h2>{Math.floor((roster.totals.blockMinutes ?? 0) / 60)}h {String((roster.totals.blockMinutes ?? 0) % 60).padStart(2, '0')} block</h2><p>{dutyCount} duties · {flights.filter((flight) => !flight.deadhead).length} operating sectors · {flights.filter((flight) => flight.deadhead).length} deadhead sectors</p></section> : null}
       {importFlowOpen ? <div className="aims-import-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) closeImportFlow(); }}>
         <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog">
           <div className="aims-import-sheet__handle" aria-hidden="true" />

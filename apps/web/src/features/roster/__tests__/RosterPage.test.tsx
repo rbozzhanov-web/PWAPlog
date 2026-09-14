@@ -86,7 +86,7 @@ describe('RosterPage AIMS import flow', () => {
     expect(container.querySelector(`[data-date="${doffDate}"]`)).toHaveClass('roster-day-card--doff');
     expect(container.querySelector(`[data-date="${today}"]`)).toHaveClass('roster-day-card--today');
     expect(screen.getByText('TODAY')).toBeVisible();
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', inline: 'nearest', behavior: 'auto' }));
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', inline: 'nearest', behavior: 'smooth' }));
 
     vi.unstubAllGlobals();
   });
