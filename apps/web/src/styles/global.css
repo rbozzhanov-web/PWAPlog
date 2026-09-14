@@ -2051,3 +2051,103 @@ body,
 .home-crew-row span { display: grid; min-width: 0; gap: .1rem; }
 .home-crew-row strong { overflow: hidden; color: var(--es-ink); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
 .home-crew-row small { color: var(--es-muted); font-size: .66rem; }
+
+
+/* Roster cards: original eScrew schedule hierarchy. */
+.roster-duty-list {
+  gap: .72rem;
+}
+
+.roster-duty-card {
+  border: 1px solid #e3e5e8;
+  border-radius: 1.45rem;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 .28rem .9rem rgb(15 23 42 / 3%);
+}
+
+.roster-day-card:has(.roster-sector):not(.roster-day-card--off):not(.roster-day-card--doff) {
+  border-color: #c9ddfb;
+  background: #edf5ff;
+}
+
+.roster-day-card--off {
+  border-color: #c7e6cf;
+  background: #f1faf3;
+  box-shadow: none;
+}
+
+.roster-day-card--doff {
+  border-color: #bce4d8;
+  background: #eef9f5;
+  box-shadow: none;
+}
+
+.roster-duty-card > header {
+  min-height: 4.55rem;
+  box-sizing: border-box;
+  padding: .82rem 1rem .7rem;
+}
+
+.roster-duty-card > header p {
+  color: #6f7886;
+  font-size: .66rem;
+  letter-spacing: .1em;
+}
+
+.roster-duty-card > header h2 {
+  margin-top: .2rem;
+  color: #111b31;
+  font-size: 1.38rem;
+  line-height: 1;
+  letter-spacing: -.05em;
+}
+
+.roster-duty-card > header > span {
+  align-self: flex-start;
+  padding-top: .12rem;
+  color: #727b89;
+  font-size: .68rem;
+}
+
+.roster-duty-card__sectors {
+  border-top-color: rgb(78 113 150 / 12%);
+}
+
+.roster-sector,
+.roster-activity {
+  min-height: 4.15rem;
+  box-sizing: border-box;
+  padding: .7rem 1rem;
+}
+
+.roster-sector {
+  border-top-color: rgb(78 113 150 / 12%);
+}
+
+.roster-sector strong {
+  color: #111b31;
+  font-size: 1.2rem;
+  letter-spacing: -.035em;
+}
+
+.roster-sector i {
+  color: #a58b4f;
+}
+
+.roster-sector small,
+.roster-activity small {
+  margin-top: .16rem;
+  color: #6d7582;
+  font-size: .76rem;
+}
+
+.roster-sector > span {
+  color: #111b31;
+  font-size: .8rem;
+}
+
+.roster-day-card--off .roster-activity strong,
+.roster-day-card--doff .roster-activity strong {
+  color: #247557;
+  font-size: 1.15rem;
+}
