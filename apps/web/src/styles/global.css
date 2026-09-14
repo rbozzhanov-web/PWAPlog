@@ -2206,3 +2206,379 @@ body,
 .home-destination-weather__forecast small { color: var(--es-muted); font-size: .55rem; font-weight: 750; }
 .home-destination-weather__forecast strong { color: var(--es-ink); font-size: .7rem; }
 .home-destination-weather__forecast p { grid-column: 1 / -1; margin: 0; color: var(--es-muted); font-size: .72rem; }
+
+
+/* Original eScrew visual composition — Home and Roster only. */
+.home-hero--escrew {
+  border-color: #dfe5eb;
+  border-radius: 1.35rem;
+  padding: .92rem;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 .45rem 1.35rem rgb(15 23 42 / 6%);
+}
+
+.home-hero--escrew .home-hero__eyebrow {
+  color: #6d7683;
+  font-size: .63rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.home-hero--escrew .home-route {
+  gap: .52rem;
+  margin: .72rem 0 .32rem;
+}
+
+.home-hero--escrew .home-route strong {
+  font-size: clamp(1.8rem, 9vw, 2.25rem);
+  line-height: .95;
+}
+
+.home-hero--escrew .home-route small {
+  margin-top: .18rem;
+  font-size: .58rem;
+  letter-spacing: .11em;
+}
+
+.home-hero--escrew .home-route__plane {
+  width: 1.95rem;
+  height: 1.22rem;
+  fill: var(--es-gold);
+}
+
+.home-hero--escrew .home-flight-meta {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: 100%;
+  margin: .42rem 0 0 !important;
+  border-radius: .62rem;
+  padding: .27rem .5rem;
+  background: #edf5ff;
+  color: #2574ef !important;
+  font-size: .67rem !important;
+  font-weight: 800;
+  letter-spacing: .025em;
+}
+
+.home-hero--escrew .home-report-countdown {
+  min-height: 2.85rem;
+  margin-top: .62rem;
+  border-color: #d4e4ff;
+  border-radius: .82rem;
+  padding: .5rem .64rem;
+  background: #edf5ff;
+}
+
+.home-hero--escrew .home-report-countdown span {
+  color: #5e789c;
+  font-size: .56rem;
+  letter-spacing: .11em;
+}
+
+.home-hero--escrew .home-report-countdown strong {
+  color: #2d7dff;
+  font-size: clamp(1rem, 4.7vw, 1.2rem);
+}
+
+.home-hero--escrew .home-time-grid {
+  gap: 0;
+  margin-top: .72rem;
+  border-top: 1px solid var(--es-border);
+  border-bottom: 1px solid var(--es-border);
+  padding: .66rem 0;
+}
+
+.home-hero--escrew .home-time-grid > div {
+  min-height: 2.35rem;
+  border: 0;
+  border-left: 1px solid var(--es-border);
+  border-radius: 0;
+  padding: .02rem .58rem;
+  background: transparent;
+}
+
+.home-hero--escrew .home-time-grid > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.home-hero--escrew .home-time-grid > div:last-child {
+  padding-right: 0;
+}
+
+.home-hero--escrew .home-time-grid span {
+  font-size: .52rem;
+  letter-spacing: .08em;
+}
+
+.home-hero--escrew .home-time-grid strong {
+  font-size: .98rem;
+}
+
+.home-hero--escrew .home-hero__actions {
+  margin-top: .2rem;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.home-hero--escrew .home-destination-weather {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.home-hero--escrew .home-destination-weather > button {
+  min-height: 2.9rem;
+  padding: .48rem 0;
+}
+
+.home-hero--escrew .home-destination-weather > button > b {
+  width: 1.35rem;
+  font-size: 1.12rem;
+  text-align: center;
+}
+
+.home-hero--escrew .home-destination-weather > button small {
+  font-size: .53rem;
+}
+
+.home-hero--escrew .home-destination-weather__forecast {
+  border-top-color: var(--es-border);
+  padding-right: 0;
+  padding-bottom: .6rem;
+  padding-left: 0;
+}
+
+.home-stats--escrew {
+  gap: .62rem;
+  margin-top: .68rem;
+}
+
+.home-stats--escrew > div {
+  min-height: 4.45rem;
+  border-color: #dfe5eb;
+  border-radius: 1.15rem;
+  padding: .78rem .86rem;
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 .3rem .95rem rgb(15 23 42 / 4%);
+}
+
+.home-stats--escrew span {
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+.home-stats--escrew strong {
+  margin-top: .03rem;
+  font-size: 1.38rem;
+}
+
+.home-section--crew {
+  margin-top: 1.35rem;
+}
+
+.home-section--crew .home-section__title {
+  margin-right: .1rem;
+  margin-left: .1rem;
+}
+
+.home-section--crew .home-section__title p {
+  font-size: .6rem;
+  letter-spacing: .13em;
+}
+
+.home-section--crew .home-section__title h2 {
+  font-size: 1.26rem;
+}
+
+.home-section--crew .home-crew-list {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-section--crew .home-crew-row {
+  min-height: 3.45rem;
+  padding-right: .15rem;
+  padding-left: .15rem;
+}
+
+.home-section--crew .home-crew-row b {
+  width: 2rem;
+  height: 2rem;
+  background: #edf5ff;
+}
+
+.home-section--crew .home-crew-row strong {
+  font-size: .84rem;
+}
+
+/* The roster is rendered as the original eScrew timeline: one visual card per event or sector. */
+.roster-timeline {
+  display: grid;
+  gap: .68rem;
+  border: 1px solid rgb(223 229 235 / 86%);
+  border-radius: 1.45rem;
+  padding: .52rem;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 .34rem 1.05rem rgb(15 23 42 / 4%);
+}
+
+.roster-timeline__day {
+  display: grid;
+  gap: .68rem;
+  scroll-margin-top: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 6mm + 4.4rem);
+}
+
+.roster-timeline-card {
+  display: grid;
+  gap: .28rem;
+  box-sizing: border-box;
+  min-width: 0;
+  border: 1px solid #e0e5ea;
+  border-radius: 1.12rem;
+  padding: .84rem .88rem .8rem;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 .3rem 1rem rgb(15 23 42 / 4%);
+  color: var(--es-ink);
+  text-decoration: none;
+}
+
+.roster-timeline-card--flight {
+  border-color: #c9ddfb;
+  background: #edf5ff;
+}
+
+.roster-timeline-card__top {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .65rem;
+}
+
+.roster-timeline-card__top p {
+  min-width: 0;
+  margin: 0;
+  color: #727b88;
+  font-size: .65rem;
+  font-weight: 800;
+  letter-spacing: .095em;
+  line-height: 1.2;
+}
+
+.roster-timeline-card__top > span {
+  flex: 0 1 auto;
+  overflow: hidden;
+  color: #6e7785;
+  font-size: .69rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-timeline-card h2,
+.roster-timeline-card--flight > strong {
+  display: block;
+  margin: .12rem 0 0;
+  color: var(--es-ink);
+  font-size: 1.32rem;
+  font-weight: 750;
+  letter-spacing: -.045em;
+  line-height: 1.1;
+}
+
+.roster-timeline-card--flight > strong {
+  font-size: 1.46rem;
+}
+
+.roster-timeline-card--flight > strong i {
+  color: var(--es-gold);
+  font-style: normal;
+}
+
+.roster-timeline-card > p {
+  overflow: hidden;
+  margin: .06rem 0 0;
+  color: var(--es-muted);
+  font-size: .78rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-timeline-card > small {
+  margin-top: .08rem;
+  color: var(--es-muted);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.roster-timeline__day--off .roster-timeline-card--activity {
+  border-color: #c7e6cf;
+  background: #f1faf3;
+}
+
+.roster-timeline__day--off .roster-timeline-card--activity h2,
+.roster-timeline__day--off .roster-timeline-card--activity .roster-timeline-card__top > span {
+  color: #28784a;
+}
+
+.roster-timeline__day--doff .roster-timeline-card--activity {
+  border-color: #bce4d8;
+  background: #eef9f5;
+}
+
+.roster-timeline__day--doff .roster-timeline-card--activity h2,
+.roster-timeline__day--doff .roster-timeline-card--activity .roster-timeline-card__top > span {
+  color: #16735f;
+}
+
+.roster-timeline__day--today .roster-timeline-card {
+  border-color: #a9ccff;
+  background: #eaf3ff;
+  box-shadow: 0 .5rem 1.25rem rgb(45 125 255 / 12%);
+}
+
+.roster-timeline__day--today .roster-timeline-card__top p {
+  color: var(--es-blue);
+}
+
+.roster-timeline-card .roster-today-label {
+  display: inline-block;
+  vertical-align: .05rem;
+  margin-left: .38rem;
+  border-radius: 999px;
+  padding: .12rem .34rem;
+  background: var(--es-blue);
+  color: #fff;
+  font-size: .48rem;
+  letter-spacing: .07em;
+}
+
+@media (max-width: 22rem) {
+  .home-hero--escrew .home-time-grid > div {
+    padding-right: .38rem;
+    padding-left: .38rem;
+  }
+
+  .home-hero--escrew .home-time-grid strong {
+    font-size: .87rem;
+  }
+
+  .roster-timeline-card {
+    padding-right: .76rem;
+    padding-left: .76rem;
+  }
+
+  .roster-timeline-card__top > span {
+    max-width: 46%;
+    font-size: .62rem;
+  }
+}
