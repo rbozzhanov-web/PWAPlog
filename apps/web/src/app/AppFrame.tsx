@@ -1,4 +1,4 @@
-import type { UIEvent } from 'react';
+import type { CSSProperties, UIEvent } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
@@ -148,8 +148,10 @@ export function AppFrame({ db }: AppFrameProps) {
     return () => query.removeEventListener?.('change', onChange);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle('theme-dark', usesDarkTheme);
+    document.documentElement.style.colorScheme = usesDarkTheme ? 'dark' : 'light';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', usesDarkTheme ? '#091422' : '#eaf2fa');
     try {
       window.localStorage.setItem(themeStorageKey, themePreference);
     } catch {
@@ -161,6 +163,24 @@ export function AppFrame({ db }: AppFrameProps) {
     const refreshAimsState = () => setHasAimsRoster(Boolean(loadAimsRoster()));
     window.addEventListener('aims-roster-updated', refreshAimsState);
     return () => window.removeEventListener('aims-roster-updated', refreshAimsState);
+  }, []);
+
+  // Every bottom action shares the measured dock boundary, including nested routes.
+  useLayoutEffect(() => {
+    const dock = navRef.current;
+    if (!dock) return;
+    const measureDock = () => {
+      const height = dock.getBoundingClientRect().height;
+      if (height > 0) document.documentElement.style.setProperty('--app-dock-height', height + 'px');
+    };
+    measureDock();
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measureDock);
+    observer?.observe(dock);
+    window.addEventListener('resize', measureDock);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measureDock);
+    };
   }, []);
 
   const handlePagerScroll = (event: UIEvent<HTMLDivElement>) => {
@@ -230,6 +250,7 @@ export function AppFrame({ db }: AppFrameProps) {
         className="tab-dock tab-dock--five"
         aria-label="Primary navigation"
         ref={navRef}
+        style={{ '--tab-count': items.length } as CSSProperties}
       >
         <span className="tab-dock__indicator" aria-hidden="true" />
         {items.map((item, index) => (
@@ -251,11 +272,23 @@ export function AppFrame({ db }: AppFrameProps) {
               }
             }}
           >
-            <span aria-hidden="true">{item.icon}</span>
+            <span aria-hidden="true"><TabIcon index={index} /></span>
             <span aria-hidden={Boolean(item.ariaLabel)}>{item.label}</span>
           </NavLink>
         ))}
       </nav>
     </div>
   );
+}
+
+/** Shared viewBox and stroke keep every navigation icon optically centered. */
+function TabIcon({ index }: { index: number }) {
+  const paths = [
+    <path key="home" d="m3.5 10 8.5-7 8.5 7M5.5 8.5V21h13V8.5M9.5 21v-7h5v7" />,
+    <path key="roster" d="m22 12-8.5-8h-3l4 8h-7l-3-3H2l2 3-2 3h2.5l3-3h7l-4 8h3z" />,
+    <path key="pay" d="M5 4h14M5 8h14M12 8v13" />,
+    <g key="logbook"><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /></g>,
+    <g key="more" fill="currentColor" stroke="none"><circle cx="4" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="20" cy="12" r="2" /></g>,
+  ];
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[index]}</svg>;
 }

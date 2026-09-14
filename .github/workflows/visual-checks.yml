@@ -1,0 +1,42 @@
+name: Visual interface checks
+
+on:
+  push:
+    branches: [ui/visual-audit]
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'scripts/check-visual-interface.mjs'
+      - '.github/workflows/visual-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          GITHUB_ACTIONS: ''
+      - run: npm install --no-save --package-lock=false playwright@1.63.0
+      - run: npx playwright install --with-deps chromium webkit
+      - run: node scripts/check-visual-interface.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: interface-screenshots
+          path: visual-artifacts
+          retention-days: 7

@@ -1,0 +1,482 @@
+/* One material system for every route. Colors describe roles, not particular screens. */
+:root {
+  color-scheme: light;
+  --es-bg: #eaf2fa;
+  --es-surface-rgb: 250 253 255;
+  --es-card: rgb(var(--es-surface-rgb) / 70%);
+  --es-inset: rgb(255 255 255 / 48%);
+  --es-solid: #f5f8fc;
+  --es-border: rgb(52 76 107 / 16%);
+  --es-ink: #101f34;
+  --es-muted: #506076;
+  --es-blue: #135ebc;
+  --es-action: #1765d3;
+  --es-on-accent: #fff;
+  --es-gold: #806528;
+  --es-blue-soft: rgb(214 233 255 / 65%);
+  --es-blue-border: rgb(58 121 216 / 32%);
+  --es-off-bg: rgb(222 243 228 / 76%);
+  --es-doff-bg: rgb(206 237 229 / 76%);
+  --es-success: #236342;
+  --es-doff-ink: #175b4c;
+  --es-success-bg: rgb(225 244 233 / 90%);
+  --es-success-border: rgb(41 131 89 / 29%);
+  --es-warning: #785211;
+  --es-warning-bg: rgb(255 241 211 / 94%);
+  --es-warning-border: rgb(171 121 36 / 32%);
+  --es-danger: #a52b3c;
+  --es-danger-solid: #ae3044;
+  --es-danger-bg: rgb(255 231 236 / 94%);
+  --es-summary-start: #152c48;
+  --es-summary-end: #204872;
+  --es-summary-muted: #d9e8fa;
+  --es-edge: rgb(255 255 255 / 78%);
+  --es-edge-low: rgb(62 93 132 / 17%);
+  --es-highlight: rgb(255 255 255 / 36%);
+  --es-shadow: 0 .55rem 1.5rem rgb(19 42 77 / 9%);
+  --es-glass: rgb(242 249 255 / 40%);
+  --es-glass-selected: rgb(220 237 255 / 42%);
+  --es-scrim: rgb(15 27 43 / 32%);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --page-gutter: 1rem;
+  --app-header-height: calc(max(.7rem, var(--safe-area-top)) + 6mm + 3.9rem);
+  --app-dock-height: 3.84rem;
+  --app-dock-bottom: max(.65rem, var(--safe-area-bottom));
+  --app-bottom-clearance: calc(var(--app-dock-height) + var(--app-dock-bottom) + .85rem);
+}
+
+:root.theme-dark {
+  color-scheme: dark;
+  --es-bg: #091422;
+  --es-surface-rgb: 18 34 54;
+  --es-card: rgb(var(--es-surface-rgb) / 74%);
+  --es-inset: rgb(6 19 35 / 50%);
+  --es-solid: #152337;
+  --es-border: rgb(189 214 245 / 20%);
+  --es-ink: #edf4ff;
+  --es-muted: #b3c3d8;
+  --es-blue: #9ac7ff;
+  --es-action: #2168cf;
+  --es-gold: #dbc18b;
+  --es-blue-soft: rgb(33 71 113 / 72%);
+  --es-blue-border: rgb(127 181 250 / 43%);
+  --es-off-bg: rgb(20 66 48 / 84%);
+  --es-doff-bg: rgb(17 61 59 / 84%);
+  --es-success: #a0e3bb;
+  --es-doff-ink: #94e0d2;
+  --es-success-bg: rgb(22 59 45 / 94%);
+  --es-success-border: rgb(122 204 161 / 38%);
+  --es-warning: #f3d393;
+  --es-warning-bg: rgb(65 46 23 / 96%);
+  --es-warning-border: rgb(224 184 107 / 42%);
+  --es-danger: #ffb3c1;
+  --es-danger-bg: rgb(68 28 43 / 95%);
+  --es-summary-start: #152c48;
+  --es-summary-end: #1b3859;
+  --es-edge: rgb(223 239 255 / 28%);
+  --es-edge-low: rgb(0 7 21 / 60%);
+  --es-highlight: rgb(203 229 255 / 12%);
+  --es-shadow: 0 .55rem 1.7rem rgb(0 5 14 / 28%);
+  --es-glass: rgb(16 34 56 / 48%);
+  --es-glass-selected: rgb(58 109 169 / 35%);
+  --es-scrim: rgb(0 6 16 / 52%);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { background: var(--es-bg); color: var(--es-ink); }
+body { min-width: 0; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea, summary { touch-action: manipulation; }
+button { -webkit-appearance: none; appearance: none; }
+a { color: var(--es-blue); }
+button, input, textarea, select { accent-color: var(--es-action); }
+input::placeholder, textarea::placeholder { color: var(--es-muted); opacity: .85; }
+:where(a, button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--es-blue);
+  outline-offset: 3px;
+}
+button:disabled { cursor: default; }
+.app-frame { color: var(--es-ink); }
+.app-frame__content { min-height: 100dvh; padding: 0; }
+.app-wallpaper { pointer-events: none; }
+.theme-dark .app-wallpaper {
+  background: linear-gradient(rgb(4 13 29 / 72%), rgb(4 13 29 / 84%)),
+    #091422 url('../assets/escrew-sky-background.webp') center top / cover no-repeat;
+}
+
+/* Reserve chrome in the scroll containers, not by creating an extra body scroller. */
+.home-page, .roster-page, .pay-page, .logbook-page, .settings-page,
+.flight-detail-page, .pdf-import-page, .pdf-review-page, .entry-editor-page {
+  width: min(100%, 46rem);
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: max(var(--page-gutter), var(--safe-area-left)) max(var(--page-gutter), var(--safe-area-right));
+  padding-bottom: var(--app-bottom-clearance);
+}
+.flight-detail-page, .pdf-import-page, .pdf-review-page, .entry-editor-page {
+  padding-top: calc(var(--safe-area-top) + 1rem);
+}
+.primary-tab-pager__page {
+  scroll-padding-top: calc(var(--app-header-height) + .75rem);
+  scroll-padding-bottom: var(--app-bottom-clearance);
+}
+.primary-tab-pager__page > :is(.home-page, .roster-page, .pay-page, .logbook-page, .settings-page) {
+  min-height: 100%;
+  padding-top: calc(var(--app-header-height) + 1rem);
+  padding-bottom: var(--app-bottom-clearance);
+}
+/* These were duplicate sticky glass panels behind the physical header, especially in dark mode. */
+.primary-tab-pager__page :is(.suite-header, .suite-page-header, .logbook-header, .settings-header) {
+  display: none;
+}
+.primary-tab-header {
+  height: var(--app-header-height);
+  border: 0;
+  border-radius: 0;
+  padding-inline: max(var(--page-gutter), var(--safe-area-left), calc((100vw - 46rem) / 2 + var(--page-gutter)))
+    max(var(--page-gutter), var(--safe-area-right), calc((100vw - 46rem) / 2 + var(--page-gutter)));
+  padding-top: calc(max(.7rem, var(--safe-area-top)) + 6mm);
+  background: var(--es-glass);
+  box-shadow: inset 0 -1px 0 var(--es-edge), 0 .2rem 1.2rem rgb(14 37 65 / 5%);
+  -webkit-backdrop-filter: blur(20px) saturate(155%);
+  backdrop-filter: blur(20px) saturate(155%);
+}
+.primary-tab-header::after { content: none; }
+.primary-tab-header__titles { height: 1.95rem; }
+.primary-tab-header__titles span {
+  color: var(--es-ink);
+  line-height: 1.16;
+  text-shadow: 0 1px 1px var(--es-edge);
+}
+.primary-tab-header__aims, .roster-header__import {
+  min-height: 2.75rem;
+  border: 1px solid var(--es-edge);
+  background: var(--es-inset);
+  box-shadow: inset 0 1px 0 var(--es-edge), 0 .2rem .7rem rgb(18 42 79 / 7%);
+  color: var(--es-blue);
+}
+.year-chips-shell {
+  top: var(--app-header-height);
+  margin-inline: 0;
+  padding-inline: 0;
+  background: var(--es-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+.month-card { scroll-margin-top: calc(var(--app-header-height) + 4.5rem); }
+
+/* One shared track. Its pseudo-surface blurs the backdrop without becoming a
+   backdrop-root around the sliding lens. No content-box border drift per tab. */
+.tab-dock {
+  --tab-count: 5;
+  --tab-dock-inset: .3rem;
+  position: fixed;
+  z-index: 40;
+  inset: auto max(.9rem, var(--safe-area-right)) var(--app-dock-bottom) max(.9rem, var(--safe-area-left));
+  display: grid;
+  grid-template-columns: repeat(var(--tab-count), minmax(0, 1fr));
+  gap: 0;
+  max-width: 29rem;
+  padding: var(--tab-dock-inset);
+  border: 1px solid var(--es-edge);
+  border-radius: 1.4rem;
+  overflow: visible;
+  background: transparent;
+  box-shadow: var(--es-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.tab-dock::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--es-glass);
+  box-shadow: inset 0 1px 0 var(--es-edge), inset 0 -1px 0 var(--es-edge-low);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  backdrop-filter: blur(18px) saturate(165%);
+}
+.tab-dock__indicator {
+  z-index: 1;
+  box-sizing: border-box;
+  top: var(--tab-dock-inset);
+  bottom: var(--tab-dock-inset);
+  left: var(--tab-dock-inset);
+  right: auto;
+  width: calc((100% - var(--tab-dock-inset) - var(--tab-dock-inset)) / var(--tab-count));
+  border: 1px solid var(--es-edge);
+  border-radius: 1.06rem;
+  background: var(--es-glass-selected);
+  box-shadow: inset 0 1px 1px var(--es-edge), inset 0 -1px 1px var(--es-edge-low), 0 .2rem .65rem rgb(14 40 77 / 12%);
+  -webkit-backdrop-filter: blur(7px) saturate(175%);
+  backdrop-filter: blur(7px) saturate(175%);
+  transform: translate3d(calc(var(--tab-progress, 0) * 100%), 0, 0);
+  pointer-events: none;
+  will-change: transform;
+}
+.tab-dock__indicator::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  height: auto;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--es-highlight), transparent 38%, transparent 65%, var(--es-highlight));
+  pointer-events: none;
+}
+.tab-dock__item {
+  z-index: 2;
+  min-width: 0;
+  min-height: 3.2rem;
+  padding: .25rem .08rem;
+  gap: .13rem;
+  border-radius: 1.06rem;
+  color: var(--es-muted);
+  font-size: .65rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.tab-dock__item > span:first-child {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  color: inherit;
+  font-size: inherit;
+}
+.tab-dock__item svg { display: block; width: 100%; height: 100%; }
+.tab-dock__item--active, .tab-dock__item--active > span:first-child {
+  color: var(--es-blue);
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Real translucent surfaces: the wallpaper is sampled through each card. */
+.home-hero, .home-hero--escrew, .home-stats > div, .home-empty, .home-recent-list,
+.home-section--crew .home-crew-list,
+.roster-empty-card, .roster-duty-card, .roster-timeline-card,
+.pay-setup, .pay-result, .pay-audit,
+.logbook-toolbar, .logbook-empty, .logbook-state, .month-card,
+.settings-card, .settings-intro--body, .tab-page-note,
+.pdf-import-card, .pdf-review-empty, .pdf-cross-checks, .pdf-candidate, .pdf-review-actions,
+.pdf-review-pagination, .entry-form__card, .entry-delete-confirmation, .entry-editor-state,
+.flight-detail-hero, .flight-detail-card {
+  border: 1px solid var(--es-edge);
+  background: var(--es-card);
+  box-shadow: inset 0 1px 0 var(--es-edge), inset 0 -1px 0 var(--es-edge-low), var(--es-shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  backdrop-filter: blur(14px) saturate(135%);
+  color: var(--es-ink);
+}
+.home-section--crew .home-crew-list { border-radius: 1.15rem; }
+.home-section--crew .home-crew-row { padding-inline: .85rem; }
+.home-hero { overflow: visible; }
+.home-hero__actions { min-width: 0; }
+.home-hero--escrew .home-report-countdown {
+  gap: .5rem;
+  background: var(--es-blue-soft);
+  border-color: var(--es-blue-border);
+}
+.home-hero--escrew .home-report-countdown strong {
+  color: var(--es-blue);
+  font-size: clamp(.9rem, 4.1vw, 1.2rem);
+  font-variant-numeric: tabular-nums;
+}
+.home-hero--escrew .home-report-countdown span { color: var(--es-muted); letter-spacing: .06em; }
+.home-hero--escrew .home-route { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.home-route > span { min-width: 0; }
+.home-route small { overflow-wrap: anywhere; }
+.home-route__plane { display: block; transform: none; }
+.home-hero--escrew .home-time-grid > div { text-align: center; padding-inline: .2rem; }
+.home-hero--escrew .home-time-grid > div:first-child { padding-left: .2rem; }
+.home-hero--escrew .home-time-grid > div:last-child { padding-right: .2rem; }
+.home-destination-weather > button { cursor: default; }
+.home-hero--escrew .home-destination-weather > button strong { white-space: normal; line-height: 1.4; }
+.home-crew-row strong { white-space: normal; overflow-wrap: anywhere; }
+.home-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.home-stats > div { min-width: 0; }
+.home-stats strong { overflow-wrap: anywhere; }
+
+/* Do not frost an opaque parent behind the roster's individual glass cards. */
+.roster-timeline {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.roster-timeline-card--flight,
+.roster-timeline__day--flight .roster-timeline-card--flight,
+.roster-timeline__day--today.roster-timeline__day--flight .roster-timeline-card--flight {
+  border-color: var(--es-blue-border);
+  background: var(--es-blue-soft);
+}
+.roster-timeline__day--off .roster-timeline-card--activity {
+  border-color: var(--es-success-border);
+  background: var(--es-off-bg);
+}
+.roster-timeline__day--doff .roster-timeline-card--activity {
+  border-color: var(--es-success-border);
+  background: var(--es-doff-bg);
+}
+.roster-timeline__day--off .roster-timeline-card--activity h2,
+.roster-timeline__day--off .roster-timeline-card--activity .roster-timeline-card__top > span { color: var(--es-success); }
+.roster-timeline__day--doff .roster-timeline-card--activity h2,
+.roster-timeline__day--doff .roster-timeline-card--activity .roster-timeline-card__top > span { color: var(--es-doff-ink); }
+.roster-timeline__day--today .roster-timeline-card {
+  border-color: var(--es-blue);
+  box-shadow: inset 0 0 0 1px var(--es-blue-border), var(--es-shadow);
+}
+.roster-timeline-card__top { flex-wrap: wrap; gap: .35rem .65rem; }
+.roster-timeline-card__top > span { margin-left: auto; max-width: 100%; }
+.roster-timeline-card > p { white-space: normal; overflow-wrap: anywhere; }
+.roster-timeline-card h2 { overflow-wrap: anywhere; line-height: 1.22; }
+.roster-timeline-card .roster-today-label { color: var(--es-on-accent); background: var(--es-action); }
+
+/* Forms retain intrinsic text width and equal columns; no anonymous grid item for labels. */
+.pay-setup label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7.2rem, .9fr);
+  align-items: center;
+  gap: .65rem;
+}
+.pay-setup label > .pay-field__label { min-width: 0; text-align: left; color: var(--es-ink); line-height: 1.35; }
+.pay-field__label small { display: block; margin-top: .2rem; color: var(--es-muted); font-size: .68rem; font-weight: 650; }
+.pay-setup input { grid-column: auto; min-width: 0; font-size: 1rem; }
+.pay-result h2 { font-size: clamp(1.5rem, 7.6vw, 2rem); overflow-wrap: anywhere; }
+.pay-result > div p, .pay-audit__group div, .pay-audit__sectors div { gap: .7rem; }
+.pay-result > div strong { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.pay-audit__totals { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pay-audit__totals p { min-width: 0; overflow-wrap: anywhere; }
+.pay-audit__group, .pay-source-list { background: transparent; box-shadow: none; }
+.pay-audit__group span, .pay-audit__sectors span { min-width: 0; overflow-wrap: anywhere; }
+.pay-audit__group strong, .pay-audit__sectors strong { max-width: 56%; white-space: normal; text-align: right; overflow-wrap: anywhere; }
+.review-field, .entry-field { min-width: 0; }
+.review-field input, .entry-field input, .entry-field textarea, .pay-setup input {
+  min-height: 2.75rem;
+  background: var(--es-inset);
+  border-color: var(--es-border);
+  color: var(--es-ink);
+  -webkit-text-fill-color: var(--es-ink);
+}
+.review-field input[aria-invalid="true"], .entry-field input[aria-invalid="true"] { border-color: var(--es-danger); }
+.logbook-summary, .pdf-review-summary {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: .85rem;
+  color: var(--es-on-accent);
+  background: linear-gradient(160deg, var(--es-summary-start), var(--es-summary-end));
+  border: 1px solid var(--es-edge);
+  box-shadow: var(--es-shadow);
+}
+.logbook-summary div { min-width: 0; }
+.logbook-summary div > strong { font-size: clamp(2rem, 8vw, 3rem); overflow-wrap: anywhere; }
+.logbook-summary p, .logbook-summary span, .pdf-review-summary p, .pdf-review-summary span { color: var(--es-summary-muted); }
+.logbook-summary p strong, .pdf-review-summary p strong { color: #f0ce8a; }
+.logbook-header__actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; min-width: 0; width: 100%; }
+.logbook-settings-link, .logbook-new-link {
+  border: 1px solid var(--es-border);
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: .55rem .35rem;
+  font-size: .72rem;
+  text-align: center;
+  white-space: normal;
+  cursor: pointer;
+}
+.logbook-toolbar { flex-direction: column; align-items: stretch; }
+.logbook-settings-link { background: var(--es-inset); color: var(--es-blue); }
+.logbook-new-link { border-color: transparent; }
+.flight-row { grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; }
+.flight-row__chevron { display: none; }
+.flight-row:hover { background: var(--es-inset); }
+.month-card__header { flex-wrap: wrap; gap: .65rem; }
+.month-card__total { margin-left: auto; }
+.pdf-review-actions { bottom: var(--app-bottom-clearance); z-index: 10; }
+.pdf-review-actions .primary-action { min-width: 0; }
+.pdf-review-pagination { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .4rem; }
+.pdf-review-pagination button { min-width: 0; padding-inline: .3rem; }
+.pdf-candidate__header { flex-wrap: wrap; }
+.pdf-candidate__header > div { min-width: 0; }
+.pdf-candidate__header h2 { overflow-wrap: anywhere; }
+.pdf-candidate__edit-toggle, .pdf-candidate__toggle, .pdf-candidate__source summary { min-height: 2.5rem; padding-block: .45rem; }
+.pdf-candidate__toggle { margin-top: .25rem; }
+.confidence-badge { width: fit-content; }
+.pdf-cross-checks li { flex-wrap: wrap; gap: .25rem .7rem; }
+.entry-delete-confirmation__actions { flex-wrap: wrap; }
+.entry-delete-confirmation__actions > button { flex: 1 1 8rem; }
+.settings-file-action { gap: .75rem; padding-block: .65rem; }
+.settings-file-action::after { flex-shrink: 0; }
+.settings-theme-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; padding: .55rem; background: var(--es-inset); border-top: 1px solid var(--es-border); }
+.settings-theme-picker button { border: 1px solid transparent; border-radius: .8rem; min-height: 2.75rem; color: var(--es-muted); background: transparent; cursor: pointer; font-size: .78rem; font-weight: 750; }
+.settings-theme-picker button.is-selected { color: var(--es-blue); border-color: var(--es-edge); background: var(--es-glass-selected); box-shadow: inset 0 1px 0 var(--es-edge), var(--es-shadow); }
+
+/* Modal is portalled out of the clipped horizontal pager. Its own scroll area
+   fits small landscape/keyboard viewports and never puts Cancel below the dock. */
+.aims-import-overlay {
+  z-index: 100;
+  height: 100%;
+  height: 100dvh;
+  padding: calc(var(--safe-area-top) + .75rem) max(1rem, var(--safe-area-right)) var(--app-bottom-clearance) max(1rem, var(--safe-area-left));
+  background: var(--es-scrim);
+  overflow: hidden;
+}
+.aims-import-sheet {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  margin-bottom: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  border-color: var(--es-edge);
+  background: rgb(var(--es-surface-rgb) / 87%);
+  box-shadow: inset 0 1px 0 var(--es-edge), var(--es-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(24px) saturate(145%);
+}
+.aims-import-sheet__note { opacity: 1; }
+.aims-import-sheet__file { background: var(--es-inset); }
+.aims-import-sheet__handle { opacity: .6; }
+.flight-times { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+.flight-times > span:last-child { grid-column: 1 / -1; }
+.flight-times strong, .flight-duty-times strong { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.flight-duty-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+.flight-crew-row b { flex-shrink: 0; }
+.flight-crew-row > span { min-width: 0; overflow-wrap: anywhere; }
+.flight-hotel { overflow-wrap: anywhere; }
+.flight-weather__current { flex-wrap: wrap; }
+.flight-weather__current em { color: var(--es-muted); }
+.flight-adjacent { flex-wrap: wrap; }
+.flight-detail-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.flight-detail-tabs button { min-width: 0; min-height: 2.75rem; padding-inline: .2rem; }
+
+@media (max-width: 23rem) {
+  .pay-setup label { grid-template-columns: minmax(0, 1fr); }
+  .pay-setup input { width: 100%; text-align: left; }
+  .home-report-countdown { grid-template-columns: minmax(0, 1fr); gap: .3rem; }
+  .home-report-countdown strong { justify-self: end; }
+  .primary-tab-header__aims { padding-inline: .6rem; font-size: .68rem; }
+  .tab-dock { left: max(.6rem, var(--safe-area-left)); right: max(.6rem, var(--safe-area-right)); }
+  .tab-dock__item { font-size: .6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary-tab-header__titles span, .pdf-candidate { transition: none; }
+  .primary-tab-pager { scroll-behavior: auto; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --es-card: var(--es-solid); --es-glass: var(--es-solid); --es-glass-selected: var(--es-blue-soft); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --es-card: var(--es-solid); --es-glass: var(--es-solid); --es-glass-selected: var(--es-blue-soft); }
+}
+
+/* Status colors must not be swallowed by a general card/text rule. */
+.logbook-state--error, .entry-editor-state--error, .pdf-import-error, .entry-submit-error, .roster-import-error,
+.settings-message--error, .aims-import-sheet .aims-import-sheet__error { color: var(--es-danger); background: var(--es-danger-bg); }
+.settings-message--success, .pay-setup > p { color: var(--es-success); }
+.pay-audit__warning, .pdf-candidate__warnings { color: var(--es-warning); background: var(--es-warning-bg); }
+.pay-audit__note, .pdf-import-status { color: var(--es-blue); background: var(--es-blue-soft); }

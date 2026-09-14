@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   loadAimsRoster,
   parseAimsArchive,
@@ -47,6 +48,33 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
       window.removeEventListener('keydown', closeOnEscape);
     };
   }, [importFlowOpen, importing]);
+  useEffect(() => {
+    if (!importFlowOpen) return;
+    const dialog = document.querySelector<HTMLElement>('.aims-import-sheet');
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+    const appRoot = document.getElementById('root');
+    const previousInert = appRoot?.inert ?? false;
+    if (appRoot) appRoot.inert = true;
+    dialog?.focus({ preventScroll: true });
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled)'));
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) { event.preventDefault(); dialog.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', trapFocus);
+    return () => {
+      if (appRoot) appRoot.inert = previousInert;
+      document.removeEventListener('keydown', trapFocus);
+      previousFocus?.focus({ preventScroll: true });
+    };
+  }, [importFlowOpen]);
   const rosterDays = useMemo(() => roster ? buildRosterDays(roster) : [], [roster]);
   useEffect(() => {
     if (!isActive || !roster || !todayElement.current) return;
@@ -184,8 +212,8 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
         })}
 
       </section> : null}
-      {importFlowOpen ? <div className="aims-import-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) closeImportFlow(); }}>
-        <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog">
+      {importFlowOpen ? createPortal(<div className="aims-import-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) closeImportFlow(); }}>
+        <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog" tabIndex={-1}>
           <div className="aims-import-sheet__handle" aria-hidden="true" />
           <h2 id="aims-import-title">Import from AIMS</h2>
           <p>Open Crew Schedule, then Share → Options → Web Archive → Save to Files. Return to eScrew and choose that Web Archive.</p>
@@ -208,7 +236,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           {error ? <p className="aims-import-sheet__error" role="alert">{error}</p> : null}
           <button className="aims-import-sheet__cancel" disabled={importing} onClick={closeImportFlow} type="button">Cancel</button>
         </section>
-      </div> : null}
+      </div>, document.body) : null}
     </main>
   );
 }
