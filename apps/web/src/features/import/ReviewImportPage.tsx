@@ -129,10 +129,15 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<Record<number, EntryFieldErrors>>({});
+  const [expandedCandidate, setExpandedCandidate] = useState<number>();
   const approvedCount = useMemo(
     () => draft?.candidates.filter(({ approved }) => approved).length ?? 0,
     [draft],
   );
+  const parsedTotals = useMemo(() => draft?.candidates.reduce((totals, candidate) => ({
+    flight: totals.flight + (candidate.fields.totalTimeMinutes ?? 0),
+    simulator: totals.simulator + (candidate.fields.simulatorMinutes ?? 0),
+  }), { flight: 0, simulator: 0 }) ?? { flight: 0, simulator: 0 }, [draft]);
 
   if (!draft) {
     return (
@@ -221,6 +226,7 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
           <strong>{draft.fileName}</strong>
         </div>
         <p><strong>{approvedCount}</strong> of {draft.candidates.length} selected</p>
+        <p><strong>{minutes(parsedTotals.flight)}</strong> flight · <strong>{minutes(parsedTotals.simulator)}</strong> simulator</p>
       </section>
 
       {draft.crossChecks.length > 0 ? (
@@ -264,8 +270,8 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
             ) : null}
 
             <p className="pdf-candidate__compact">{candidate.fields.date ?? '—'} · {candidate.fields.aircraftType ?? '—'} · {minutes(candidate.fields.totalTimeMinutes)}{candidate.fields.simulatorMinutes ? ` · SIM ${minutes(candidate.fields.simulatorMinutes)}` : ''}</p>
-            <details className="pdf-candidate__edit">
-              <summary>Edit details</summary>
+            <button className="pdf-candidate__edit-toggle" type="button" onClick={() => setExpandedCandidate((current) => current === index ? undefined : index)}>{expandedCandidate === index ? 'Close details' : 'Edit details'}</button>
+            {expandedCandidate === index ? <div className="pdf-candidate__edit">
             <div className="pdf-candidate__fields">
               {textFields.map(([field, label, type]) => (
                 <CandidateField
@@ -292,7 +298,7 @@ export function ReviewImportPage({ db }: ReviewImportPageProps) {
                 />
               ))}
             </div>
-            </details>
+            </div> : null}
 
             <details className="pdf-candidate__source">
               <summary>Show source row</summary>
