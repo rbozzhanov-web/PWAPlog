@@ -55,7 +55,6 @@ export function HomePage({ db }: HomePageProps) {
         </> : <><h2>{loading ? 'Loading your flights' : entries.length ? 'Your flying, in one place.' : 'Ready for your next sector.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
         <div className="home-hero__actions">
           {nextFlight ? <Link to={`/flight/${encodeURIComponent(flightId(nextFlight))}`}>Open flight <span>›</span></Link> : <Link to="/logbook/new">Log a flight <span>＋</span></Link>}
-          <Link to={roster ? "/roster" : "/import/logbook"}>{roster ? 'Open roster' : 'Import PDF'}</Link>
         </div>
       </section>
 
@@ -64,7 +63,7 @@ export function HomePage({ db }: HomePageProps) {
         <div><span>Flights</span><strong>{entries.length}</strong></div>
       </section>
       <section className="home-section">
-        <div className="home-section__title"><div><p>LOGBOOK</p><h2>Recent flights</h2></div><Link to="/logbook">View all</Link></div>
+        <div className="home-section__title"><div><p>LOGBOOK</p><h2>Recent flights</h2></div></div>
         {recent.length ? <div className="home-recent-list">{recent.map((entry) => (
           <Link className="home-recent-row" key={entry.id} to={`/logbook/${entry.id}`}>
             <span className="home-recent-row__date">{dateLabel(entry.date)}</span>
