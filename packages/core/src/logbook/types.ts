@@ -5,7 +5,7 @@ export interface Aircraft {
   createdAt: string;
 }
 
-export type EntrySource = 'manual' | 'pdf_import';
+export type EntrySource = 'manual' | 'pdf_import' | 'aims_import';
 
 export interface FlightLogEntry {
   id: string;
