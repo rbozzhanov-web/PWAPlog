@@ -107,10 +107,11 @@ describe('LogbookPage', () => {
     renderLogbook();
 
     expect(await screen.findByRole('heading', { name: 'No flights yet' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Log your first flight' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'New flight' })).toHaveAttribute(
       'href',
       '/logbook/new',
     );
+    expect(screen.queryByRole('link', { name: 'Log your first flight' })).toBeNull();
   });
 
   test('renders only the selected year to keep large logbooks responsive', async () => {
