@@ -671,6 +671,41 @@ label {
   }
 }
 
+/* Persistent tab headers and fixed iOS viewport scale. */
+html {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.suite-header,
+.suite-page-header,
+.logbook-header,
+.settings-header {
+  position: sticky;
+  z-index: 15;
+  top: env(safe-area-inset-top, 0px);
+  border-radius: 0 0 1rem 1rem;
+  background: rgb(246 247 250 / 72%);
+  box-shadow: 0 .4rem 1rem rgb(15 23 42 / 3%);
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.home-report-countdown strong {
+  font-size: clamp(.88rem, 3.6vw, 1.12rem);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 .logbook-page {
   width: min(100%, 68rem);
   margin: 0 auto;
