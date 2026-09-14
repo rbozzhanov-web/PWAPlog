@@ -7,7 +7,6 @@ import { listFlightEntries } from '../../db/repositories/flightEntries';
 import { formatFlightMinutes, sumFlightMinutes } from '../logbook/totals';
 import { loadAimsRoster, type AimsDuty, type AimsRoster } from '../roster/aims';
 import { layoverWindow, useArrivalWeather, weatherIcon, windDirectionLabel } from '../weather/weatherService';
-import { id as flightId } from '../roster/FlightDetailPage';
 
 interface HomePageProps { db: PilotLogbookDb }
 
