@@ -129,10 +129,10 @@ body {
 
 /* eScrew concept system — deliberately crisp, light and native rather than glassy. */
 :root { --es-bg: #f6f7fa; --es-card: #fff; --es-border: #e9edf2; --es-ink: #0f172a; --es-muted: #6b7280; --es-blue: #2d7dff; --es-gold: #a58b4f; color: var(--es-ink); background: var(--es-bg); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif; }
-body { background: var(--es-bg); }
-.app-frame { color: var(--es-ink); background: var(--es-bg); }
-.app-wallpaper { background: radial-gradient(circle at 24% -8%, #fff 0 12%, transparent 36%), linear-gradient(180deg, #f8f9fb, #f4f6f9); }
-.app-wallpaper::after { background: linear-gradient(120deg, rgb(255 255 255 / .6), transparent 46%); }
+body { background: #edf6ff; }
+.app-frame { color: var(--es-ink); background: transparent; }
+.app-wallpaper { background: #edf6ff url('../assets/escrew-sky-background.webp') center top / cover no-repeat; }
+.app-wallpaper::after { background: none; }
 .app-frame__content { padding-bottom: calc(6.2rem + env(safe-area-inset-bottom)); }
 .tab-dock { right: .9rem; bottom: max(.55rem, env(safe-area-inset-bottom)); left: .9rem; max-width: 25rem; border: 1px solid var(--es-border); border-radius: 1.25rem; padding: .28rem; background: rgb(255 255 255 / .94); box-shadow: 0 .65rem 1.8rem rgb(15 23 42 / .08); backdrop-filter: blur(16px); }
 .tab-dock--five { max-width: 29rem; }
