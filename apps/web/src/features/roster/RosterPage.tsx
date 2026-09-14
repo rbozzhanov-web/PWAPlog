@@ -6,6 +6,7 @@ import {
   saveAimsRoster,
   type AimsActivity,
   type AimsDuty,
+  type AimsHotel,
   type AimsRoster,
 } from './aims';
 import { id } from './FlightDetailPage';
@@ -115,25 +116,35 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           const state = codes.has('OFF') ? 'off' : codes.has('DOFF') ? 'doff' : undefined;
           const dateLabel = compactDateLabel(day.date);
           const stateClass = state ? ' roster-timeline__day--' + state : '';
+          const flightDayClass = day.duties.some((duty) => duty.flights.length > 0) ? ' roster-timeline__day--flight' : '';
           const todayClass = isToday ? ' roster-timeline__day--today' : '';
           return <div
             aria-label={'Schedule for ' + displayDate(day.date) + ' · ' + dayTimeRange(day)}
-            className={'roster-timeline__day' + stateClass + todayClass}
+            className={'roster-timeline__day' + stateClass + flightDayClass + todayClass}
             data-date={day.date}
             key={day.date}
             ref={isToday ? todayElement : undefined}
           >
             {day.activities.map((activity, index) => {
-              const detail = [activity.type, activity.location].filter(Boolean).join(' · ');
               const time = activityTime(activity);
-              return <article className={'roster-timeline-card roster-timeline-card--activity roster-timeline-card--' + activity.code.toLowerCase()} key={activity.code + '-' + index}>
+              const isHotel = isHotelActivity(activity);
+              const hotel = isHotel ? hotelForActivity(roster.hotels, activity) : undefined;
+              const detail = isHotel
+                ? [hotel?.station || activity.location, time !== 'ALL DAY' ? 'Rest ' + time : undefined].filter(Boolean).join(' · ')
+                : [activity.type, activity.location].filter(Boolean).join(' · ');
+              return <article className={'roster-timeline-card roster-timeline-card--activity roster-timeline-card--' + activity.code.toLowerCase() + (isHotel ? ' roster-timeline-card--hotel' : '')} key={activity.code + '-' + index}>
                 <header className="roster-timeline-card__top">
                   <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
-                  <span>{activity.code}</span>
+                  <span>{isHotel ? 'HOTEL' : activity.code}</span>
                 </header>
-                <h2>{activity.title || activity.type || activity.code}</h2>
+                <h2>{isHotel ? hotel?.name || hotelActivityName(activity) || 'Hotel' : activity.title || activity.type || activity.code}</h2>
                 {detail ? <p>{detail}</p> : null}
-                {time !== 'ALL DAY' ? <small>{time}</small> : null}
+                {isHotel && (hotel?.address || hotel?.phone || hotel?.locator) ? <div className="roster-hotel-info">
+                  {hotel?.address ? <span>{hotel.address}</span> : null}
+                  {hotel?.phone ? <a href={'tel:' + hotel.phone.replace(/[^+\d]/g, '')}>{hotel.phone}</a> : null}
+                  {hotel?.locator ? <span>{hotel.locator}</span> : null}
+                </div> : null}
+                {!isHotel && time !== 'ALL DAY' ? <small>{time}</small> : null}
               </article>;
             })}
             {day.duties.flatMap((duty) => duty.flights.map((flight) => ({ duty, flight }))).map(({ duty, flight }, index) => {
@@ -220,4 +231,20 @@ function activityTime(activity: AimsActivity) {
   const start = shortTime(activity.start);
   const end = shortTime(activity.end);
   return start || end ? `${start ?? '—'}–${end ?? '—'}` : 'ALL DAY';
+}
+
+function isHotelActivity(activity: AimsActivity) {
+  return /\bHOTEL\b/i.test([activity.code, activity.type, activity.title].filter(Boolean).join(' '));
+}
+function hotelForActivity(hotels: AimsHotel[], activity: AimsActivity) {
+  const station = stationCode(activity.location);
+  const match = station ? hotels.find((hotel) => stationCode(hotel.station) === station) : undefined;
+  return match || (hotels.length === 1 ? hotels[0] : undefined);
+}
+function stationCode(value?: string) {
+  return /\b[A-Z]{3,4}\b/.exec(value?.toUpperCase() ?? '')?.[0];
+}
+function hotelActivityName(activity: AimsActivity) {
+  const title = activity.title?.trim();
+  return title && !/^(hotel|rest|accommodation)$/i.test(title) ? title : undefined;
 }

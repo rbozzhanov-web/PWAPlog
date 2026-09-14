@@ -1,7 +1,7 @@
 export type AimsCrewMember = { id?: string; name: string; role: 'Flight deck' | 'Cabin'; position?: string; deadhead?: boolean };
 export type AimsFlight = { flightNumber: string; date: string; origin: string; destination: string; departure: string; arrival: string; arrivalDate?: string; deadhead: boolean; actualTimes: boolean; aircraftType?: string; crew?: AimsCrewMember[] };
 export type AimsDuty = { date: string; start?: string; end?: string; report?: string; release?: string; flights: AimsFlight[] };
-export type AimsHotel = { station: string; address?: string; phone?: string; locator?: string };
+export type AimsHotel = { station: string; name?: string; address?: string; phone?: string; locator?: string };
 export type AimsAbsence = { code: 'SICK' | 'UFF' | 'VAC' | 'CHLD'; date: string };
 export type AimsActivity = { date: string; code: string; title?: string; type: string; location?: string; start?: string; end?: string };
 export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; absences: AimsAbsence[]; activities: AimsActivity[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
@@ -35,7 +35,18 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     const absence = absenceCode(event); if (absence) absences.push({ code: absence, date: dutyDate });
     const flights = sectors(event, dutyDate);
     if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report), dutyDate), release: boundary(text(event.debrief), dutyDate), flights });
-    else { const code = eventCode(event); if (code) activities.push({ date: dutyDate, code, title: text(event.text).split(/\r?\n/)[1]?.trim() || undefined, type: text(event.type), location: text(event.location).trim() || undefined, start: boundary(text(event.start)), end: boundary(text(event.end)) }); }
+    else {
+      const code = eventCode(event);
+      if (code) activities.push({
+        date: dutyDate,
+        code,
+        title: activityTitle(event, code),
+        type: text(event.type),
+        location: text(event.location).trim() || undefined,
+        start: boundary(text(event.start)),
+        end: boundary(text(event.end)),
+      });
+    }
   }
   if (!duties.length) throw new Error('The saved AIMS schedule contains no flight sectors. Make sure the calendar was fully loaded before saving it.');
   duties.sort((a, b) => (a.start ?? a.date).localeCompare(b.start ?? b.date));
@@ -80,7 +91,36 @@ function attachCrew(duties: AimsDuty[], members?: RecordValue) {
     if (flight) flight.crew = crew;
   }
 }
-function hotels(element?: RecordValue): AimsHotel[] { return (Array.isArray(element?.data) ? element.data : []).flatMap((row): AimsHotel[] => { if (!record(row)) return []; const station = clean(text(row.port)); if (!station) return []; return [{ station, address: clean(text(row.addresses)) || undefined, phone: clean(text(row.phones)) || undefined, locator: clean(text(row.locators)) || undefined }]; }); }
+function hotels(element?: RecordValue): AimsHotel[] {
+  return (Array.isArray(element?.data) ? element.data : []).flatMap((row): AimsHotel[] => {
+    if (!record(row)) return [];
+    const station = clean(text(row.port));
+    if (!station) return [];
+    const rawAddress = clean(text(row.addresses));
+    const addressLines = rawAddress.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    const declaredName = firstValue(row, ['hotel', 'hotelName', 'name', 'property', 'title', 'description']);
+    const inferredName = addressLines[0] && looksLikeHotelName(addressLines[0]) ? addressLines[0] : undefined;
+    const name = declaredName || inferredName;
+    const address = (name && inferredName === name ? addressLines.slice(1).join(' · ') : rawAddress) || undefined;
+    return [{
+      station,
+      name,
+      address,
+      phone: clean(text(row.phones)) || undefined,
+      locator: clean(text(row.locators)) || undefined,
+    }];
+  });
+}
+function firstValue(row: RecordValue, keys: string[]) {
+  return keys.map((key) => clean(text(row[key]))).find(Boolean);
+}
+function looksLikeHotelName(value: string) {
+  return /\b(hotel|inn|resort|suites|marriott|hilton|radisson|wyndham|ibis|crowne|novotel|sheraton|hyatt|mercure|palace)\b/i.test(value);
+}
+function activityTitle(event: RecordValue, code: string) {
+  const lines = clean(text(event.text)).split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  return lines.find((line) => !new RegExp('^' + code + '\\b', 'i').test(line) && !/^(hotel|rest|accommodation)$/i.test(line)) || undefined;
+}
 function findElement(value: unknown, id: string): RecordValue | undefined { if (Array.isArray(value)) return value.map((child) => findElement(child, id)).find(Boolean); if (!record(value)) return undefined; if (value.id === id) return value; return Object.values(value).map((child) => findElement(child, id)).find(Boolean); }
 function assignedJson(source: string): RecordValue { const marker = /var\s+initialResult\s*=/.exec(source); if (!marker) throw new Error('Could not find AIMS data in this saved file.'); const start = source.indexOf('{', marker.index); let depth = 0, quoted = false, escaped = false; for (let i = start; i < source.length; i += 1) { const char = source[i]; if (quoted) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === '"') quoted = false; continue; } if (char === '"') { quoted = true; continue; } if (char === '{') depth += 1; if (char === '}' && --depth === 0) { const parsed: unknown = JSON.parse(source.slice(start, i + 1)); if (record(parsed)) return parsed; } } throw new Error('AIMS schedule data is incomplete.'); }
 function assignedArray(source: string, pattern: RegExp): unknown[] { const marker = pattern.exec(source); if (!marker) return []; const start = source.indexOf('[', marker.index); let depth = 0, quoted = false, escaped = false; for (let i = start; i < source.length; i += 1) { const char = source[i]; if (quoted) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === '"') quoted = false; continue; } if (char === '"') { quoted = true; continue; } if (char === '[') depth += 1; if (char === ']' && --depth === 0) { const parsed: unknown = JSON.parse(source.slice(start, i + 1)); return Array.isArray(parsed) ? parsed : []; } } return []; }
