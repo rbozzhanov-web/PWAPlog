@@ -45,7 +45,7 @@ const entrySchema = z.object({
   secondInCommandName: optionalText,
   otherCrewNames: optionalText,
   remarks: optionalText,
-  source: z.enum(['manual', 'pdf_import']).default('manual'),
+  source: z.enum(['manual', 'pdf_import', 'aims_import']).default('manual'),
   importBatchId: optionalText,
   createdAt: z.string(),
   updatedAt: z.string(),
