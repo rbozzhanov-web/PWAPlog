@@ -38,6 +38,7 @@ export function AppFrame({ db }: AppFrameProps) {
   const navRef = useRef<HTMLElement>(null);
   const pageRefs = useRef<Array<HTMLDivElement | null>>([]);
   const settleTimer = useRef<number | undefined>(undefined);
+  const verticalAnimations = useRef<Array<number | undefined>>([]);
   const lastProgress = useRef(0);
   const preparedPage = useRef<number | undefined>(undefined);
   const nearestIndex = useRef(0);
@@ -56,7 +57,26 @@ export function AppFrame({ db }: AppFrameProps) {
 
   const resetPage = useCallback((index: number, behavior: ScrollBehavior = 'auto') => {
     const page = pageRefs.current[index];
-    if (index !== 1 && page) scrollElement(page, { top: 0, behavior });
+    if (index === 1 || !page) return;
+    const activeAnimation = verticalAnimations.current[index];
+    if (activeAnimation !== undefined) window.cancelAnimationFrame(activeAnimation);
+    if (behavior === 'auto' || page.scrollTop < 1) {
+      page.scrollTop = 0;
+      return;
+    }
+
+    const start = page.scrollTop;
+    const duration = Math.min(780, Math.max(500, start * 0.65));
+    const startedAt = performance.now();
+    const easeInOut = (progress: number) => progress < .5
+      ? 4 * progress * progress * progress
+      : 1 - ((-2 * progress + 2) ** 3) / 2;
+    const animate = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      page.scrollTop = start * (1 - easeInOut(progress));
+      if (progress < 1) verticalAnimations.current[index] = window.requestAnimationFrame(animate);
+    };
+    verticalAnimations.current[index] = window.requestAnimationFrame(animate);
   }, []);
 
   const settleAtCurrentPage = useCallback(() => {
@@ -87,7 +107,12 @@ export function AppFrame({ db }: AppFrameProps) {
     displayProgress(routeIndex);
   }, [displayProgress, fallbackIndex, isPrimaryRoute, routeIndex]);
 
-  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
+  useEffect(() => () => {
+    window.clearTimeout(settleTimer.current);
+    verticalAnimations.current.forEach((frame) => {
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    });
+  }, []);
   useEffect(() => {
     const refreshAimsState = () => setHasAimsRoster(Boolean(loadAimsRoster()));
     window.addEventListener('aims-roster-updated', refreshAimsState);

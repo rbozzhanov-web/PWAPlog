@@ -19,17 +19,19 @@ test('opens backup onboarding from the settings route', async () => {
   expect(screen.getByText(/local to this browser and device/i)).toBeVisible();
 });
 
-test('returns a destination tab smoothly while leaving Roster focus behavior intact', () => {
+test('moves between primary tabs smoothly while leaving Roster focus behavior intact', () => {
   const scrollTo = vi.fn();
   Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: scrollTo });
 
   render(<MemoryRouter><App /></MemoryRouter>);
+  const pager = document.querySelector<HTMLElement>('.primary-tab-pager');
+  Object.defineProperty(pager!, 'clientWidth', { configurable: true, value: 390 });
   fireEvent.click(screen.getByRole('link', { name: 'Roster' }));
-  expect(scrollTo).not.toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+  expect(scrollTo).toHaveBeenCalledWith({ left: 390, behavior: 'smooth' });
 
   fireEvent.click(screen.getByRole('link', { name: 'Pay' }));
 
-  expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+  expect(scrollTo).toHaveBeenCalledWith({ left: 780, behavior: 'smooth' });
 });
 
 test('tracks a native horizontal swipe and settles on the final tab', async () => {

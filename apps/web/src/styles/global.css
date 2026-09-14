@@ -1649,7 +1649,8 @@ html {
   text-overflow: ellipsis;
   text-shadow: 0 1px 0 rgb(255 255 255 / 92%), 0 0 12px rgb(255 255 255 / 78%);
   transform: translate3d(0, .18rem, 0);
-  transition: opacity 180ms ease, transform 220ms cubic-bezier(.2, .75, .2, 1);
+  will-change: opacity, transform;
+  transition: opacity 280ms ease-in-out, transform 340ms cubic-bezier(.22, .8, .2, 1);
   white-space: nowrap;
 }
 
