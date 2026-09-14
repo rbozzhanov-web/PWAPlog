@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { RosterPage } from '../RosterPage';
@@ -41,5 +41,53 @@ describe('RosterPage AIMS import flow', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Replace AIMS' }));
 
     expect(screen.getByRole('dialog', { name: 'Import from AIMS' })).toBeVisible();
+  });
+
+  it('shows flights and every roster activity in one list, highlights OFF, DOFF and today, and focuses today', async () => {
+    const dateKey = (offset: number) => {
+      const value = new Date();
+      value.setDate(value.getDate() + offset);
+      return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+    };
+    const offDate = dateKey(-1);
+    const today = dateKey(0);
+    const doffDate = dateKey(1);
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 1; });
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    saveAimsRoster({
+      period: { start: offDate, end: doffDate },
+      duties: [{
+        date: today,
+        start: `${today}T08:00`,
+        end: `${today}T12:00`,
+        flights: [{ flightNumber: 'KC951', date: today, origin: 'ALA', destination: 'NQZ', departure: '09:00', arrival: '10:40', deadhead: false, actualTimes: false }],
+      }],
+      activities: [
+        { date: offDate, code: 'OFF', title: 'Day Off', type: 'Off' },
+        { date: today, code: 'AVLB', title: 'Available', type: 'Standby' },
+        { date: doffDate, code: 'DOFF', title: 'Day Off Downroute', type: 'Off' },
+      ],
+      hotels: [],
+      absences: [],
+      totals: {},
+      importedAt: new Date().toISOString(),
+    });
+
+    const { container } = render(<MemoryRouter><RosterPage /></MemoryRouter>);
+
+    expect(screen.queryByRole('tab', { name: 'calendar' })).toBeNull();
+    expect(screen.getByText('KC951')).toBeVisible();
+    expect(screen.getByText('OFF')).toBeVisible();
+    expect(screen.getByText('AVLB')).toBeVisible();
+    expect(screen.getByText('DOFF')).toBeVisible();
+    expect(container.querySelector(`[data-date="${offDate}"]`)).toHaveClass('roster-day-card--off');
+    expect(container.querySelector(`[data-date="${doffDate}"]`)).toHaveClass('roster-day-card--doff');
+    expect(container.querySelector(`[data-date="${today}"]`)).toHaveClass('roster-day-card--today');
+    expect(screen.getByText('TODAY')).toBeVisible();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'auto' }));
+
+    vi.unstubAllGlobals();
   });
 });
