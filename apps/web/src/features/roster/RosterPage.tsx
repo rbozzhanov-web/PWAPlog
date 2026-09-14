@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   loadAimsRoster,
@@ -20,7 +20,15 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
   const [view, setView] = useState<'list' | 'stats'>('list');
   const todayElement = useRef<HTMLElement>(null);
   const today = localDateKey();
+  const openImportFlow = useCallback(() => {
+    setError(undefined);
+    setImportFlowOpen(true);
+  }, []);
   useEffect(() => { setRoster(loadAimsRoster()); }, []);
+  useEffect(() => {
+    window.addEventListener('open-aims-import', openImportFlow);
+    return () => window.removeEventListener('open-aims-import', openImportFlow);
+  }, [openImportFlow]);
   useEffect(() => {
     if (!importFlowOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -59,10 +67,6 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     } finally {
       setImporting(false);
     }
-  };
-  const openImportFlow = () => {
-    setError(undefined);
-    setImportFlowOpen(true);
   };
   const closeImportFlow = () => {
     if (!importing) setImportFlowOpen(false);

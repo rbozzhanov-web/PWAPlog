@@ -19,7 +19,7 @@ test('opens backup onboarding from the settings route', async () => {
   expect(screen.getByText(/local to this browser and device/i)).toBeVisible();
 });
 
-test('opens primary tabs at the top but leaves Roster focus behavior intact', () => {
+test('returns a destination tab smoothly while leaving Roster focus behavior intact', () => {
   const scrollTo = vi.fn();
   Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: scrollTo });
 
@@ -29,7 +29,7 @@ test('opens primary tabs at the top but leaves Roster focus behavior intact', ()
 
   fireEvent.click(screen.getByRole('link', { name: 'Pay' }));
 
-  expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+  expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
 });
 
 test('tracks a native horizontal swipe and settles on the final tab', async () => {
