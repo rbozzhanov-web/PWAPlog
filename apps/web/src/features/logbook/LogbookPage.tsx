@@ -1,4 +1,4 @@
-import { groupEntries, NEW_ENTRY_DEFAULTS, targetMonthForYear, yearsWithEntries } from '@pilot-logbook/core';
+import { groupEntries, NEW_ENTRY_DEFAULTS, yearsWithEntries } from '@pilot-logbook/core';
 import type { FlightLogEntry } from '@pilot-logbook/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -14,15 +14,28 @@ interface LogbookPageProps {
   db: PilotLogbookDb;
 }
 
+const LOGBOOK_PAGE_SIZE = 80;
+
 export function LogbookPage({ db }: LogbookPageProps) {
   const [entries, setEntries] = useState<FlightLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
   const [activeYear, setActiveYear] = useState<number>();
+  const [visibleEntryCount, setVisibleEntryCount] = useState(LOGBOOK_PAGE_SIZE);
   const [aimsMessage, setAimsMessage] = useState<string>();
   const monthElements = useRef(new Map<string, HTMLElement>());
-  const groups = useMemo(() => groupEntries(entries), [entries]);
   const years = useMemo(() => yearsWithEntries(entries), [entries]);
+  const selectedYear = activeYear ?? years[0];
+  const selectedYearEntries = useMemo(
+    () => selectedYear === undefined
+      ? []
+      : entries.filter((entry) => entry.date.startsWith(`${selectedYear}-`)),
+    [entries, selectedYear],
+  );
+  const groups = useMemo(
+    () => groupEntries(selectedYearEntries.slice(0, visibleEntryCount)),
+    [selectedYearEntries, visibleEntryCount],
+  );
 
   useEffect(() => {
     let active = true;
@@ -56,35 +69,9 @@ export function LogbookPage({ db }: LogbookPageProps) {
     else monthElements.current.delete(month);
   }, []);
 
-  useEffect(() => {
-    if (!groups.length || typeof IntersectionObserver === 'undefined') return;
-
-    const observer = new IntersectionObserver(
-      (observations) => {
-        const visibleMonth = observations
-          .filter((observation) => observation.isIntersecting)
-          .sort((left, right) =>
-            left.boundingClientRect.top - right.boundingClientRect.top,
-          )[0]?.target.getAttribute('data-month');
-
-        if (visibleMonth) setActiveYear(Number(visibleMonth.slice(0, 4)));
-      },
-      { rootMargin: '-7rem 0px -55% 0px', threshold: [0, 0.1, 0.5] },
-    );
-
-    for (const element of monthElements.current.values()) observer.observe(element);
-    return () => observer.disconnect();
-  }, [groups]);
-
   const selectYear = (year: number) => {
     setActiveYear(year);
-    const december = targetMonthForYear(year);
-    const availableMonth = groups.find(({ month }) => month.startsWith(`${year}-`))?.month;
-    const target = monthElements.current.get(december)
-      ?? (availableMonth ? monthElements.current.get(availableMonth) : undefined);
-    if (typeof target?.scrollIntoView === 'function') {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    setVisibleEntryCount(LOGBOOK_PAGE_SIZE);
   };
   const importCompletedAims = async () => {
     const roster = loadAimsRoster();
@@ -148,9 +135,18 @@ export function LogbookPage({ db }: LogbookPageProps) {
           </section>
 
           <div className="year-chips-shell">
-            <YearChips years={years} activeYear={activeYear} onSelect={selectYear} />
+            <YearChips years={years} activeYear={selectedYear} onSelect={selectYear} />
           </div>
           <LogbookList groups={groups} registerMonth={registerMonth} />
+          {visibleEntryCount < selectedYearEntries.length ? (
+            <button
+              className="logbook-load-more"
+              onClick={() => setVisibleEntryCount((count) => count + LOGBOOK_PAGE_SIZE)}
+              type="button"
+            >
+              Show more flights
+            </button>
+          ) : null}
         </>
       ) : null}
     </main>
