@@ -1,10 +1,11 @@
-import { groupEntries, targetMonthForYear, yearsWithEntries } from '@pilot-logbook/core';
+import { groupEntries, NEW_ENTRY_DEFAULTS, targetMonthForYear, yearsWithEntries } from '@pilot-logbook/core';
 import type { FlightLogEntry } from '@pilot-logbook/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { PilotLogbookDb } from '../../db/database';
-import { listFlightEntries } from '../../db/repositories/flightEntries';
+import { listFlightEntries, putFlightEntries } from '../../db/repositories/flightEntries';
+import { loadAimsRoster } from '../roster/aims';
 import { LogbookList } from './LogbookList';
 import { formatFlightMinutes, sumFlightMinutes } from './totals';
 import { YearChips } from './YearChips';
@@ -18,6 +19,7 @@ export function LogbookPage({ db }: LogbookPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
   const [activeYear, setActiveYear] = useState<number>();
+  const [aimsMessage, setAimsMessage] = useState<string>();
   const monthElements = useRef(new Map<string, HTMLElement>());
   const groups = useMemo(() => groupEntries(entries), [entries]);
   const years = useMemo(() => yearsWithEntries(entries), [entries]);
@@ -84,6 +86,22 @@ export function LogbookPage({ db }: LogbookPageProps) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+  const importCompletedAims = async () => {
+    const roster = loadAimsRoster();
+    if (!roster) { setAimsMessage('Import the current AIMS Web Archive first.'); return; }
+    const existing = new Set(entries.map((entry) => entry.id));
+    const now = Date.now();
+    const candidates = roster.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead && flight.actualTimes && Date.parse(`${flight.date}T${flight.arrival}:00`) < now).map((flight) => ({
+      id: `aims-${flight.date}-${flight.flightNumber}-${flight.origin}-${flight.destination}`,
+      date: flight.date, flightNumber: flight.flightNumber, departureAirport: flight.origin, arrivalAirport: flight.destination,
+      aircraftType: flight.aircraftType, timeOut: flight.departure, timeIn: flight.arrival, totalTimeMinutes: sectorMinutes(flight.date, flight.departure, flight.arrivalDate ?? flight.date, flight.arrival),
+      ...NEW_ENTRY_DEFAULTS, source: 'aims_import' as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    })).filter((entry) => !existing.has(entry.id));
+    if (!candidates.length) { setAimsMessage('No new completed AIMS sectors to add.'); return; }
+    await putFlightEntries(db, candidates);
+    setEntries(await listFlightEntries(db));
+    setAimsMessage(`${candidates.length} completed AIMS sector${candidates.length === 1 ? '' : 's'} added locally.`);
+  };
 
   return (
     <main className="logbook-page">
@@ -96,6 +114,7 @@ export function LogbookPage({ db }: LogbookPageProps) {
         <div className="logbook-header__actions">
           <Link className="logbook-settings-link" to="/settings">Settings</Link>
           <Link className="logbook-settings-link" to="/import/logbook">Import PDF</Link>
+          <button className="logbook-settings-link" type="button" onClick={() => void importCompletedAims()}>Import AIMS</button>
           <Link className="logbook-new-link" to="/logbook/new">
             <span aria-hidden="true">＋</span> New flight
           </Link>
@@ -104,6 +123,7 @@ export function LogbookPage({ db }: LogbookPageProps) {
 
       {isLoading ? <p className="logbook-state" role="status">Loading flights…</p> : null}
       {loadError ? <p className="logbook-state logbook-state--error" role="alert">{loadError}</p> : null}
+      {aimsMessage ? <p className="logbook-state" role="status">{aimsMessage}</p> : null}
 
       {!isLoading && !loadError && entries.length === 0 ? (
         <section className="logbook-empty">
@@ -135,4 +155,11 @@ export function LogbookPage({ db }: LogbookPageProps) {
       ) : null}
     </main>
   );
+}
+
+function sectorMinutes(date: string, departure: string, arrivalDate: string, arrival: string) {
+  const out = Date.parse(`${date}T${departure}:00Z`);
+  let incoming = Date.parse(`${arrivalDate}T${arrival}:00Z`);
+  if (incoming < out) incoming += 24 * 60 * 60 * 1000;
+  return Math.round((incoming - out) / 60_000);
 }
