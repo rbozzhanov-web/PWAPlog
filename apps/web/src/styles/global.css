@@ -399,6 +399,7 @@ label {
   font-weight: 750;
 }
 .pdf-candidate__compact { margin:.35rem 0 0; color:#6b7280; font-family:ui-monospace,"SF Mono",monospace; font-size:.72rem; }.pdf-candidate__edit { margin-top:.65rem; }.pdf-candidate__edit summary { color:#2d7dff; cursor:pointer; font-size:.75rem; font-weight:700; }.pdf-candidate__edit .pdf-candidate__fields { margin-top:.7rem; }
+.pdf-candidate__edit-toggle { margin-top:.6rem; border:0; padding:0; background:transparent; color:#2d7dff; cursor:pointer; font-size:.75rem; font-weight:700; }
 
 .pdf-import-status {
   background: #eff5ff;
