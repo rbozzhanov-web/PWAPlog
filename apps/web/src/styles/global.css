@@ -1422,3 +1422,57 @@ html {
     width: 100%;
   }
 }
+
+/* Fixed tab chrome: unlike sticky, it never releases at the end of a short page. */
+.home-page {
+  --tab-header-space: 5.4rem;
+  --tab-header-width: 26rem;
+}
+
+.roster-page,
+.pay-page {
+  --tab-header-space: 7.5rem;
+  --tab-header-width: 26rem;
+}
+
+.logbook-page {
+  --tab-header-space: 10.5rem;
+  --tab-header-width: 68rem;
+}
+
+.settings-page {
+  --tab-header-space: 12.5rem;
+  --tab-header-width: 48rem;
+}
+
+.home-page,
+.roster-page,
+.pay-page,
+.logbook-page,
+.settings-page {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--tab-header-space));
+}
+
+.suite-header,
+.suite-page-header,
+.logbook-header,
+.settings-header {
+  position: fixed;
+  z-index: 15;
+  top: 0;
+  left: 50%;
+  box-sizing: border-box;
+  width: min(calc(100% - 1.7rem), var(--tab-header-width));
+  margin: 0;
+  padding-top: max(.7rem, env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgb(246 247 250 / 82%), rgb(246 247 250 / 58%));
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+}
+
+@media (max-width: 31rem) {
+  .logbook-page {
+    --tab-header-space: 12rem;
+  }
+}
