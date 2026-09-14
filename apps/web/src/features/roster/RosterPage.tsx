@@ -129,6 +129,8 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
               const time = activityTime(activity);
               const isHotel = isHotelActivity(activity);
               const hotel = isHotel ? hotelForActivity(roster.hotels, activity) : undefined;
+              const hotelName = hotel?.name || hotelActivityName(activity) || hotelNameFromAddress(hotel?.address);
+              const hotelAddress = hotelAddressWithoutName(hotel?.address, hotelName);
               const detail = isHotel
                 ? [hotel?.station || activity.location, time !== 'ALL DAY' ? 'Rest ' + time : undefined].filter(Boolean).join(' · ')
                 : [activity.type, activity.location].filter(Boolean).join(' · ');
@@ -137,10 +139,10 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                   <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
                   <span>{isHotel ? 'HOTEL' : activity.code}</span>
                 </header>
-                <h2>{isHotel ? hotel?.name || hotelActivityName(activity) || 'Hotel' : activity.title || activity.type || activity.code}</h2>
+                <h2>{isHotel ? hotelName || 'Hotel' : activity.title || activity.type || activity.code}</h2>
                 {detail ? <p>{detail}</p> : null}
                 {isHotel && (hotel?.address || hotel?.phone || hotel?.locator) ? <div className="roster-hotel-info">
-                  {hotel?.address ? <span>{hotel.address}</span> : null}
+                  {hotelAddress ? <span>{hotelAddress}</span> : null}
                   {hotel?.phone ? <a href={'tel:' + hotel.phone.replace(/[^+\d]/g, '')}>{hotel.phone}</a> : null}
                   {hotel?.locator ? <span>{hotel.locator}</span> : null}
                 </div> : null}
@@ -247,4 +249,13 @@ function stationCode(value?: string) {
 function hotelActivityName(activity: AimsActivity) {
   const title = activity.title?.trim();
   return title && !/^(hotel|rest|accommodation)$/i.test(title) ? title : undefined;
+}
+function hotelNameFromAddress(address?: string) {
+  const firstLine = address?.split(/\n+/).map((line) => line.trim()).find(Boolean);
+  return firstLine && /\b(hotel|inn|resort|suites|marriott|hilton|radisson|wyndham|ibis|crowne|novotel|sheraton|hyatt|mercure|palace)\b/i.test(firstLine) ? firstLine : undefined;
+}
+function hotelAddressWithoutName(address?: string, name?: string) {
+  if (!address || !name) return address;
+  const lines = address.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  return lines[0] === name ? lines.slice(1).join(' · ') || undefined : address;
 }
