@@ -19,7 +19,7 @@ export function HomePage({ db }: HomePageProps) {
   const [entries, setEntries] = useState<FlightLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
-  const roster = useMemo(() => loadAimsRoster(), []);
+  const [roster, setRoster] = useState(() => loadAimsRoster());
 
   useEffect(() => {
     let live = true;
@@ -27,6 +27,11 @@ export function HomePage({ db }: HomePageProps) {
     return () => { live = false; };
   }, [db]);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => {
+    const refreshRoster = () => setRoster(loadAimsRoster());
+    window.addEventListener('aims-roster-updated', refreshRoster);
+    return () => window.removeEventListener('aims-roster-updated', refreshRoster);
+  }, []);
 
   const recent = useMemo(() => entries.slice(0, 3), [entries]);
   const totalTime = useMemo(() => sumFlightMinutes(entries), [entries]);

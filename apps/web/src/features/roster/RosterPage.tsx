@@ -12,7 +12,7 @@ import { id } from './FlightDetailPage';
 
 type RosterDay = { date: string; duties: AimsDuty[]; activities: AimsActivity[] };
 
-export function RosterPage() {
+export function RosterPage({ isActive = true }: { isActive?: boolean }) {
   const [roster, setRoster] = useState<AimsRoster>();
   const [error, setError] = useState<string>();
   const [importing, setImporting] = useState(false);
@@ -37,12 +37,12 @@ export function RosterPage() {
   const flights = useMemo(() => roster?.duties.flatMap((duty) => duty.flights) ?? [], [roster]);
   const rosterDays = useMemo(() => roster ? buildRosterDays(roster) : [], [roster]);
   useEffect(() => {
-    if (!roster || view !== 'list' || !todayElement.current) return;
+    if (!isActive || !roster || view !== 'list' || !todayElement.current) return;
     const frame = window.requestAnimationFrame(() => {
-      todayElement.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+      todayElement.current?.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [roster, view]);
+  }, [isActive, roster, view]);
   const dutyCount = roster?.duties.length ?? 0;
   const importArchive = async (file?: File) => {
     if (!file) return;
@@ -52,6 +52,7 @@ export function RosterPage() {
       const next = await parseAimsArchive(file);
       saveAimsRoster(next);
       setRoster(next);
+      window.dispatchEvent(new Event('aims-roster-updated'));
       setImportFlowOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not import this AIMS archive.');

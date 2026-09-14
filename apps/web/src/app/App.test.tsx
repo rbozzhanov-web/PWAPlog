@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
 
@@ -21,14 +21,31 @@ test('opens backup onboarding from the settings route', async () => {
 
 test('opens primary tabs at the top but leaves Roster focus behavior intact', () => {
   const scrollTo = vi.fn();
-  vi.stubGlobal('scrollTo', scrollTo);
+  Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: scrollTo });
 
   render(<MemoryRouter><App /></MemoryRouter>);
   fireEvent.click(screen.getByRole('link', { name: 'Roster' }));
-  expect(scrollTo).not.toHaveBeenCalled();
+  expect(scrollTo).not.toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
 
   fireEvent.click(screen.getByRole('link', { name: 'Pay' }));
 
-  expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
-  vi.unstubAllGlobals();
+  expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+});
+
+test('tracks a native horizontal swipe and settles on the final tab', async () => {
+  render(<MemoryRouter><App /></MemoryRouter>);
+  const pager = document.querySelector<HTMLElement>('.primary-tab-pager');
+  const navigation = screen.getByRole('navigation', { name: 'Primary navigation' });
+  expect(pager).not.toBeNull();
+  Object.defineProperty(pager!, 'clientWidth', { configurable: true, value: 400 });
+
+  pager!.scrollLeft = 200;
+  fireEvent.scroll(pager!);
+  expect(navigation.style.getPropertyValue('--tab-progress')).toBe('0.5');
+
+  pager!.scrollLeft = 800;
+  fireEvent.scroll(pager!);
+  expect(navigation.style.getPropertyValue('--tab-progress')).toBe('2');
+  expect(screen.getByRole('link', { name: 'Pay' })).toHaveClass('tab-dock__item--active');
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Pay' })).toHaveAttribute('aria-current', 'page'));
 });

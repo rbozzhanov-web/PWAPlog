@@ -16,7 +16,7 @@ const labels: Array<[keyof PaySettings, string, string]> = [
 const money = (value: number) => new Intl.NumberFormat('ru-KZ', { maximumFractionDigits: 0 }).format(value);
 
 export function PayPage({ db }: PayPageProps) {
-  const roster = useMemo(() => loadAimsRoster(), []);
+  const [roster, setRoster] = useState(() => loadAimsRoster());
   const month = roster?.period.start.slice(0, 7);
   const [settings, setSettings] = useState<PaySettings>(EMPTY_PAY_SETTINGS);
   const [rate, setRate] = useState(0);
@@ -28,8 +28,30 @@ export function PayPage({ db }: PayPageProps) {
 
   const activePdf = pdfSchedules.find((schedule) => schedule.month === activePdfMonth);
   const payMonth = activePdf?.month ?? month;
-  useEffect(() => { void db.crewSchedules.toArray().then((schedules) => setPdfSchedules(schedules)); }, [db]);
-  useEffect(() => { void Promise.all([db.settings.get('pay-settings'), payMonth ? db.exchangeRates.get(payMonth) : undefined, payMonth ? db.taxableYtdOverrides.get(payMonth) : undefined]).then(([stored, fx, ytd]) => { if (stored) setSettings(stored); setRate(fx?.rate ?? 0); setTaxableYtd(ytd?.taxableIncome ?? 0); }); }, [db, payMonth]);
+  useEffect(() => {
+    let live = true;
+    void db.crewSchedules.toArray().then((schedules) => { if (live) setPdfSchedules(schedules); });
+    return () => { live = false; };
+  }, [db]);
+  useEffect(() => {
+    const refreshRoster = () => setRoster(loadAimsRoster());
+    window.addEventListener('aims-roster-updated', refreshRoster);
+    return () => window.removeEventListener('aims-roster-updated', refreshRoster);
+  }, []);
+  useEffect(() => {
+    let live = true;
+    void Promise.all([
+      db.settings.get('pay-settings'),
+      payMonth ? db.exchangeRates.get(payMonth) : undefined,
+      payMonth ? db.taxableYtdOverrides.get(payMonth) : undefined,
+    ]).then(([stored, fx, ytd]) => {
+      if (!live) return;
+      if (stored) setSettings(stored);
+      setRate(fx?.rate ?? 0);
+      setTaxableYtd(ytd?.taxableIncome ?? 0);
+    });
+    return () => { live = false; };
+  }, [db, payMonth]);
   const aimsSectors = roster?.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead).map((flight) => ({ date: flight.date, departureAirport: flight.origin, arrivalAirport: flight.destination, totalTimeMinutes: 0 })) ?? [];
   const days: MonthlyDays = useMemo(() => {
     const vacation = roster?.absences.filter((item) => item.code === 'VAC' && item.date.startsWith(month ?? '')).map((item) => item.date) ?? [];

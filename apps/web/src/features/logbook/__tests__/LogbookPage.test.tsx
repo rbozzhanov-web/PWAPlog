@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { FlightLogEntry } from '@pilot-logbook/core';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -79,7 +79,8 @@ describe('LogbookPage', () => {
 
     renderLogbook();
 
-    expect(await screen.findByText('2h 30m')).toBeVisible();
+    const summary = await screen.findByRole('region', { name: 'Logbook summary' });
+    expect(within(summary).getByText('2h 30m')).toBeVisible();
     expect(screen.getByRole('region', { name: 'January 2025' })).toBeVisible();
     expect(screen.queryByRole('region', { name: 'December 2024' })).toBeNull();
     expect(screen.getByRole('link', { name: /UAAA to UACC.*January 2, 2025/i })).toHaveAttribute(
