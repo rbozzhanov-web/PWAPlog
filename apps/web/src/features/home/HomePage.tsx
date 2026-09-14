@@ -45,7 +45,7 @@ export function HomePage({ db }: HomePageProps) {
       </header>
 
       <section className="home-hero">
-        <p className="home-hero__eyebrow">{nextFlight ? 'TODAY · NEXT SECTOR' : 'PILOT LOGBOOK'}</p>
+        <p className="home-hero__eyebrow">{nextFlight ? 'NEXT SECTOR' : 'PILOT LOGBOOK'}</p>
         {nextFlight ? <>
           <div className="home-route"><span><strong>{nextFlight.origin}</strong><small>{airportName(nextFlight.origin)}</small></span><b aria-hidden="true">✈</b><span><strong>{nextFlight.destination}</strong><small>{airportName(nextFlight.destination)}</small></span></div>
           <p className="home-flight-meta">{nextFlight.flightNumber} · {nextFlight.aircraftType ?? 'AIMS'} · DEP {nextFlight.departure} · IN {clock(countdown)}</p>
