@@ -32,6 +32,8 @@ export function HomePage({ db }: HomePageProps) {
   const totalTime = useMemo(() => sumFlightMinutes(entries), [entries]);
   const nextFlight = useMemo(() => roster?.duties.flatMap((duty) => duty.flights).filter((flight) => Date.parse(`${flight.date}T${flight.departure}:00`) >= now).sort((a, b) => `${a.date}T${a.departure}`.localeCompare(`${b.date}T${b.departure}`))[0], [roster, now]);
   const countdown = nextFlight ? Math.max(0, Date.parse(`${nextFlight.date}T${nextFlight.departure}:00`) - now) : 0;
+  const nextDuty = useMemo(() => roster?.duties.filter((duty) => Date.parse(duty.start ?? `${duty.date}T${duty.flights[0]?.departure ?? '00:00'}:00`) >= now).sort((a, b) => (a.start ?? a.date).localeCompare(b.start ?? b.date))[0], [roster, now]);
+  const priorDuty = useMemo(() => nextDuty && roster?.duties.filter((duty) => duty !== nextDuty && (duty.end ?? '') < (nextDuty.start ?? '')).sort((a, b) => (b.end ?? '').localeCompare(a.end ?? ''))[0], [roster, nextDuty]);
   const today = new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date()).toUpperCase();
 
   return (
@@ -59,6 +61,7 @@ export function HomePage({ db }: HomePageProps) {
         <div><span>Total time</span><strong>{formatFlightMinutes(totalTime)}</strong></div>
         <div><span>Flights</span><strong>{entries.length}</strong></div>
       </section>
+      {nextDuty ? <section className="home-duty"><p>NEXT DUTY</p><div><strong>{nextDuty.start?.slice(11, 16) ?? nextDuty.flights[0]?.departure ?? '—'} UTC</strong><span>{nextDuty.flights.length ? `${nextDuty.flights.length} sector${nextDuty.flights.length === 1 ? '' : 's'}` : 'AIMS activity'}</span></div>{priorDuty?.end && nextDuty.start ? <small>Rest before report · {formatRest(Date.parse(nextDuty.start) - Date.parse(priorDuty.end))}</small> : null}</section> : null}
 
       <section className="home-section">
         <div className="home-section__title"><div><p>LOGBOOK</p><h2>Recent flights</h2></div><Link to="/logbook">View all</Link></div>
@@ -76,3 +79,4 @@ export function HomePage({ db }: HomePageProps) {
 function clock(value: number) { const seconds = Math.floor(value / 1000); return `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
 function reportTime(flight: AimsFlight) { const value = new Date(`${flight.date}T${flight.departure}:00Z`).getTime() - 60 * 60 * 1000; return new Date(value).toISOString().slice(11, 16); }
 function airportName(code: string) { return ({ ALA: 'ALMATY', NQZ: 'ASTANA', FRA: 'FRANKFURT', ICN: 'SEOUL', AYT: 'ANTALYA' } as Record<string, string>)[code] ?? code; }
+function formatRest(value: number) { const hours = Math.max(0, Math.floor(value / 3_600_000)); return `${hours}h ${Math.floor((value % 3_600_000) / 60_000)}m`; }
