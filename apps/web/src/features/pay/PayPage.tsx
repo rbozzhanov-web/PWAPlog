@@ -71,9 +71,7 @@ export function PayPage({ db }: PayPageProps) {
 
   return <main className="pay-page">
     <header className="suite-page-header"><div className="tab-header__identity"><p>CREW PAY</p><h1>Pay</h1></div></header>
-    <p className="tab-page-note">AIMS sectors → CrewPay norms → payroll rules already built into PWAPlog.</p>
     <section className="pay-pdf-check">
-      <p>Current month uses the locally imported AIMS Web Archive. For completed months, import the AIMS Personal Crew Schedule PDF.</p>
       <label className="roster-import-action">Import Crew Schedule PDF<input type="file" accept="application/pdf" onChange={(event) => void importSchedulePdf(event.target.files?.[0])} /></label>
       {pdfSchedules.length ? <div className="pay-source-list"><button type="button" className={!activePdf ? 'is-active' : ''} onClick={() => setActivePdfMonth(undefined)} disabled={!month}>Current AIMS {month ?? 'unavailable'}</button>{pdfSchedules.map((schedule) => <button type="button" className={activePdfMonth === schedule.month ? 'is-active' : ''} onClick={() => setActivePdfMonth(schedule.month)} key={schedule.month}>PDF {schedule.month}</button>)}</div> : null}
       {activePdf ? <p>PDF {activePdf.month}: {activePdf.sectors.length} operating sectors · {formatHours(summarisePayHours(activePdf.sectors).totalMinutes)} CrewPay norms. Saved locally as the Pay source for this month.</p> : null}
