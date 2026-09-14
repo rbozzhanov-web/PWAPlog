@@ -36,7 +36,6 @@ export function HomePage({ db }: HomePageProps) {
   const nextFlight = useMemo(() => nextDuty?.flights.find((flight) => Date.parse(`${flight.date}T${flight.departure}:00`) >= now) ?? nextDuty?.flights[0], [nextDuty, now]);
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
-  const priorDuty = useMemo(() => nextDuty && roster?.duties.filter((duty) => duty !== nextDuty && (duty.end ?? '') < (nextDuty.start ?? '')).sort((a, b) => (b.end ?? '').localeCompare(a.end ?? ''))[0], [roster, nextDuty]);
   const today = new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date()).toUpperCase();
 
   return (
@@ -44,7 +43,6 @@ export function HomePage({ db }: HomePageProps) {
       <header className="suite-header">
         <div className="suite-mark" aria-hidden="true">✈</div>
         <div><h1>eScrew</h1><p>{today}</p></div>
-        <Link className="suite-header__more" to="/settings" aria-label="Open settings">•••</Link>
       </header>
 
       <section className="home-hero">
@@ -65,8 +63,6 @@ export function HomePage({ db }: HomePageProps) {
         <div><span>Total time</span><strong>{formatFlightMinutes(totalTime)}</strong></div>
         <div><span>Flights</span><strong>{entries.length}</strong></div>
       </section>
-      {nextDuty ? <section className="home-duty"><p>NEXT DUTY</p><div><strong>{reportClock(nextDuty)} LOCAL</strong><span>{nextDuty.flights.length ? `${nextDuty.flights.length} sector${nextDuty.flights.length === 1 ? '' : 's'}` : 'AIMS activity'}</span></div>{priorDuty?.end && reportBoundary ? <small>Rest before report · {formatRest(Date.parse(reportBoundary) - Date.parse(priorDuty.end))}</small> : null}</section> : null}
-
       <section className="home-section">
         <div className="home-section__title"><div><p>LOGBOOK</p><h2>Recent flights</h2></div><Link to="/logbook">View all</Link></div>
         {recent.length ? <div className="home-recent-list">{recent.map((entry) => (
@@ -85,4 +81,3 @@ function dutyReportBoundary(duty: AimsDuty) { return duty.report ?? duty.start ?
 function dutyEndTimestamp(duty: AimsDuty) { const last = duty.flights.at(-1); const fallback = last ? `${last.arrivalDate ?? last.date}T${last.arrival}:00` : dutyReportBoundary(duty); return Date.parse(duty.end ?? fallback); }
 function reportClock(duty?: AimsDuty) { return duty ? dutyReportBoundary(duty).slice(11, 16) : '—'; }
 function airportName(code: string) { return ({ ALA: 'ALMATY', NQZ: 'ASTANA', FRA: 'FRANKFURT', ICN: 'SEOUL', AYT: 'ANTALYA' } as Record<string, string>)[code] ?? code; }
-function formatRest(value: number) { const hours = Math.max(0, Math.floor(value / 3_600_000)); return `${hours}h ${Math.floor((value % 3_600_000) / 60_000)}m`; }
