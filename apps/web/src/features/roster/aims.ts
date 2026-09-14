@@ -8,7 +8,7 @@ export type AimsRoster = { period: { start: string; end: string }; duties: AimsD
 
 type RecordValue = Record<string, unknown>;
 const storageKey = 'pwaplog.aims-roster.v1';
-const sectorPattern = /(\d{1,5})\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})(⁺¹)?\)\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})(⁺¹)?\)/g;
+const sectorPattern = /(?:KC\s*)?(\d{1,5})\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)/g;
 
 export function loadAimsRoster(): AimsRoster | undefined {
   try { const value = localStorage.getItem(storageKey); return value ? JSON.parse(value) as AimsRoster : undefined; } catch { return undefined; }
@@ -62,12 +62,35 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
 }
 
 function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
-  const parsed: AimsFlight[] = []; sectorPattern.lastIndex = 0; let match: RegExpExecArray | null;
+  const parsed: AimsFlight[] = [];
+  const dutyStartClock = clock(boundary(text(event.report), dutyDate)) ?? clock(boundary(text(event.start), dutyDate));
+  let rollingDate = dutyDate;
+  let previousDeparture: string | undefined;
+  sectorPattern.lastIndex = 0;
+  let match: RegExpExecArray | null;
   while ((match = sectorPattern.exec(text(event.details)))) {
     const [, flightNumber, origin, outPrefix, out, outNext, destination, inPrefix, incoming, inNext] = match;
-    const date = addDays(dutyDate, outNext ? 1 : 0); const arrivalDate = addDays(dutyDate, inNext ? 1 : 0);
-    if (!date || !arrivalDate) continue;
-    parsed.push({ flightNumber: /^KC/i.test(flightNumber) ? flightNumber : `KC${flightNumber}`, date, origin, destination, departure: time(out), arrival: time(incoming), arrivalDate: arrivalDate !== date ? arrivalDate : undefined, deadhead: Boolean(event.IsDeadhead), actualTimes: outPrefix === 'A' && inPrefix === 'A', aircraftType: aircraft(event) });
+    const departure = time(out);
+    const arrival = time(incoming);
+    if (outNext) rollingDate = addDays(dutyDate, 1);
+    else if (previousDeparture ? departure < previousDeparture : Boolean(dutyStartClock && departure < dutyStartClock)) rollingDate = addDays(rollingDate, 1);
+    const date = rollingDate;
+    let arrivalDate = inNext ? addDays(dutyDate, 1) : date;
+    if (arrivalDate < date) arrivalDate = date;
+    if (arrivalDate === date && arrival < departure) arrivalDate = addDays(date, 1);
+    parsed.push({
+      flightNumber: /^KC/i.test(flightNumber) ? flightNumber : 'KC' + flightNumber,
+      date,
+      origin,
+      destination,
+      departure,
+      arrival,
+      arrivalDate: arrivalDate !== date ? arrivalDate : undefined,
+      deadhead: Boolean(event.IsDeadhead),
+      actualTimes: outPrefix === 'A' && inPrefix === 'A',
+      aircraftType: aircraft(event),
+    });
+    previousDeparture = departure;
   }
   return parsed;
 }
@@ -135,4 +158,5 @@ function validDate(value?: string): value is string { return Boolean(value && /^
 function datePart(value: string) { const result = /^\d{4}-\d{2}-\d{2}/.exec(value); return result?.[0]; }
 function boundary(value: string, date?: string) { const result = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(value); if (result) return result.slice(1, 3).join('T'); return date && /^\d{2}:\d{2}/.test(value) ? `${date}T${value.slice(0, 5)}` : undefined; }
 function time(value: string) { return `${value.slice(0, 2)}:${value.slice(2, 4)}`; }
+function clock(value?: string) { return value?.includes('T') ? value.slice(11, 16) : undefined; }
 function addDays(value: string, days: number) { const [y, m, d] = value.split('-').map(Number); const date = new Date(Date.UTC(y, m - 1, d + days)); return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`; }

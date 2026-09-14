@@ -6,12 +6,16 @@ import {
   saveAimsRoster,
   type AimsActivity,
   type AimsDuty,
+  type AimsFlight,
   type AimsHotel,
   type AimsRoster,
 } from './aims';
 import { id } from './FlightDetailPage';
 
-type RosterDay = { date: string; duties: AimsDuty[]; activities: AimsActivity[] };
+type RosterTimelineEntry =
+  | { kind: 'activity'; activity: AimsActivity }
+  | { kind: 'flight'; duty: AimsDuty; flight: AimsFlight; isFirstInDuty: boolean };
+type RosterDay = { date: string; entries: RosterTimelineEntry[] };
 
 export function RosterPage({ isActive = true }: { isActive?: boolean }) {
   const [roster, setRoster] = useState<AimsRoster>();
@@ -112,11 +116,12 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
       {roster ? <section aria-label="Crew schedule" className="roster-timeline">
         {rosterDays.map((day) => {
           const isToday = day.date === today;
-          const codes = new Set(day.activities.map((activity) => activity.code.toUpperCase()));
+          const activities = day.entries.flatMap((entry) => entry.kind === 'activity' ? [entry.activity] : []);
+          const codes = new Set(activities.map((activity) => activity.code.toUpperCase()));
           const state = codes.has('OFF') ? 'off' : codes.has('DOFF') ? 'doff' : undefined;
           const dateLabel = compactDateLabel(day.date);
           const stateClass = state ? ' roster-timeline__day--' + state : '';
-          const flightDayClass = day.duties.some((duty) => duty.flights.length > 0) ? ' roster-timeline__day--flight' : '';
+          const flightDayClass = day.entries.some((entry) => entry.kind === 'flight') ? ' roster-timeline__day--flight' : '';
           const todayClass = isToday ? ' roster-timeline__day--today' : '';
           return <div
             aria-label={'Schedule for ' + displayDate(day.date) + ' · ' + dayTimeRange(day)}
@@ -125,35 +130,37 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
             key={day.date}
             ref={isToday ? todayElement : undefined}
           >
-            {day.activities.map((activity, index) => {
-              const time = activityTime(activity);
-              const isHotel = isHotelActivity(activity);
-              const hotel = isHotel ? hotelForActivity(roster.hotels, activity) : undefined;
-              const hotelName = hotel?.name || hotelActivityName(activity) || hotelNameFromAddress(hotel?.address);
-              const hotelAddress = hotelAddressWithoutName(hotel?.address, hotelName);
-              const detail = isHotel
-                ? [hotel?.station || activity.location, time !== 'ALL DAY' ? 'Rest ' + time : undefined].filter(Boolean).join(' · ')
-                : [activity.type, activity.location].filter(Boolean).join(' · ');
-              return <article className={'roster-timeline-card roster-timeline-card--activity roster-timeline-card--' + activity.code.toLowerCase() + (isHotel ? ' roster-timeline-card--hotel' : '')} key={activity.code + '-' + index}>
-                <header className="roster-timeline-card__top">
-                  <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
-                  <span>{isHotel ? 'HOTEL' : activity.code}</span>
-                </header>
-                <h2>{isHotel ? hotelName || 'Hotel' : activity.title || activity.type || activity.code}</h2>
-                {detail ? <p>{detail}</p> : null}
-                {isHotel && (hotel?.address || hotel?.phone || hotel?.locator) ? <div className="roster-hotel-info">
-                  {hotelAddress ? <span>{hotelAddress}</span> : null}
-                  {hotel?.phone ? <a href={'tel:' + hotel.phone.replace(/[^+\d]/g, '')}>{hotel.phone}</a> : null}
-                  {hotel?.locator ? <span>{hotel.locator}</span> : null}
-                </div> : null}
-                {!isHotel && time !== 'ALL DAY' ? <small>{time}</small> : null}
-              </article>;
-            })}
-            {day.duties.flatMap((duty) => duty.flights.map((flight) => ({ duty, flight }))).map(({ duty, flight }, index) => {
-              const report = shortTime(duty.report) ?? shortTime(duty.start);
+            {day.entries.map((entry, index) => {
+              if (entry.kind === 'activity') {
+                const { activity } = entry;
+                const time = activityTime(activity);
+                const isHotel = isHotelActivity(activity);
+                const hotel = isHotel ? hotelForActivity(roster.hotels, activity) : undefined;
+                const hotelName = hotel?.name || hotelActivityName(activity) || hotelNameFromAddress(hotel?.address);
+                const hotelAddress = hotelAddressWithoutName(hotel?.address, hotelName);
+                const detail = isHotel
+                  ? [hotel?.station || activity.location, time !== 'ALL DAY' ? 'Rest ' + time : undefined].filter(Boolean).join(' · ')
+                  : [activity.type, activity.location].filter(Boolean).join(' · ');
+                return <article className={'roster-timeline-card roster-timeline-card--activity roster-timeline-card--' + activity.code.toLowerCase() + (isHotel ? ' roster-timeline-card--hotel' : '')} key={'activity-' + activity.code + '-' + index}>
+                  <header className="roster-timeline-card__top">
+                    <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
+                    <span>{isHotel ? 'HOTEL' : activity.code}</span>
+                  </header>
+                  <h2>{isHotel ? hotelName || 'Hotel' : activity.title || activity.type || activity.code}</h2>
+                  {detail ? <p>{detail}</p> : null}
+                  {isHotel && (hotelAddress || hotel?.phone || hotel?.locator) ? <div className="roster-hotel-info">
+                    {hotelAddress ? <span>{hotelAddress}</span> : null}
+                    {hotel?.phone ? <a href={'tel:' + hotel.phone.replace(/[^+\d]/g, '')}>{hotel.phone}</a> : null}
+                    {hotel?.locator ? <span>{hotel.locator}</span> : null}
+                  </div> : null}
+                  {!isHotel && time !== 'ALL DAY' ? <small>{time}</small> : null}
+                </article>;
+              }
+              const { duty, flight, isFirstInDuty } = entry;
+              const report = isFirstInDuty ? shortTime(duty.report) ?? shortTime(duty.start) : undefined;
               const status = [flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.actualTimes ? 'ACT' : undefined].filter(Boolean).join(' · ');
               const timing = [flight.departure + ' – ' + flight.arrival, report ? 'Report ' + report : undefined, flight.crew?.length ? 'Crew ' + (flight.crew?.length ?? 0) : undefined].filter(Boolean).join(' · ');
-              return <Link className="roster-timeline-card roster-timeline-card--flight" to={'/flight/' + encodeURIComponent(id(flight))} key={flight.date + '-' + flight.flightNumber + '-' + index}>
+              return <Link className="roster-timeline-card roster-timeline-card--flight" to={'/flight/' + encodeURIComponent(id(flight))} key={'flight-' + flight.date + '-' + flight.flightNumber + '-' + index}>
                 <div className="roster-timeline-card__top">
                   <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
                   <span>{status}</span>
@@ -164,6 +171,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
             })}
           </div>;
         })}
+
       </section> : null}
       {importFlowOpen ? <div className="aims-import-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) closeImportFlow(); }}>
         <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog">
@@ -198,19 +206,22 @@ function buildRosterDays(roster: AimsRoster): RosterDay[] {
   const day = (date: string) => {
     const existing = byDate.get(date);
     if (existing) return existing;
-    const created = { date, duties: [], activities: [] };
+    const created: RosterDay = { date, entries: [] };
     byDate.set(date, created);
     return created;
   };
-  roster.duties.forEach((duty) => day(duty.date).duties.push(duty));
-  (roster.activities ?? []).forEach((activity) => day(activity.date).activities.push(activity));
+  roster.duties.forEach((duty) => duty.flights.forEach((flight, index) => {
+    day(flight.date).entries.push({ kind: 'flight', duty, flight, isFirstInDuty: index === 0 });
+  }));
+  (roster.activities ?? []).forEach((activity) => day(activity.date).entries.push({ kind: 'activity', activity }));
   (roster.absences ?? []).forEach((absence) => {
     const entry = day(absence.date);
-    if (!entry.activities.some((activity) => activity.code.toUpperCase() === absence.code)) {
-      entry.activities.push({ date: absence.date, code: absence.code, type: 'Absence' });
-    }
+    const duplicate = entry.entries.some((item) => item.kind === 'activity' && item.activity.code.toUpperCase() === absence.code);
+    if (!duplicate) entry.entries.push({ kind: 'activity', activity: { date: absence.date, code: absence.code, type: 'Absence' } });
   });
-  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return [...byDate.values()]
+    .map((entry) => ({ ...entry, entries: entry.entries.sort((a, b) => timelineStart(a).localeCompare(timelineStart(b))) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function localDateKey(value = new Date()) {
@@ -223,12 +234,23 @@ function displayDate(value: string) { return new Intl.DateTimeFormat('en', { day
 function compactDateLabel(value: string) { const date = rosterDate(value); const month = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(date).toUpperCase(); return String(date.getUTCDate()).padStart(2, '0') + ' ' + month + ' · ' + weekday(value); }
 function shortTime(value?: string) { return value?.includes('T') ? value.slice(11, 16) : undefined; }
 function dayTimeRange(day: RosterDay) {
-  const firstDuty = day.duties[0];
-  const lastDuty = day.duties.at(-1);
-  if (firstDuty && lastDuty) return `${shortTime(firstDuty.start) ?? firstDuty.flights[0]?.departure} — ${shortTime(lastDuty.end) ?? lastDuty.flights.at(-1)?.arrival}`;
-  const timed = day.activities.find((activity) => shortTime(activity.start) || shortTime(activity.end));
-  return timed ? `${shortTime(timed.start) ?? '—'} — ${shortTime(timed.end) ?? '—'}` : 'FULL DAY';
+  const first = day.entries[0];
+  const last = day.entries.at(-1);
+  const start = first ? shortTime(timelineStart(first)) : undefined;
+  const end = last ? shortTime(timelineEnd(last)) : undefined;
+  return start || end ? (start ?? '—') + ' — ' + (end ?? '—') : 'FULL DAY';
 }
+function timelineStart(entry: RosterTimelineEntry) {
+  return entry.kind === 'flight'
+    ? entry.flight.date + 'T' + entry.flight.departure
+    : entry.activity.start ?? entry.activity.date + 'T00:00';
+}
+function timelineEnd(entry: RosterTimelineEntry) {
+  return entry.kind === 'flight'
+    ? (entry.flight.arrivalDate ?? entry.flight.date) + 'T' + entry.flight.arrival
+    : entry.activity.end ?? timelineStart(entry);
+}
+
 function activityTime(activity: AimsActivity) {
   const start = shortTime(activity.start);
   const end = shortTime(activity.end);
