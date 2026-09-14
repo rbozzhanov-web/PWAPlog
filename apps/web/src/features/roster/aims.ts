@@ -8,7 +8,7 @@ export type AimsRoster = { period: { start: string; end: string }; duties: AimsD
 
 type RecordValue = Record<string, unknown>;
 const storageKey = 'pwaplog.aims-roster.v1';
-const sectorPattern = /(?:KC\s*)?(\d{1,5})\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)/g;
+const sectorPattern = /\b(?:KC\s*)?(\d{1,5})\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)/g;
 
 export function loadAimsRoster(): AimsRoster | undefined {
   try { const value = localStorage.getItem(storageKey); return value ? JSON.parse(value) as AimsRoster : undefined; } catch { return undefined; }
@@ -66,9 +66,10 @@ function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
   const dutyStartClock = clock(boundary(text(event.report), dutyDate)) ?? clock(boundary(text(event.start), dutyDate));
   let rollingDate = dutyDate;
   let previousDeparture: string | undefined;
+  const details = sectorDetails(event);
   sectorPattern.lastIndex = 0;
   let match: RegExpExecArray | null;
-  while ((match = sectorPattern.exec(text(event.details)))) {
+  while ((match = sectorPattern.exec(details))) {
     const [, flightNumber, origin, outPrefix, out, outNext, destination, inPrefix, incoming, inNext] = match;
     const departure = time(out);
     const arrival = time(incoming);
@@ -93,6 +94,13 @@ function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
     previousDeparture = departure;
   }
   return parsed;
+}
+function sectorDetails(event: RecordValue) {
+  return clean(text(event.details))
+    .replace(/&#(?:8195|x2003);/gi, ' ')
+    .replace(/[\u00a0\u2007\u202f]/g, ' ')
+    .replace(/[–—]/g, '-')
+    .replace(/\b(\d{2}):(\d{2})\b/g, '$1$2');
 }
 function aircraft(event: RecordValue) { return ['aircraftType', 'AircraftType', 'aircraft', 'Aircraft', 'acType', 'ACType'].map((key) => scalar(event[key])).find(Boolean) || undefined; }
 function absenceCode(event: RecordValue): AimsAbsence['code'] | undefined { const value = `${text(event.type)} ${text(event.text)} ${text(event.details)}`.toUpperCase(); return (['SICK', 'UFF', 'VAC', 'CHLD'] as const).find((code) => new RegExp(`\\b${code}\\b`).test(value)); }
