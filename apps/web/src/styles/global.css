@@ -2582,3 +2582,24 @@ body,
     font-size: .62rem;
   }
 }
+
+
+/* Keep PDF import available in the Logbook toolbar on compact iPhone widths. */
+@media (max-width: 31rem) {
+  .logbook-header__actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .logbook-header__actions .logbook-settings-link:first-child {
+    display: inline-flex;
+  }
+
+  .logbook-settings-link,
+  .logbook-new-link {
+    min-width: 0;
+    padding-right: .38rem;
+    padding-left: .38rem;
+    font-size: .64rem;
+    white-space: nowrap;
+  }
+}
