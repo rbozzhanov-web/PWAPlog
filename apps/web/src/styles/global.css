@@ -1962,3 +1962,43 @@ body,
   width: 0;
   height: 0;
 }
+
+
+/* Pay mobile form: stable columns, no clipping on narrow iPhones. */
+.pay-pdf-check {
+  margin-top: 0;
+  margin-bottom: .75rem;
+}
+
+.pay-setup {
+  gap: .82rem;
+  padding: .9rem;
+}
+
+.pay-setup label {
+  grid-template-columns: minmax(0, 1fr) 2.4rem minmax(7.6rem, .92fr);
+  gap: .55rem;
+  min-width: 0;
+}
+
+.pay-setup label > span {
+  min-width: 0;
+  text-align: right;
+}
+
+.pay-setup input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.8rem;
+}
+
+@media (max-width: 23rem) {
+  .pay-setup label {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pay-setup input {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
