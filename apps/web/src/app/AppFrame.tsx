@@ -9,6 +9,10 @@ const items = [
 ];
 
 export function AppFrame() {
+  const openTabFromTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  };
+
   return (
     <div className="app-frame">
       <div className="app-wallpaper" aria-hidden="true" />
@@ -21,6 +25,7 @@ export function AppFrame() {
             key={item.to}
             to={item.to}
             aria-label={item.ariaLabel}
+            onClick={openTabFromTop}
           >
             <span aria-hidden="true">{item.icon}</span>
             <span aria-hidden={Boolean(item.ariaLabel)}>{item.label}</span>

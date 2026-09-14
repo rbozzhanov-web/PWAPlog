@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   loadAimsRoster,
@@ -18,7 +18,6 @@ export function RosterPage() {
   const [importing, setImporting] = useState(false);
   const [importFlowOpen, setImportFlowOpen] = useState(false);
   const [view, setView] = useState<'list' | 'stats'>('list');
-  const todayElement = useRef<HTMLElement>(null);
   const today = localDateKey();
   useEffect(() => { setRoster(loadAimsRoster()); }, []);
   useEffect(() => {
@@ -36,13 +35,6 @@ export function RosterPage() {
   }, [importFlowOpen, importing]);
   const flights = useMemo(() => roster?.duties.flatMap((duty) => duty.flights) ?? [], [roster]);
   const rosterDays = useMemo(() => roster ? buildRosterDays(roster) : [], [roster]);
-  useEffect(() => {
-    if (!roster || view !== 'list' || !todayElement.current) return;
-    const frame = window.requestAnimationFrame(() => {
-      todayElement.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [roster, view]);
   const dutyCount = roster?.duties.length ?? 0;
   const importArchive = async (file?: File) => {
     if (!file) return;
@@ -94,7 +86,6 @@ export function RosterPage() {
           className={`roster-duty-card roster-day-card${state ? ` roster-day-card--${state}` : ''}${isToday ? ' roster-day-card--today' : ''}`}
           data-date={day.date}
           key={day.date}
-          ref={isToday ? todayElement : undefined}
         >
           <header>
             <div>
