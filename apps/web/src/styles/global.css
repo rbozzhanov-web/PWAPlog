@@ -2002,3 +2002,52 @@ body,
     text-align: left;
   }
 }
+
+
+/* Home: countdown priority, current-month totals, and next-flight crew. */
+.home-report-countdown {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.home-report-countdown strong {
+  justify-self: end;
+  min-width: 0;
+  font-size: clamp(.96rem, 4.6vw, 1.18rem);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.home-crew-list {
+  overflow: hidden;
+  border: 1px solid var(--es-border);
+  border-radius: 1rem;
+  background: var(--es-card);
+  box-shadow: 0 .35rem 1.2rem rgb(15 23 42 / .045);
+}
+
+.home-crew-row {
+  display: flex;
+  min-height: 3.65rem;
+  align-items: center;
+  gap: .7rem;
+  border-top: 1px solid var(--es-border);
+  padding: .55rem .72rem;
+}
+
+.home-crew-row:first-child { border-top: 0; }
+.home-crew-row b {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef5ff;
+  color: var(--es-blue);
+  font-size: .68rem;
+}
+
+.home-crew-row span { display: grid; min-width: 0; gap: .1rem; }
+.home-crew-row strong { overflow: hidden; color: var(--es-ink); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.home-crew-row small { color: var(--es-muted); font-size: .66rem; }
