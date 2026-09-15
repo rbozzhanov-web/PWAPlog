@@ -32,6 +32,7 @@
   --good: #2e9e6d;
   --good-soft: rgb(46 158 109 / 12%);
   --weekend: #9b613b;
+  --weekend-soft: rgb(155 97 59 / 12%);
 
   /* ---- material ---------------------------------------------------------- */
   /* Glass is additive: the flat palette above carries the design on its own, these only lift
@@ -111,6 +112,7 @@ html.theme-dark {
   --good: #4fbe8e;
   --good-soft: rgb(79 190 142 / 16%);
   --weekend: #d89a66;
+  --weekend-soft: rgb(216 154 102 / 18%);
 
   --shadow-card: 0 10px 24px rgb(0 0 0 / 35%);
   --shadow-sheet: 0 24px 70px rgb(0 0 0 / 50%);

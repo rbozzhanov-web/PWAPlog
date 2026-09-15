@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 
 import type { PilotLogbookDb } from '../../db/database';
 import { listFlightEntries } from '../../db/repositories/flightEntries';
-import { formatFlightMinutes, sumFlightMinutes } from '../logbook/totals';
+import { formatFlightMinutes } from '../logbook/totals';
 import { loadAimsRoster, type AimsDuty, type AimsRoster } from '../roster/aims';
+import { monthTotals } from '../roster/completedSectors';
 import { layoverWindow, useArrivalWeather, weatherIcon, windDirectionLabel } from '../weather/weatherService';
 
 interface HomePageProps { db: PilotLogbookDb }
@@ -30,8 +31,16 @@ export function HomePage({ db }: HomePageProps) {
   }, []);
 
   const currentMonth = `${new Date(now).getFullYear()}-${String(new Date(now).getMonth() + 1).padStart(2, '0')}`;
-  const monthlyEntries = useMemo(() => entries.filter((entry) => entry.date.startsWith(currentMonth)), [entries, currentMonth]);
-  const totalTime = useMemo(() => sumFlightMinutes(monthlyEntries), [monthlyEntries]);
+  // Counted from the logbook and the roster together: a pilot who has imported a roster but not
+  // yet written it to the logbook has still flown this month, and the screen should say so.
+  // Recomputed on the month rather than on `now` so the countdown's tick does not redo it.
+  // Keyed on the minute rather than on `now`: the countdown ticks every second and this answer
+  // cannot change that fast.
+  const nowMinute = Math.floor(now / 60_000);
+  const month = useMemo(
+    () => monthTotals(entries, roster, currentMonth, nowMinute * 60_000),
+    [entries, roster, currentMonth, nowMinute],
+  );
   const nextDuty = useMemo(() => roster?.duties
     .filter((duty) => dutyEndTimestamp(duty) >= now)
     .sort((a, b) => dutyReportBoundary(a).localeCompare(dutyReportBoundary(b)))[0], [roster, now]);
@@ -71,8 +80,8 @@ export function HomePage({ db }: HomePageProps) {
       </section>
 
       <section className="home-stats home-stats--escrew" aria-label="Logbook overview">
-        <div><span>This month</span><strong>{formatFlightMinutes(totalTime)}</strong></div>
-        <div><span>Flights</span><strong>{monthlyEntries.length}</strong></div>
+        <div><span>This month</span><strong>{formatFlightMinutes(month.minutes)}</strong></div>
+        <div><span>Flights</span><strong>{month.flights}</strong></div>
       </section>
       <section className="home-section home-section--crew">
         <div className="home-section__title"><div><p>CREW</p><h2>Crew on this flight</h2></div></div>

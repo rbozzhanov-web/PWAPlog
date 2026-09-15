@@ -11,6 +11,7 @@ import {
   type AimsRoster,
 } from './aims';
 import { id } from './FlightDetailPage';
+import { HOME_BASE, stationsByDay, useRosterWeather, weatherIcon, type ForecastDay } from '../weather/weatherService';
 
 type RosterTimelineEntry =
   | { kind: 'activity'; activity: AimsActivity }
@@ -48,6 +49,24 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     };
   }, [importFlowOpen, importing]);
   const rosterDays = useMemo(() => roster ? buildRosterDays(roster) : [], [roster]);
+  // Every station the roster touches, fetched once across the whole span rather than per card.
+  const weatherTargets = useMemo(() => {
+    const stations = new Set<string>([HOME_BASE]);
+    rosterDays.forEach((day) => day.entries.forEach((entry) => {
+      if (entry.kind === 'flight') stations.add(entry.flight.destination);
+    }));
+    (roster?.hotels ?? []).forEach((hotel) => { if (hotel.station) stations.add(hotel.station); });
+    return { stations: [...stations], from: rosterDays[0]?.date, to: rosterDays.at(-1)?.date };
+  }, [rosterDays, roster]);
+  const { byStationDate } = useRosterWeather(weatherTargets.stations, weatherTargets.from, weatherTargets.to);
+  // Where each day leaves the pilot, carried forward across days with no flying.
+  const stationByDate = useMemo(() => stationsByDay(rosterDays.map((day) => ({
+    date: day.date,
+    flights: day.entries.flatMap((entry) => entry.kind === 'flight' ? [entry.flight] : []),
+    hotelStation: day.entries
+      .flatMap((entry) => entry.kind === 'activity' ? [activityStation(roster?.hotels ?? [], entry.activity)] : [])
+      .find(Boolean),
+  }))), [rosterDays, roster]);
   useEffect(() => {
     if (!isActive || !roster || !todayElement.current) return;
     const frame = window.requestAnimationFrame(() => {
@@ -120,6 +139,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           const codes = new Set(activities.map((activity) => activity.code.toUpperCase()));
           const state = codes.has('OFF') ? 'off' : codes.has('DOFF') ? 'doff' : undefined;
           const dateLabel = compactDateLabel(day.date);
+          const dayStation = stationByDate.get(day.date) ?? HOME_BASE;
           const stateClass = state ? ' roster-timeline__day--' + state : '';
           const flightDayClass = day.entries.some((entry) => entry.kind === 'flight' || (entry.kind === 'activity' && isFlightActivity(entry.activity))) ? ' roster-timeline__day--flight' : '';
           const todayClass = isToday ? ' roster-timeline__day--today' : '';
@@ -144,6 +164,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                     </header>
                     <strong>{activity.title || activity.location || activity.code}</strong>
                     {time !== 'ALL DAY' ? <p>{time}</p> : null}
+                    <CardWeather code={dayStation} date={day.date} forecast={byStationDate} />
                   </article>;
                 }
                 const hotel = isHotel ? hotelForActivity(roster.hotels, activity) : undefined;
@@ -165,6 +186,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                     {hotel?.locator ? <span>{hotel.locator}</span> : null}
                   </div> : null}
                   {!isHotel && time !== 'ALL DAY' ? <small>{time}</small> : null}
+                  <CardWeather code={dayStation} date={day.date} forecast={byStationDate} />
                 </article>;
               }
               const { duty, flight, isFirstInDuty } = entry;
@@ -178,6 +200,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                 </div>
                 <strong>{flight.origin} <i>→</i> {flight.destination}</strong>
                 <p>{timing}</p>
+                <CardWeather code={flight.destination} date={flight.arrivalDate ?? flight.date} forecast={byStationDate} />
               </Link>;
             })}
           </div>;
@@ -212,6 +235,38 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     </main>
   );
 }
+/**
+ * The station an activity names, whether through its hotel record or its own location field. A
+ * "Day Off Downroute" carries the station in `location`, which is how a rest day away from base
+ * reports where the pilot actually is.
+ */
+function activityStation(hotels: AimsHotel[], activity: AimsActivity): string | undefined {
+  // Only a hotel activity may borrow the booked hotel's station. `hotelForActivity` falls back to
+  // the only hotel on the roster when it cannot match one, which is right for drawing a hotel card
+  // and wrong here: it would put the layover's weather on every day off back at base.
+  if (isHotelActivity(activity)) {
+    const booked = hotelForActivity(hotels, activity)?.station;
+    if (booked) return stationCode(booked);
+  }
+  return stationCode(activity.location);
+}
+
+/**
+ * The weather where this card leaves the pilot. Renders nothing when the station is unknown or the
+ * date falls outside what a forecast covers — a blank line reads better than a guess.
+ */
+function CardWeather({ code, date, forecast }: { code: string; date: string; forecast: Map<string, ForecastDay> }) {
+  const day = forecast.get(`${code.trim().toUpperCase()}:${date}`);
+  if (!day) return null;
+  const summary = weatherIcon(day.weatherCode);
+  return <p className="roster-card-weather">
+    <b aria-hidden="true">{summary.icon}</b>
+    <span>{code}</span>
+    <em>{summary.label}</em>
+    <strong>{day.tempMax}° / {day.tempMin}°</strong>
+  </p>;
+}
+
 function buildRosterDays(roster: AimsRoster): RosterDay[] {
   const byDate = new Map<string, RosterDay>();
   const day = (date: string) => {

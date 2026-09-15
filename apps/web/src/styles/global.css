@@ -2903,7 +2903,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   .flight-detail-card,
   .pay-setup,
   .pay-result,
-  .pay-pdf-check,
   .pay-source-list,
   .pay-audit,
   .logbook-empty,
@@ -3088,4 +3087,120 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   color: var(--text);
   font-family: inherit;
   font-size: var(--body-size);
+}
+
+
+/* ---- pay: the import action stands on its own ------------------------------ */
+/* A single button does not need a card behind it: the card read as an empty panel with a button
+   floating in it, which is what the surface tier is for — grouping related content, not framing
+   one control. */
+.pay-pdf-check {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* The rate row was missing its unit cell, so its input landed in the narrow middle column that
+   holds EUR/KZT on every other row. With the cell present it lines up with the rest of the form. */
+.pay-setup label > span {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+/* ---- roster: a card is coloured by what the day asks of you ----------------- */
+/* Every colour is a palette role, so the roster reads as one system rather than a set of picked
+   greens and blues: flying takes the accent, rest the good tone, training the gold highlight,
+   standby stays neutral, a hotel takes the palette's warm tone — it is the only card about where
+   you sleep rather than what you fly — and sickness takes danger. The tint is a wash that fades
+   out across the card, so the route stays the thing the eye lands on.
+
+   Scoped through `.roster-timeline__day` for specificity, not for meaning: the card material in
+   the concept pass is an :is() list, and :is() takes the specificity of its most specific
+   argument, so a bare `.roster-timeline-card--grtc` silently loses to it. */
+.roster-timeline__day .roster-timeline-card {
+  border-left: 4px solid var(--line-strong);
+}
+
+.roster-timeline__day .roster-timeline-card--flight {
+  border-left-color: var(--accent);
+  background: linear-gradient(100deg, var(--accent-soft), var(--surface) 68%);
+}
+
+.roster-timeline__day--off .roster-timeline-card--activity,
+.roster-timeline__day--doff .roster-timeline-card--activity,
+.roster-timeline__day .roster-timeline-card--vac,
+.roster-timeline__day .roster-timeline-card--off,
+.roster-timeline__day .roster-timeline-card--doff {
+  border-left-color: var(--good);
+  background: linear-gradient(100deg, var(--good-soft), var(--surface) 68%);
+}
+
+.roster-timeline__day .roster-timeline-card--grtc,
+.roster-timeline__day .roster-timeline-card--simt,
+.roster-timeline__day .roster-timeline-card--sim,
+.roster-timeline__day .roster-timeline-card--opc,
+.roster-timeline__day .roster-timeline-card--lpc,
+.roster-timeline__day .roster-timeline-card--trn,
+.roster-timeline__day [class*='roster-timeline-card--asm'],
+.roster-timeline__day [class*='roster-timeline-card--med'] {
+  border-left-color: var(--highlight);
+  background: linear-gradient(100deg, var(--highlight-soft), var(--surface) 68%);
+}
+
+.roster-timeline__day .roster-timeline-card--avlb,
+.roster-timeline__day .roster-timeline-card--homx,
+.roster-timeline__day .roster-timeline-card--stby {
+  border-left-color: var(--muted);
+  background: linear-gradient(100deg, var(--line-strong), var(--surface) 68%);
+}
+
+.roster-timeline__day .roster-timeline-card--hotel {
+  border-left-color: var(--weekend);
+  background: linear-gradient(100deg, var(--weekend-soft), var(--surface) 68%);
+}
+
+.roster-timeline__day .roster-timeline-card--sick,
+.roster-timeline__day .roster-timeline-card--uff {
+  border-left-color: var(--danger);
+  background: linear-gradient(100deg, var(--danger-soft), var(--surface) 68%);
+}
+
+/* Today keeps the strongest signal of all: a full accent edge, whatever the day holds. */
+.roster-timeline__day--today .roster-timeline-card {
+  border-color: var(--accent);
+}
+
+/* The state code keeps its own colour rather than always reading green. */
+.roster-timeline__day--off .roster-timeline-card--activity .roster-timeline-card__top > span,
+.roster-timeline__day--doff .roster-timeline-card--activity .roster-timeline-card__top > span {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+/* ---- roster: weather on the card ------------------------------------------- */
+.roster-card-weather {
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  margin: .45rem 0 0;
+  border-top: 1px solid var(--line);
+  padding-top: .4rem;
+  color: var(--muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.roster-card-weather b { font-size: var(--body-size); line-height: 1; }
+.roster-card-weather span { font-weight: var(--weight-header); letter-spacing: .04em; }
+.roster-card-weather em { flex: 1; overflow: hidden; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.roster-card-weather strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-number);
+  white-space: nowrap;
 }
