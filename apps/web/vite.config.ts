@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const base = process.env.GITHUB_ACTIONS ? '/PWAPlog/' : '/';
+const base = process.env.VITE_BASE_PATH ?? (process.env.GITHUB_ACTIONS ? '/PWAPlog/' : '/');
 
 export default defineConfig({
   base,

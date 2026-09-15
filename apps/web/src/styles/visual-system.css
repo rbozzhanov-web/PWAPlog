@@ -468,10 +468,10 @@ button:disabled { cursor: default; }
   .primary-tab-pager { scroll-behavior: auto; }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root { --es-card: var(--es-solid); --es-glass: var(--es-solid); --es-glass-selected: var(--es-blue-soft); }
+  :root, :root.theme-dark { --es-card: var(--es-solid); --es-glass: var(--es-solid); --es-glass-selected: var(--es-blue-soft); }
 }
 @media (prefers-reduced-transparency: reduce) {
-  :root { --es-card: var(--es-solid); --es-glass: var(--es-solid); --es-glass-selected: var(--es-blue-soft); }
+  :root, :root.theme-dark { --es-card: var(--es-solid); --es-glass: var(--es-solid); --es-glass-selected: var(--es-blue-soft); }
 }
 
 /* Status colors must not be swallowed by a general card/text rule. */
@@ -480,3 +480,11 @@ button:disabled { cursor: default; }
 .settings-message--success, .pay-setup > p { color: var(--es-success); }
 .pay-audit__warning, .pdf-candidate__warnings { color: var(--es-warning); background: var(--es-warning-bg); }
 .pay-audit__note, .pdf-import-status { color: var(--es-blue); background: var(--es-blue-soft); }
+
+.flight-row:focus-visible { background: var(--es-inset); outline: 2px solid var(--es-blue); outline-offset: -3px; }
+:is(.aims-import-sheet__file, .pay-import-button, .settings-file-action):focus-within {
+  outline: 2px solid var(--es-blue); outline-offset: 3px;
+}
+.home-destination-weather.is-expandable > button { cursor: pointer; }
+.year-chip { border-color: var(--es-edge); }
+.flight-row, .home-crew-row { border-top-color: var(--es-border); }

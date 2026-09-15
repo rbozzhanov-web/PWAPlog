@@ -8,7 +8,7 @@ const origin = 'http://127.0.0.1:4173';
 const output = 'visual-artifacts';
 await mkdir(output, { recursive: true });
 const server = spawn('npm', ['--workspace', '@pilot-logbook/web', 'exec', '--', 'vite', 'preview', '--host', '127.0.0.1', '--port', '4173'], {
-  env: { ...process.env, GITHUB_ACTIONS: '' }, stdio: 'ignore',
+  env: { ...process.env, VITE_BASE_PATH: '/' }, stdio: 'inherit',
 });
 for (let i = 0; i < 100; i++) {
   try { if ((await fetch(origin)).ok) break; } catch {}
@@ -187,7 +187,12 @@ try {
         } catch (error) {
           errors.push(key + ': ' + error.message);
           console.log('FAIL ' + errors.at(-1));
+          console.log('PAGE_ERRORS ' + JSON.stringify(runtimeErrors));
+          console.log('PAGE_BODY ' + (await page.locator('body').innerText()).slice(0, 2000));
+          const failure = await page.screenshot({ type: 'jpeg', quality: 60 });
+          console.log('VISUAL_FAILURE ' + key + ' ' + failure.toString('base64'));
           await screenshot(page, key + '-failure', theme, engine === 'webkit' && viewport.width === 390).catch(()=>{});
+          if (!await page.locator('.app-frame').count()) throw new Error('Application did not start; stop repeated empty-screen checks.');
         } finally { await context.close(); }
       }
     }

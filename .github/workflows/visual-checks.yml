@@ -30,7 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          GITHUB_ACTIONS: ''
+          VITE_BASE_PATH: '/'
       - run: npm install --no-save --package-lock=false playwright@1.63.0
       - run: npx playwright install --with-deps chromium webkit
       - run: node scripts/check-visual-interface.mjs
