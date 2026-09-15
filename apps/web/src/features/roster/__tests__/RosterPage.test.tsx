@@ -82,10 +82,12 @@ describe('RosterPage AIMS import flow', () => {
     expect(screen.getByText('OFF')).toBeVisible();
     expect(screen.getByText('AVLB')).toBeVisible();
     expect(screen.getByText('DOFF')).toBeVisible();
-    expect(container.querySelector(`[data-date="${offDate}"]`)).toHaveClass('roster-day-card--off');
-    expect(container.querySelector(`[data-date="${doffDate}"]`)).toHaveClass('roster-day-card--doff');
-    expect(container.querySelector(`[data-date="${today}"]`)).toHaveClass('roster-day-card--today');
-    expect(screen.getByText('TODAY')).toBeVisible();
+    expect(container.querySelector(`[data-date="${offDate}"]`)).toHaveClass('roster-timeline__day--off');
+    expect(container.querySelector(`[data-date="${doffDate}"]`)).toHaveClass('roster-timeline__day--doff');
+    expect(container.querySelector(`[data-date="${today}"]`)).toHaveClass('roster-timeline__day--today');
+    // Every card on today's date carries the marker, so a day with both a flight and an
+    // activity renders it more than once. Assert the day is marked, not how many cards say so.
+    expect(screen.getAllByText('TODAY').length).toBeGreaterThan(0);
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', inline: 'nearest', behavior: 'smooth' }));
 
     vi.unstubAllGlobals();

@@ -14,8 +14,19 @@ test('opens a new primary-tab session on Home', async () => {
   await waitFor(() => expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page'));
 });
 
-test('opens backup onboarding from the settings route', async () => {
+// Settings is a primary tab, so a launch there is sent to Home like any other tab — reach it the
+// way a user does. This test only passed as a launch route while the redirect above was silently
+// dropped; now that it fires, the tab is the honest entry point.
+//
+// The pager marks every inactive page aria-hidden and inert, so a role query cannot see Settings
+// until it is the settled page. jsdom has no layout, so the pager is given a width and scrolled by
+// hand — the same way the swipe test below drives it.
+test('opens backup onboarding from the settings tab', async () => {
   render(<MemoryRouter initialEntries={['/settings']}><App /></MemoryRouter>);
+  const pager = document.querySelector<HTMLElement>('.primary-tab-pager');
+  Object.defineProperty(pager!, 'clientWidth', { configurable: true, value: 400 });
+  pager!.scrollLeft = 4 * 400;
+  fireEvent.scroll(pager!);
 
   expect(
     await screen.findByRole('heading', { name: 'Import existing PilotLogbook backup' }),

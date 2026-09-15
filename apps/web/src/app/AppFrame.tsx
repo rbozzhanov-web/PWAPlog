@@ -69,7 +69,11 @@ export function AppFrame({ db }: AppFrameProps) {
   const launchRouteHandled = useRef(false);
 
   // A fresh PWA/document launch always starts at Home. Dedicated import and detail links remain intact.
-  useLayoutEffect(() => {
+  //
+  // Deliberately an effect and not a layout effect: useNavigate arms itself in a passive effect,
+  // so a navigate() issued during the layout phase of the first render is dropped with only a
+  // console warning, and the launch route survived untouched.
+  useEffect(() => {
     if (launchRouteHandled.current) return;
     launchRouteHandled.current = true;
     const isDirectTaskRoute = location.pathname.startsWith('/import/')

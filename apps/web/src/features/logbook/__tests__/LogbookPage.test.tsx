@@ -4,7 +4,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { FlightLogEntry } from '@pilot-logbook/core';
 import { MemoryRouter } from 'react-router-dom';
 
-import { AppRoutes } from '../../../app/routes';
+import { LogbookPage } from '../LogbookPage';
 import type { PilotLogbookDb } from '../../../db/database';
 import { createPilotLogbookDb } from '../../../db/database';
 import { createFlightEntry } from '../../../db/repositories/flightEntries';
@@ -62,10 +62,13 @@ describe('LogbookPage', () => {
     await Promise.all(entries.map((flight) => createFlightEntry(db!, flight)));
   }
 
+  // Rendered directly rather than through AppRoutes at /logbook: a launch on a bare tab route is
+  // sent to Home by design (see AppFrame), and nothing asserted below is about routing — the link
+  // targets these tests check resolve under MemoryRouter either way.
   function renderLogbook() {
     render(
-      <MemoryRouter initialEntries={['/logbook']}>
-        <AppRoutes db={db} />
+      <MemoryRouter>
+        <LogbookPage db={db!} />
       </MemoryRouter>,
     );
   }
