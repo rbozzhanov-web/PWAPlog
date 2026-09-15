@@ -98,7 +98,7 @@ function nextLayoverHours(roster: AimsRoster | undefined, flight: { destination:
   return nextSector ? Math.max(0, (Date.parse(`${nextSector.date}T${nextSector.departure}:00`) - arrival) / 3_600_000) : 0;
 }
 function crewInitials(name: string) { return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2); }
-function countdownClock(value: number) { const seconds = Math.max(0, Math.floor(value / 1000)); return `${Math.floor(seconds / 86_400)}d ${String(Math.floor(seconds / 3_600) % 24).padStart(2, '0')}h ${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}m ${String(seconds % 60).padStart(2, '0')}s`; }
+function countdownClock(value: number) { const seconds = Math.max(0, Math.floor(value / 1000)); return `${Math.floor(seconds / 86_400)}d ${String(Math.floor(seconds / 3_600) % 24).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
 function dutyReportBoundary(duty: AimsDuty) { return duty.report ?? duty.start ?? `${duty.date}T${duty.flights[0]?.departure ?? '00:00'}`; }
 function dutyEndTimestamp(duty: AimsDuty) { const last = duty.flights.at(-1); const fallback = last ? `${last.arrivalDate ?? last.date}T${last.arrival}:00` : dutyReportBoundary(duty); return Date.parse(duty.end ?? fallback); }
 function reportClock(duty?: AimsDuty) { return duty ? dutyReportBoundary(duty).slice(11, 16) : '—'; }

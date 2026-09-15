@@ -44,6 +44,11 @@
   --tint-hotel: rgb(155 97 59 / 16%);
   --tint-absence: rgb(229 72 77 / 14%);
 
+  /* Today's card is picked out by a soft glow rather than a drawn edge — a box-shadow blur fades
+     to nothing at its own radius regardless of how opaque the colour looks at its centre, so this
+     reads as light spilling from the card rather than a ring around it. */
+  --glow-today: 0 0 1.5rem rgb(45 125 255 / 45%);
+
   /* ---- material ---------------------------------------------------------- */
   /* Glass is additive: the flat palette above carries the design on its own, these only lift
      elevated layers off it. Blur strength scales with how far a layer sits above the page. */
@@ -145,6 +150,10 @@ html.theme-dark {
   --tint-standby: rgb(139 149 165 / 16%);
   --tint-hotel: rgb(216 154 102 / 20%);
   --tint-absence: rgb(235 111 121 / 18%);
+
+  /* Carried a touch stronger than light's, matching the tint tokens above: the same alpha reads
+     weaker against a dark surface. */
+  --glow-today: 0 0 1.75rem rgb(76 141 255 / 55%);
 
   --popup-glass: rgb(24 33 53 / 78%);
   --popup-scrim: rgb(3 8 18 / 58%);
