@@ -155,7 +155,19 @@ function activityTitle(event: RecordValue, code: string) {
 function findElement(value: unknown, id: string): RecordValue | undefined { if (Array.isArray(value)) return value.map((child) => findElement(child, id)).find(Boolean); if (!record(value)) return undefined; if (value.id === id) return value; return Object.values(value).map((child) => findElement(child, id)).find(Boolean); }
 function assignedJson(source: string): RecordValue { const marker = /var\s+initialResult\s*=/.exec(source); if (!marker) throw new Error('Could not find AIMS data in this saved file.'); const start = source.indexOf('{', marker.index); let depth = 0, quoted = false, escaped = false; for (let i = start; i < source.length; i += 1) { const char = source[i]; if (quoted) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === '"') quoted = false; continue; } if (char === '"') { quoted = true; continue; } if (char === '{') depth += 1; if (char === '}' && --depth === 0) { const parsed: unknown = JSON.parse(source.slice(start, i + 1)); if (record(parsed)) return parsed; } } throw new Error('AIMS schedule data is incomplete.'); }
 function assignedArray(source: string, pattern: RegExp): unknown[] { const marker = pattern.exec(source); if (!marker) return []; const start = source.indexOf('[', marker.index); let depth = 0, quoted = false, escaped = false; for (let i = start; i < source.length; i += 1) { const char = source[i]; if (quoted) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === '"') quoted = false; continue; } if (char === '"') { quoted = true; continue; } if (char === '[') depth += 1; if (char === ']' && --depth === 0) { const parsed: unknown = JSON.parse(source.slice(start, i + 1)); return Array.isArray(parsed) ? parsed : []; } } return []; }
-function decodeArchive(data: ArrayBuffer) { const bytes = new Uint8Array(data); const probe = new TextDecoder('windows-1252').decode(bytes.subarray(0, 256 * 1024)); const declared = /charset\s*=\s*["']?\s*([a-z0-9._-]+)/i.exec(probe)?.[1]?.toLowerCase(); return new TextDecoder(declared === 'windows-1251' || declared === 'cp1251' ? 'windows-1251' : 'utf-8').decode(bytes); }
+/** AIMS pages sometimes declare `charset=windows-1251` while the bytes they actually served are
+ *  UTF-8 (a stale meta tag, not the real encoding) — trusting that declaration silently mangles
+ *  every multi-byte character, including the ⁺¹ overnight-rollover mark a sector's own regex
+ *  depends on, which drops the whole duty into "activities" instead of counting it as a flight.
+ *  Real UTF-8 almost never also decodes as valid UTF-8 by accident, so verifying it strictly first
+ *  is reliable; the declared charset is only trusted once that verification fails. */
+function decodeArchive(data: ArrayBuffer) {
+  const bytes = new Uint8Array(data);
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { /* not UTF-8 */ }
+  const probe = new TextDecoder('windows-1252').decode(bytes.subarray(0, 256 * 1024));
+  const declared = /charset\s*=\s*["']?\s*([a-z0-9._-]+)/i.exec(probe)?.[1]?.toLowerCase();
+  return new TextDecoder(declared === 'windows-1251' || declared === 'cp1251' ? 'windows-1251' : 'utf-8').decode(bytes);
+}
 function readLocalStorage(source: string, key: string) { return new RegExp(`localStorage\\[['"]${key}['"]\\]\\s*=\\s*['"]([^'"]+)['"]`).exec(source)?.[1]; }
 function text(value: unknown) { return typeof value === 'string' ? value : ''; }
 function scalar(value: unknown) { return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''; }
