@@ -34,6 +34,16 @@
   --weekend: #9b613b;
   --weekend-soft: rgb(155 97 59 / 12%);
 
+  /* Roster card tints. Separate from the -soft badge tokens because these wash a whole card
+     rather than fill a pill: they are laid over the glass, not instead of it, so the card keeps
+     its surface and its blur and only takes on the colour. Tune the roster's intensity here. */
+  --tint-flight: rgb(45 125 255 / 18%);
+  --tint-rest: rgb(46 158 109 / 16%);
+  --tint-training: rgb(165 139 79 / 20%);
+  --tint-standby: rgb(104 114 128 / 12%);
+  --tint-hotel: rgb(155 97 59 / 16%);
+  --tint-absence: rgb(229 72 77 / 14%);
+
   /* ---- material ---------------------------------------------------------- */
   /* Glass is additive: the flat palette above carries the design on its own, these only lift
      elevated layers off it. Blur strength scales with how far a layer sits above the page. */
@@ -119,6 +129,14 @@ html.theme-dark {
   --good-soft: rgb(79 190 142 / 16%);
   --weekend: #d89a66;
   --weekend-soft: rgb(216 154 102 / 18%);
+
+  /* Carried a little stronger at night: the same alpha over a dark surface reads weaker. */
+  --tint-flight: rgb(76 141 255 / 22%);
+  --tint-rest: rgb(79 190 142 / 20%);
+  --tint-training: rgb(201 172 114 / 22%);
+  --tint-standby: rgb(139 149 165 / 16%);
+  --tint-hotel: rgb(216 154 102 / 20%);
+  --tint-absence: rgb(235 111 121 / 18%);
 
   --shadow-card: 0 10px 24px rgb(0 0 0 / 35%);
   --shadow-sheet: 0 24px 70px rgb(0 0 0 / 50%);
