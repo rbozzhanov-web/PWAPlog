@@ -1,0 +1,129 @@
+/*
+ * eScrew design concept — token layer.
+ *
+ * Single source of truth for colour, type, material, and radius. Every value here is taken from
+ * the concept reference in docs/design (palette and type scale from design-concept-v1, surface
+ * alphas and blur strengths from the Glass Manifest). Component rules must source from these
+ * tokens and declare no literal colour of their own, so a re-theme stays a one-file edit.
+ *
+ * Theme resolution is class-based, not media-query-based: AppFrame already resolves the
+ * "system" preference in JavaScript and stamps `theme-dark` on <html>. A `prefers-color-scheme`
+ * block here would fight that and flip the palette twice on a system-dark device whose user
+ * chose light.
+ */
+
+:root {
+  /* ---- palette: light ---------------------------------------------------- */
+  --bg: #f6f7fa;
+  --surface: rgb(255 255 255 / 72%);
+  --surface-strong: rgb(255 255 255 / 88%);
+  --surface-solid: #fff;
+  --text: #0f172a;
+  --muted: #687280;
+  --line: rgb(15 23 42 / 9%);
+  --line-strong: rgb(15 23 42 / 14%);
+  --accent: #2d7dff;
+  --accent-soft: #e4edff;
+  --accent-ink: #fff;
+  --highlight: #a58b4f;
+  --highlight-soft: rgb(165 139 79 / 14%);
+  --danger: #e5484d;
+  --danger-soft: rgb(229 72 77 / 10%);
+  --good: #2e9e6d;
+  --good-soft: rgb(46 158 109 / 12%);
+  --weekend: #9b613b;
+
+  /* ---- material ---------------------------------------------------------- */
+  /* Glass is additive: the flat palette above carries the design on its own, these only lift
+     elevated layers off it. Blur strength scales with how far a layer sits above the page. */
+  --blur-card: blur(24px) saturate(1.4);
+  --blur-tab: blur(32px) saturate(1.5);
+  --blur-sheet: blur(28px) saturate(1.4);
+  --shadow-card: 0 10px 24px rgb(15 23 42 / 10%);
+  --shadow-sheet: 0 20px 60px rgb(15 23 42 / 16%);
+  --shadow-raised: 0 4px 12px rgb(15 23 42 / 6%);
+
+  /* ---- radius ------------------------------------------------------------ */
+  --radius-card: 18px;
+  --radius-control: 12px;
+  --radius-pill: 999px;
+
+  /* ---- type -------------------------------------------------------------- */
+  /* SF Pro on Apple, system fallbacks elsewhere. Monospace is reserved strictly for numbers. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI",
+    Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+  --title-size: 28px;
+  --title-line: 34px;
+  --header-size: 17px;
+  --header-line: 22px;
+  --body-size: 15px;
+  --body-line: 22px;
+  --caption-size: 13px;
+  --caption-line: 18px;
+  --number-size: 18px;
+
+  --weight-title: 600;
+  --weight-header: 600;
+  --weight-body: 400;
+  --weight-number: 600;
+}
+
+html.theme-dark {
+  /* ---- palette: dark ----------------------------------------------------- */
+  --bg: #0b1220;
+  --surface: rgb(19 27 44 / 72%);
+  --surface-strong: rgb(24 33 53 / 88%);
+  --surface-solid: #131b2c;
+  --text: #f5f7fa;
+  --muted: #8b95a5;
+  --line: rgb(139 149 165 / 18%);
+  --line-strong: rgb(139 149 165 / 28%);
+  --accent: #4c8dff;
+  --accent-soft: rgb(76 141 255 / 16%);
+  --accent-ink: #0b1220;
+  --highlight: #c9ac72;
+  --highlight-soft: rgb(201 172 114 / 18%);
+  --danger: #eb6f79;
+  --danger-soft: rgb(235 111 121 / 16%);
+  --good: #4fbe8e;
+  --good-soft: rgb(79 190 142 / 16%);
+  --weekend: #d89a66;
+
+  --shadow-card: 0 10px 24px rgb(0 0 0 / 35%);
+  --shadow-sheet: 0 24px 70px rgb(0 0 0 / 50%);
+  --shadow-raised: 0 4px 12px rgb(0 0 0 / 28%);
+}
+
+/*
+ * Material helpers. Named once per effect rather than inlined ad hoc, so the three elevation
+ * tiers stay distinguishable and a change to one never drifts across the others.
+ */
+.material-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+}
+
+.material-sheet {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-sheet);
+  backdrop-filter: var(--blur-sheet);
+  -webkit-backdrop-filter: var(--blur-sheet);
+}
+
+/*
+ * Anything a user reads as a number — a time, a duration, a date, an amount — is monospaced and
+ * tabular, so digits keep their column when a value updates.
+ */
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-number);
+}
