@@ -20,19 +20,27 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Pilot Logbook',
-        short_name: 'Pilot Logbook',
+        name: 'eScrew',
+        short_name: 'eScrew',
+        description: "Roster, pay and logbook for an airline pilot, kept on the device.",
         display: 'standalone',
         start_url: base,
         scope: base,
         theme_color: '#102a43',
         background_color: '#f7fafc',
+        // "any" and "maskable" are different pictures, not one picture used twice: a maskable
+        // icon is cropped to a shape the platform chooses, so it carries a full-bleed background
+        // and keeps its artwork inside the centred 80% safe circle. Declaring one icon as both,
+        // as this did, means Android crops art drawn to sit against the corners.
         icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           {
-            src: 'icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
+            src: 'icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },

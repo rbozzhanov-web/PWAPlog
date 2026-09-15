@@ -168,7 +168,7 @@ body {
 .home-hero { border-radius: 1.1rem; padding: 1rem; }
 .home-hero__eyebrow { color: var(--muted); font-size: var(--caption-size); letter-spacing: .12em; }
 .home-hero h2 { max-width: none; margin: .42rem 0 .3rem; color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; line-height: 1.03; }
-.home-hero > p:not(.home-hero__eyebrow) { color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); }
+.home-hero > p:not(.home-hero__eyebrow) { color: var(--muted); font-size: var(--body-size); }
 .home-hero__actions { margin-top: 1rem; }
 .home-hero__actions a, .roster-import-action { min-height: 2.35rem; border-radius: .8rem; background: var(--accent); box-shadow: 0 .45rem .9rem var(--accent-soft); font-size: var(--caption-size); }
 .home-hero__actions a + a { border: 1px solid var(--line); background: var(--surface-solid); color: var(--text); }

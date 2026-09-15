@@ -7,7 +7,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="eScrew" />
-    <title>Pilot Logbook</title>
+    <!-- iOS ignores the web manifest's icons and its SVG entirely, so the home-screen
+         icon has to be a PNG at a real URL. Without it a saved app gets a screenshot. -->
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%icon.svg" />
+    <title>eScrew</title>
   </head>
   <body>
     <div id="root"></div>
