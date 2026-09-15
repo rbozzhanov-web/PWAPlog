@@ -1,0 +1,4 @@
+# Cloudflare Pages serves any file that exists first, so this only catches client routes —
+# /roster, /logbook/:id, /flight/:key and the rest — which would otherwise 404 on a direct
+# visit or a refresh, because React Router owns them and no such file is built.
+/*  /index.html  200

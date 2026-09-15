@@ -2,7 +2,11 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const base = process.env.GITHUB_ACTIONS ? '/PWAPlog/' : '/';
+// The path the app is served from. Root by default, which is what Cloudflare Pages and a local
+// preview both want; the GitHub Pages workflow sets it to the repository subpath. Inferring this
+// from GITHUB_ACTIONS was wrong the moment a second target existed — any workflow, including a
+// Cloudflare deploy run from Actions, would have built the subpath version.
+const base = process.env.PUBLIC_BASE_PATH ?? '/';
 
 export default defineConfig({
   base,
@@ -34,7 +38,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,mjs}'],
-        navigateFallback: '/index.html'
+        // Must be the precached entry for this base, or Workbox throws non-precached-url
+        // while the service worker is evaluating and offline never starts.
+        navigateFallback: `${base}index.html`
       }
     })
   ],
