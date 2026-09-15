@@ -69,7 +69,7 @@ export function AppFrame({ db }: AppFrameProps) {
   const launchRouteHandled = useRef(false);
 
   // A fresh PWA/document launch always starts at Home. Dedicated import and detail links remain intact.
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (launchRouteHandled.current) return;
     launchRouteHandled.current = true;
     const isDirectTaskRoute = location.pathname.startsWith('/import/')

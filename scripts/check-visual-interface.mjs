@@ -50,8 +50,17 @@ async function seedDb(page) {
 }
 async function select(page, index) {
   await page.locator('.tab-dock__item').nth(index).click();
-  await page.waitForFunction(expected => location.pathname === expected, routes[index]);
-  await page.waitForFunction(index => Number(document.querySelector('.tab-dock').style.getPropertyValue('--tab-progress')) === index, index);
+  try {
+    await page.waitForFunction(expected => location.pathname === expected, routes[index]);
+    await page.waitForFunction(index => Number(document.querySelector('.tab-dock').style.getPropertyValue('--tab-progress')) === index, index);
+    await page.waitForFunction(index => {
+      const pager = document.querySelector('.primary-tab-pager');
+      return Math.abs(pager.scrollLeft - index * pager.clientWidth) < 1;
+    }, index);
+  } catch (error) {
+    const position = await page.evaluate(() => ({ route: location.pathname, progress: document.querySelector('.tab-dock').style.getPropertyValue('--tab-progress'), left: document.querySelector('.primary-tab-pager')?.scrollLeft }));
+    throw new Error('Selecting ' + routes[index] + ': ' + JSON.stringify(position) + ': ' + error.message);
+  }
 }
 async function screenshot(page, key, theme, collect = false) {
   const buffer = await page.screenshot({ path: output + '/' + key + '.jpeg', type: 'jpeg', quality: 65, animations: 'disabled' });
@@ -93,8 +102,10 @@ async function checkReachable(page, selector, key, scroll = true) {
   assert.ok(result.visible && result.top >= 0 && result.bottom <= result.dockTop - 4, key + ': action not reachable ' + JSON.stringify(result));
 }
 function syntheticPdf() {
-  const stream = ['BT /F1 10 Tf', ...Array.from({ length: 25 }, (_, i) => '1 0 0 1 25 ' + (760 - i * 25) + ' Tm ('
-    + String(i + 1).padStart(2,'0') + '/07/2026 UAAA UACC 08:00 09:30) Tj'), 'ET'].join('\n');
+  const stream = ['BT /F1 10 Tf', ...Array.from({ length: 25 }, (_, i) =>
+    [String(i + 1).padStart(2,'0') + '/07/2026', 'UAAA', 'UACC', '08:00', '09:30']
+      .map((token, column) => '1 0 0 1 ' + [25,145,220,300,365][column] + ' ' + (760 - i * 25) + ' Tm (' + token + ') Tj')
+  ).flat(), 'ET'].join('\n');
   const objects = ['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length ' + Buffer.byteLength(stream) + ' >>\nstream\n' + stream + '\nendstream'];
   let pdf = '%PDF-1.4\n'; const offsets = [0];
   for (let i = 0; i < objects.length; i++) { offsets.push(Buffer.byteLength(pdf)); pdf += (i+1)+' 0 obj\n'+objects[i]+'\nendobj\n'; }

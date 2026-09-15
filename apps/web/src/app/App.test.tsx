@@ -14,8 +14,13 @@ test('opens a new primary-tab session on Home', async () => {
   await waitFor(() => expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page'));
 });
 
-test('opens backup onboarding from the settings route', async () => {
-  render(<MemoryRouter initialEntries={['/settings']}><App /></MemoryRouter>);
+test('opens backup onboarding after moving from Home to More', async () => {
+  render(<MemoryRouter><App /></MemoryRouter>);
+  const pager = document.querySelector<HTMLElement>('.primary-tab-pager')!;
+  Object.defineProperty(pager, 'clientWidth', { configurable: true, value: 390 });
+  pager.scrollLeft = 4 * 390;
+  fireEvent.scroll(pager);
+  await waitFor(() => expect(screen.getByRole('link', { name: 'More' })).toHaveAttribute('aria-current', 'page'));
 
   expect(
     await screen.findByRole('heading', { name: 'Import existing PilotLogbook backup' }),
