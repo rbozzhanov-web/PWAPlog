@@ -11,9 +11,25 @@ import type { AimsFlight, AimsRoster } from './aims';
  * logbook, it is the honest answer to "this month".
  */
 
-/** Stable across re-imports, so a sector already written to the logbook is never counted twice. */
+/** Stable across re-imports, so a sector already written to the logbook by Import AIMS specifically
+ *  is never re-added as a duplicate logbook entry. */
 export function aimsSectorId(flight: AimsFlight): string {
   return `aims-${flight.date}-${flight.flightNumber}-${flight.origin}-${flight.destination}`;
+}
+
+/**
+ * What makes a logbook entry and a roster sector the same real flight, independent of how the
+ * entry got there.
+ *
+ * `monthTotals` used to dedupe by comparing a logged entry's `id` against `aimsSectorId(flight)` —
+ * which only ever matches an entry that Import AIMS itself wrote. A flight entered by hand, or
+ * pulled in through the PDF flight-time importer (a random UUID), never carries that id, so the
+ * same real sector was counted twice: once from the logbook, once again as "not yet logged" from
+ * the roster. Matching on date and the airport pair instead recognises the flight whichever way it
+ * reached the logbook.
+ */
+function sectorIdentity(date: string, departure: string, arrival: string): string {
+  return `${date}|${departure.trim().toUpperCase()}|${arrival.trim().toUpperCase()}`;
 }
 
 /**
@@ -32,11 +48,22 @@ export function sectorMinutes(flight: AimsFlight): number {
   return Math.round((incoming - out) / 60_000);
 }
 
-/** True once the sector has landed. Deadhead legs are travel, not flying, and never count. */
+/**
+ * True once the sector has landed. Deadhead legs are travel, not flying, and never count.
+ *
+ * Rolls an overnight sector's arrival to the next day the same way `sectorMinutes` does, rather
+ * than trusting `arrivalDate` to always be set. The roster parser does set it whenever a sector
+ * crosses midnight, so this only matters if that ever isn't true — but a missing rollover here
+ * computes an arrival clock *before* the departure clock, which reads as already landed the
+ * moment the sector exists, hours before it has actually even departed.
+ */
 export function isFlownSector(flight: AimsFlight, now: number): boolean {
   if (flight.deadhead) return false;
-  const arrival = Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00Z`);
-  return Number.isFinite(arrival) && arrival <= now;
+  const departure = Date.parse(`${flight.date}T${flight.departure}:00Z`);
+  let arrival = Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00Z`);
+  if (!Number.isFinite(departure) || !Number.isFinite(arrival)) return false;
+  if (arrival < departure) arrival += 24 * 60 * 60 * 1000;
+  return arrival <= now;
 }
 
 export function flownSectors(roster: AimsRoster | undefined, now: number): AimsFlight[] {
@@ -52,9 +79,11 @@ export interface MonthTotals {
 
 /**
  * One month's flying: every logbook entry for the month, plus any sector the roster shows as flown
- * that has not been written to the logbook yet. Deduplicated on `aimsSectorId`, which is the id the
- * logbook import assigns, so importing later moves a sector between the two sources without
- * changing the total.
+ * that has not been written to the logbook yet. Deduplicated by flight identity (date + airport
+ * pair) rather than by id — a logbook entry can reach the logbook by hand, through the PDF
+ * flight-time importer, or through Import AIMS, and only the last of those writes an id this
+ * module would otherwise recognise. Matching by identity catches all three, so the same real
+ * sector is never added into the total from both sides.
  */
 export function monthTotals(
   entries: FlightLogEntry[],
@@ -63,10 +92,14 @@ export function monthTotals(
   now: number,
 ): MonthTotals {
   const logged = entries.filter((entry) => entry.date.startsWith(month));
-  const loggedIds = new Set(logged.map((entry) => entry.id));
+  const loggedSectors = new Set(
+    logged.map((entry) => sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)),
+  );
 
   const unlogged = flownSectors(roster, now).filter(
-    (flight) => flight.date.startsWith(month) && !loggedIds.has(aimsSectorId(flight)),
+    (flight) =>
+      flight.date.startsWith(month) &&
+      !loggedSectors.has(sectorIdentity(flight.date, flight.origin, flight.destination)),
   );
 
   return {

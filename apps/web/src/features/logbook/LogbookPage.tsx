@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import type { PilotLogbookDb } from '../../db/database';
 import { listFlightEntries, putFlightEntries } from '../../db/repositories/flightEntries';
 import { loadAimsRoster } from '../roster/aims';
+import { aimsSectorId, sectorMinutes } from '../roster/completedSectors';
 import { LogbookList } from './LogbookList';
 import { formatFlightMinutes, sumFlightMinutes } from './totals';
 import { YearChips } from './YearChips';
@@ -79,9 +80,9 @@ export function LogbookPage({ db }: LogbookPageProps) {
     const existing = new Set(entries.map((entry) => entry.id));
     const now = Date.now();
     const candidates = roster.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead && flight.actualTimes && Date.parse(`${flight.date}T${flight.arrival}:00`) < now).map((flight) => ({
-      id: `aims-${flight.date}-${flight.flightNumber}-${flight.origin}-${flight.destination}`,
+      id: aimsSectorId(flight),
       date: flight.date, flightNumber: flight.flightNumber, departureAirport: flight.origin, arrivalAirport: flight.destination,
-      aircraftType: flight.aircraftType, timeOut: flight.departure, timeIn: flight.arrival, totalTimeMinutes: sectorMinutes(flight.date, flight.departure, flight.arrivalDate ?? flight.date, flight.arrival),
+      aircraftType: flight.aircraftType, timeOut: flight.departure, timeIn: flight.arrival, totalTimeMinutes: sectorMinutes(flight),
       ...NEW_ENTRY_DEFAULTS, source: 'aims_import' as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     })).filter((entry) => !existing.has(entry.id));
     if (!candidates.length) { setAimsMessage('No new completed AIMS sectors to add.'); return; }
@@ -151,11 +152,4 @@ export function LogbookPage({ db }: LogbookPageProps) {
       ) : null}
     </main>
   );
-}
-
-function sectorMinutes(date: string, departure: string, arrivalDate: string, arrival: string) {
-  const out = Date.parse(`${date}T${departure}:00Z`);
-  let incoming = Date.parse(`${arrivalDate}T${arrival}:00Z`);
-  if (incoming < out) incoming += 24 * 60 * 60 * 1000;
-  return Math.round((incoming - out) / 60_000);
 }
