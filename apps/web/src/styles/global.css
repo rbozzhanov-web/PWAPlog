@@ -3121,12 +3121,7 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
    Scoped through `.roster-timeline__day` for specificity, not for meaning: the card material in
    the concept pass is an :is() list, and :is() takes the specificity of its most specific
    argument, so a bare `.roster-timeline-card--grtc` silently loses to it. */
-.roster-timeline__day .roster-timeline-card {
-  border-left: 4px solid var(--line-strong);
-}
-
 .roster-timeline__day .roster-timeline-card--flight {
-  border-left-color: var(--accent);
   background: linear-gradient(0deg, var(--tint-flight), var(--tint-flight)), var(--surface);
 }
 
@@ -3135,7 +3130,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .roster-timeline__day .roster-timeline-card--vac,
 .roster-timeline__day .roster-timeline-card--off,
 .roster-timeline__day .roster-timeline-card--doff {
-  border-left-color: var(--good);
   background: linear-gradient(0deg, var(--tint-rest), var(--tint-rest)), var(--surface);
 }
 
@@ -3147,25 +3141,21 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .roster-timeline__day .roster-timeline-card--trn,
 .roster-timeline__day [class*='roster-timeline-card--asm'],
 .roster-timeline__day [class*='roster-timeline-card--med'] {
-  border-left-color: var(--highlight);
   background: linear-gradient(0deg, var(--tint-training), var(--tint-training)), var(--surface);
 }
 
 .roster-timeline__day .roster-timeline-card--avlb,
 .roster-timeline__day .roster-timeline-card--homx,
 .roster-timeline__day .roster-timeline-card--stby {
-  border-left-color: var(--muted);
   background: linear-gradient(0deg, var(--tint-standby), var(--tint-standby)), var(--surface);
 }
 
 .roster-timeline__day .roster-timeline-card--hotel {
-  border-left-color: var(--weekend);
   background: linear-gradient(0deg, var(--tint-hotel), var(--tint-hotel)), var(--surface);
 }
 
 .roster-timeline__day .roster-timeline-card--sick,
 .roster-timeline__day .roster-timeline-card--uff {
-  border-left-color: var(--danger);
   background: linear-gradient(0deg, var(--tint-absence), var(--tint-absence)), var(--surface);
 }
 
