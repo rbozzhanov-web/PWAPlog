@@ -1,5 +1,9 @@
 # PWAPlog review — contents, core, and design correctness
 
+> **Status: mostly resolved.** The blocking items, the core findings and the test/CI gaps were
+> fixed on 2026-09-15 — see the commits from `5dce79f` onwards. What remains open is listed under
+> [Still open](#still-open) at the end. One finding was wrong and is marked as such in place.
+
 Reviewed commit `433503a` on `claude/pwaplog-review-qchaoi` (identical to `main`), 2026-09-15.
 
 Method: `npm install`, `npm run test`, `npx tsc -b apps/web`, `npm run build` (both with and
@@ -79,9 +83,11 @@ An unset YTD must reach core as `undefined`, not `0`.
   (534 KB gzip)** — the JSON was confirmed inlined at byte 372808 of `dist/assets/index-*.js`.
   A small ICAO↔IATA table covering only the codes in `normsTable.ts` would remove most of it.
 
-- **`calculateDayNight` is never called.** `packages/core/src/daynight/` has no tests and no
-  caller in `apps/web`, so day/night minutes are only ever typed by hand, despite the spec's
-  parity requirement. It is also the sole reason `luxon` and `suncalc` are dependencies.
+- ~~**`calculateDayNight` is never called.**~~ **Wrong — corrected 2026-09-15.** It has no caller
+  in `apps/web`, which is what I searched, but the PDF parser rules in
+  `packages/core/src/pdf-import/rules/` call it on every import, so day/night is computed for
+  imported entries. The real finding underneath was narrower and stands: the module had no tests.
+  It has them now.
 
 - **AIMS sectors are priced at 0 actual minutes.** `PayPage.tsx` maps roster flights with
   `totalTimeMinutes: 0`, so any sector missing from the published norms contributes nothing to
@@ -165,3 +171,31 @@ reads as an authority that contradicts the code.
 5. Add `npm run test` to the Pages workflow before `npm run build`.
 6. Decide the spec-vs-app question, then reconcile the document.
 7. Lazy-load or shrink `airports.json` off the entry chunk.
+
+---
+
+## Still open
+
+Deliberately not fixed, with the reason:
+
+- **AIMS sectors are priced at 0 actual minutes.** The obvious fix — computing block time from the
+  roster's departure and arrival clocks — would be confidently wrong rather than merely missing.
+  AIMS prints each leg in the local time of whichever station the item sits under, and neither the
+  repo nor `packages/core/src/daynight/timezone.ts` carries per-airport timezone data; core
+  documents the same limitation for the crew-schedule PDF path. On a published sector the norm is
+  used regardless, so this only affects unlisted sectors, which the UI already names. Fixing it
+  properly means adding a timezone lookup, which is a change worth making deliberately.
+
+- **The AIMS roster lives in `localStorage`,** outside the Dexie model and outside every backup
+  path, while Pay depends on it. Fixing it means designing the pay-data backup envelope the spec
+  describes — a feature, not a repair.
+
+- **Home parses AIMS times as device-local.** Same root cause as the first item: without station
+  timezones there is no correct answer, only a different wrong one.
+
+- **The design spec still describes a Pilot Logbook PWA with no roster, AIMS, pay or weather.**
+  The app is eScrew now; `docs/design/README.md` records the system it actually uses. Reconciling
+  the older spec is a product-direction decision, not a code fix.
+
+- **CSS hygiene** — the unused classes and the single 3,000-line stylesheet — is untouched by
+  request, to leave the visual front end alone.

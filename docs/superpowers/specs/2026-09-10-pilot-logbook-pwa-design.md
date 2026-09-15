@@ -1,5 +1,11 @@
 # Pilot Logbook browser-first PWA migration
 
+> **Superseded, kept for its domain reasoning.** The app shipped as eScrew: it has a roster tab,
+> AIMS import, crew pay and destination weather, and its visual system is the one recorded in
+> `docs/design/README.md`. This document's routes, branding rules and non-goals no longer describe
+> the product — read it for the payroll, parser and backup reasoning, not as a specification of
+> what is built. See `docs/reviews/2026-09-15-core-and-design-review.md` for the divergence.
+
 ## Purpose
 
 Build an installable, offline-first Pilot Logbook PWA in this repository. The existing Expo 57 native application at `/Users/ramilbozzhanov/Developer/PilotLogbook-local` remains untouched and serves only as the behavioral source of truth during the migration.

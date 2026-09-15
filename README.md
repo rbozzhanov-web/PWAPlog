@@ -1,6 +1,18 @@
 # Pilot Logbook PWA
 
-Pilot Logbook is an installable, offline-first browser foundation for a pilot's logbook. Its app shell and working logbook data remain on the device after the first successful load.
+eScrew is an installable, offline-first app for an airline pilot's roster, pay and logbook. Its
+app shell and working data remain on the device after the first successful load.
+
+- **Roster** — import an AIMS Crew Schedule saved as a Web Archive, and read the duties, sectors,
+  hotels and crew it contains.
+- **Pay** — check a payslip against the published CrewPay norms and Kazakh payroll rules, from an
+  AIMS roster or a Crew Schedule PDF.
+- **Logbook** — flight records entered by hand, imported from a flight-time PDF, or taken from
+  completed AIMS sectors.
+- **Home** — the next sector, its report countdown, crew, and destination weather.
+
+Weather is the one feature that reaches the network (`api.open-meteo.com`, for the destination
+airport's coordinates); everything else works offline. No account, no sync, no backend.
 
 ## Develop and verify
 
