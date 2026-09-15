@@ -224,11 +224,6 @@ body {
 .logbook-settings-link, .logbook-new-link { min-height: 2.55rem; border-radius: 0.9rem; padding: 0.5rem 0.7rem; font-size: var(--caption-size); }
 .logbook-settings-link { background: var(--surface); color: var(--muted); }
 .logbook-new-link { background: var(--accent); box-shadow: 0 0.5rem 1.2rem var(--accent-soft); }
-.logbook-summary { min-height: 9.3rem; border: 1px solid var(--surface); border-radius: 1.85rem; background: linear-gradient(140deg, var(--surface), var(--accent-soft)); box-shadow: 0 1rem 2.3rem var(--accent-soft); color: var(--text); backdrop-filter: blur(1.2rem); }
-.logbook-summary span { color: var(--muted); }
-.logbook-summary p { color: var(--muted); }
-.logbook-summary p strong { color: var(--accent); }
-.year-chips-shell { margin: 0.8rem -1rem 0; background: linear-gradient(90deg, var(--accent-soft), var(--accent-soft)); }
 .year-chip { border-color: var(--surface); background: var(--surface); color: var(--muted); box-shadow: 0 0.35rem 0.9rem var(--accent-soft); }
 .year-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); }
 .month-card { border-color: var(--surface); border-radius: 1.6rem; background: var(--surface); box-shadow: 0 0.8rem 1.7rem var(--accent-soft); backdrop-filter: blur(1rem); }
@@ -818,7 +813,7 @@ html {
   padding: 1.35rem;
   background: linear-gradient(135deg, var(--text), var(--accent));
   box-shadow: 0 0.75rem 2rem var(--line-strong);
-  color: var(--surface-solid);
+  color: var(--text);
 }
 
 .logbook-summary div {
@@ -827,7 +822,7 @@ html {
 }
 
 .logbook-summary span {
-  color: var(--accent-soft);
+  color: var(--muted);
   font-size: var(--caption-size);
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -842,7 +837,7 @@ html {
 
 .logbook-summary p {
   margin: 0;
-  color: var(--accent-soft);
+  color: var(--muted);
 }
 
 .logbook-summary p strong {
@@ -855,7 +850,6 @@ html {
   top: 0;
   margin: 1rem -1rem 0;
   padding: 0.7rem 1rem;
-  background: var(--accent-soft);
   backdrop-filter: blur(0.75rem);
 }
 
