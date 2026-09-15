@@ -143,11 +143,11 @@ body {
 .roster-calendar__day--activity { background: var(--good-soft); }.roster-calendar__day--activity strong { color: var(--good); }
 
 /* ---- canvas -------------------------------------------------------------- */
-/* The concept canvas is a flat off-white (or deep navy) field: cards carry the design, not a
-   decorative backdrop. A photographic wallpaper competed with every translucent surface above
-   it and made the glass tiers indistinguishable from one another. */
-.app-frame { color: var(--text); background: var(--bg); }
-.app-wallpaper { background: var(--bg); }
+/* The sky wallpaper stays: it is what the app looks like, and the glass tiers above are tuned
+   against it rather than against a flat field. The frame itself is transparent so the fixed
+   wallpaper behind it is what shows through every translucent surface. */
+.app-frame { color: var(--text); background: transparent; }
+.app-wallpaper { background: var(--wallpaper-veil), var(--wallpaper-ground) var(--wallpaper-image) center top / cover no-repeat; }
 .app-wallpaper::after { background: none; }
 .app-frame__content { padding-bottom: calc(6.2rem + env(safe-area-inset-bottom)); }
 .tab-dock { right: .9rem; bottom: max(.55rem, env(safe-area-inset-bottom)); left: .9rem; max-width: 25rem; border: 1px solid var(--line); border-radius: 1.25rem; padding: .28rem; background: var(--surface-strong); box-shadow: 0 .65rem 1.8rem var(--line-strong); backdrop-filter: blur(16px); }
@@ -2943,26 +2943,28 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .tab-dock__item--active,
 .tab-dock__item--active > span:first-child { color: var(--accent); }
 
-/* ---- material: sticky header ---------------------------------------------- */
+/* ---- material: glass header ------------------------------------------------ */
+/* The header keeps its own material rather than taking the generic sheet tier: it is the one
+   surface sitting directly on the photograph, so it needs the stronger blur and the inset
+   highlights that read as a glass edge against moving sky. */
 .primary-tab-header {
-  border-bottom: 1px solid var(--line);
-  background: var(--surface-strong);
-  box-shadow: none;
-  backdrop-filter: var(--blur-sheet);
-  -webkit-backdrop-filter: var(--blur-sheet);
+  border-color: var(--header-border);
+  background: var(--header-glass);
+  box-shadow: var(--header-shadow);
+  backdrop-filter: var(--blur-header);
+  -webkit-backdrop-filter: var(--blur-header);
 }
 
-.primary-tab-header::after { background: none; }
+.primary-tab-header::after { background: var(--header-sheen); }
 
-/* A header title on glass is legible on its own; the glow the previous dark pass added fought
-   the concept's flat, native typography. */
+/* Type on glass needs the halo to hold its edge over whatever the sky is doing behind it. */
 .primary-tab-header__titles span,
 .suite-header h1,
 .suite-page-header h1,
 .logbook-header h1,
 .settings-header h1 {
   color: var(--text);
-  text-shadow: none;
+  text-shadow: var(--header-title-shadow);
 }
 
 /* ---- roster list on the concept ------------------------------------------- */

@@ -55,10 +55,14 @@ scales with how far the layer sits above its background.
 |---|---|---|---|
 | Card / list | `blur(24px) saturate(1.4)` | 72% alpha | `0 10px 24px / .10` |
 | Tab bar | `blur(32px) saturate(1.5)` | 72% alpha | `0 10px 24px / .10` |
-| Sheet / header | `blur(28px) saturate(1.4)` | 88% alpha | `0 20px 60px / .16` |
+| Sheet | `blur(28px) saturate(1.4)` | 88% alpha | `0 20px 60px / .16` |
+| App header | `blur(32px) saturate(1.55)` | `--header-glass` | inset highlights + `0 .7rem 1.6rem` |
 
-The tab bar gets the strongest blur because it is the one layer that always sits above moving
-content.
+The tab bar and the header carry the strongest blur because they are the layers that always sit
+above moving content. The header keeps a material of its own rather than taking the sheet tier: it
+is the only surface sitting directly on the photograph, so it needs the inset highlights that read
+as a glass edge against moving sky, and a text halo so the title holds its edge over whatever is
+behind it.
 
 ## Principles
 
@@ -77,8 +81,13 @@ digits shift width every second is the thing this prevents.
 card. Flooding a row with colour turns it into a status banner and stops the eye finding the route,
 which is what a roster is scanned for.
 
-**The canvas is flat.** Cards carry the design; the background does not compete. A photographic
-wallpaper sat behind every translucent surface and made the three blur tiers indistinguishable.
+**The chrome is the exception to the palette.** The eScrew concept puts cards on a flat canvas, but
+this app keeps its sky wallpaper and the glass header above it — that frame is the product's
+identity, and the header material is tuned against the photograph rather than against `--bg`.
+Both live in the `chrome` token group and resolve per theme like everything else, so the exception
+is declared in one place instead of leaking literals back into component rules. Dark mode veils the
+same photograph rather than swapping in another, so the header glass has the same thing to blur in
+both themes.
 
 **Privacy.** No credential, token or session enters app state — only the data the user explicitly
 imports, and it never leaves the device. This is a design constraint as much as an engineering one:
