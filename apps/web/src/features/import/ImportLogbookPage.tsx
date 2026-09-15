@@ -1,4 +1,4 @@
-import { parseRoster } from '@pilot-logbook/core';
+import { parseRoster } from '@pilot-logbook/core/pdf-import';
 import {
   useEffect,
   useRef,

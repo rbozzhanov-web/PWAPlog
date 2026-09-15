@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import type { ExtractedPage } from '@pilot-logbook/core';
+import type { ExtractedPage } from '@pilot-logbook/core/pdf-import';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 

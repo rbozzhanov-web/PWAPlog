@@ -8,7 +8,7 @@ vi.mock('../../../platform/pdf/extractText', () => ({
   extractPdfText,
 }));
 
-import type { ExtractedPage } from '@pilot-logbook/core';
+import type { ExtractedPage } from '@pilot-logbook/core/pdf-import';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 

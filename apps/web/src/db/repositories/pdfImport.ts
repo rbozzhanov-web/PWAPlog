@@ -1,10 +1,5 @@
-import {
-  NEW_ENTRY_DEFAULTS,
-  annotateDuplicates,
-  type AnnotatedCandidate,
-  type FlightLogEntry,
-  type ParsedCandidate,
-} from '@pilot-logbook/core';
+import { NEW_ENTRY_DEFAULTS, type FlightLogEntry } from '@pilot-logbook/core';
+import { annotateDuplicates, type AnnotatedCandidate, type ParsedCandidate } from '@pilot-logbook/core/pdf-import';
 
 import type { PilotLogbookDb } from '../database';
 

@@ -1,4 +1,4 @@
-import { toIcaoCode } from '../daynight/airportDb';
+import { toNormIcaoCode } from './normAirports';
 import { PUBLISHED_SECTORS } from './normsTable';
 
 /**
@@ -8,15 +8,21 @@ import { PUBLISHED_SECTORS } from './normsTable';
  * keyed on the published IATA would miss every flight. Putting both sides through the same
  * resolver also makes the retired codes it already knows line up with the table's current ones —
  * a logbook row saved as TSE and a published row saying NQZ both land on UACC.
+ *
+ * The resolver is `normAirports`, a generated subset covering only the airports this table names,
+ * rather than `daynight/airportDb` and its 855 KB worldwide dataset: a code that resolves to an
+ * airport outside the table cannot match a published sector however it is spelled, so the rest of
+ * the dataset could only ever be parsed and discarded — on every app launch, since the core barrel
+ * re-exports this module into the entry chunk. normAirports.test.ts holds the two in step.
  */
 const byIcaoPair = new Map<string, number>();
 for (const sector of PUBLISHED_SECTORS) {
-  byIcaoPair.set(`${toIcaoCode(sector.dep)} ${toIcaoCode(sector.arr)}`, sector.minutes);
+  byIcaoPair.set(`${toNormIcaoCode(sector.dep)} ${toNormIcaoCode(sector.arr)}`, sector.minutes);
 }
 
 /** The normative block time published for exactly this direction, if there is one. */
 export function lookupNormMinutes(departure: string, arrival: string): number | undefined {
-  return byIcaoPair.get(`${toIcaoCode(departure)} ${toIcaoCode(arrival)}`);
+  return byIcaoPair.get(`${toNormIcaoCode(departure)} ${toNormIcaoCode(arrival)}`);
 }
 
 /**

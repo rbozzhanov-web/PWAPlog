@@ -108,3 +108,29 @@ describe('native v1 logbook backup compatibility', () => {
     if (!future.ok) expect(future.error).toMatch(/newer version of the app/);
   });
 });
+
+test('counts an entry with the same values but a different key order as unchanged', () => {
+  const stored = entry({ id: 'kc931', flightNumber: 'KC931' });
+  // The same entry as a file might hold it: same values, keys written in another order, and an
+  // optional field absent rather than present-and-undefined.
+  const reordered = Object.fromEntries(
+    Object.entries({ ...stored }).reverse(),
+  ) as unknown as FlightLogEntry;
+
+  const result = mergeLogbookBackup([stored], [reordered]);
+
+  expect(result.unchanged).toBe(1);
+  expect(result.updated).toBe(0);
+  expect(result.added).toBe(0);
+});
+
+test('still counts a genuine value change as updated', () => {
+  const stored = entry({ id: 'kc931', totalTimeMinutes: 115 });
+  const changed = { ...stored, totalTimeMinutes: 120 };
+
+  const result = mergeLogbookBackup([stored], [changed]);
+
+  expect(result.updated).toBe(1);
+  expect(result.unchanged).toBe(0);
+  expect(result.merged[0].totalTimeMinutes).toBe(120);
+});

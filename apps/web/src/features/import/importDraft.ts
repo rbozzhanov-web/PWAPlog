@@ -1,5 +1,5 @@
 import { createContext, createElement, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { CrossCheck } from '@pilot-logbook/core';
+import type { CrossCheck } from '@pilot-logbook/core/pdf-import';
 
 import type { PdfImportCandidateDraft } from '../../db/repositories/pdfImport';
 

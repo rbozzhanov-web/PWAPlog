@@ -14,30 +14,11 @@ export {
   type LogbookBackupParseResult,
   type MergeLogbookBackupResult,
 } from './backup/logbook';
-export type {
-  CrossCheck,
-  ExtractedPage,
-  ParseConfidence,
-  ParsedCandidate,
-  ParseResult,
-  ParserRule,
-  TextItem,
-} from './pdf-import/types';
-export { annotateDuplicates, type AnnotatedCandidate } from './pdf-import/dedupe';
-export { parseRoster } from './pdf-import/parseRoster';
-export { tokenizeLines, nearestItem, type Line } from './pdf-import/tokenize';
-export {
-  AIRPORT_CODE_RE,
-  DATE_DDMMYY_RE,
-  DATE_DDMMYYYY_RE,
-  FLIGHT_NUMBER_RE,
-  REGISTRATION_RE,
-  TIME_HHMM_RE,
-  isAirportCodeToken,
-  isTimeToken,
-  parseDateDdMmYy,
-  parseDateDdMmYyyy,
-} from './pdf-import/patterns';
+/*
+ * PDF import is intentionally absent from this barrel: it reaches the 855 KB airport dataset
+ * through its parser rules, and re-exporting it here put that dataset in the app's entry chunk.
+ * Import it from '@pilot-logbook/core/pdf-import', which the lazily loaded import route does.
+ */
 export {
   CREWPAY_NORM_EFFECTIVE_FROM,
   CREWPAY_NORM_EFFECTIVE_TO,

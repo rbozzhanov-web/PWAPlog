@@ -114,6 +114,25 @@ export interface MergeLogbookBackupResult {
   unchanged: number;
 }
 
+/**
+ * Whether two entries carry the same values.
+ *
+ * Compared field by field rather than by serialising both: `JSON.stringify` is sensitive to key
+ * order, so an entry that round-tripped through a file whose keys were written in a different
+ * order than the database returns them counted as "updated" on every re-import. The stored data
+ * was identical either way — the merge is idempotent regardless — but the added/updated/unchanged
+ * preview shown before a restore was wrong, which is the one number the user is being asked to
+ * approve. An absent optional field and one explicitly set to undefined are the same value here,
+ * for the same reason.
+ */
+function sameEntry(left: FlightLogEntry, right: FlightLogEntry): boolean {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]) as Set<keyof FlightLogEntry>;
+  for (const key of keys) {
+    if (left[key] !== right[key]) return false;
+  }
+  return true;
+}
+
 export function mergeLogbookBackup(
   existing: FlightLogEntry[],
   incoming: FlightLogEntry[],
@@ -128,7 +147,7 @@ export function mergeLogbookBackup(
     if (!current) {
       added += 1;
       byId.set(entry.id, entry);
-    } else if (JSON.stringify(current) === JSON.stringify(entry)) {
+    } else if (sameEntry(current, entry)) {
       unchanged += 1;
     } else {
       updated += 1;

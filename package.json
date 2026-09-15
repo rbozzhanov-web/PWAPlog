@@ -10,7 +10,8 @@
     "build": "npm --workspace @pilot-logbook/web run build",
     "test": "vitest run --workspace vitest.workspace.ts",
     "test:web": "vitest run --project web",
-    "deploy:cloudflare": "npm run build && npx wrangler@latest pages deploy"
+    "deploy:cloudflare": "npm run build && npx wrangler@latest pages deploy",
+    "generate:norm-airports": "node scripts/generate-norm-airports.mjs"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
