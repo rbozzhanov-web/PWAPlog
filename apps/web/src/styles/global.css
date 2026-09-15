@@ -2927,7 +2927,7 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .tab-dock {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: var(--surface);
+  background: var(--tab-glass);
   box-shadow: var(--shadow-card);
   backdrop-filter: var(--blur-tab);
   -webkit-backdrop-filter: var(--blur-tab);
