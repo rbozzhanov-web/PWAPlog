@@ -93,7 +93,10 @@ describe('RosterPage AIMS import flow', () => {
     fireEvent.pointerMove(grab, { clientY: 260, pointerId: 1 });
     fireEvent.pointerUp(grab, { clientY: 260, pointerId: 1 });
 
-    expect(screen.queryByRole('dialog')).toBeNull();
+    // The sheet animates out rather than vanishing, so it is still mounted on this tick — and it
+    // has already committed to leaving.
+    expect(popup).toHaveClass('is-closing');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: 2000 });
   });
 
   // A short pull is a mis-swipe, not a dismissal: the sheet has to come back.
@@ -121,6 +124,7 @@ describe('RosterPage AIMS import flow', () => {
     fireEvent.pointerUp(grab, { clientY: 140, pointerId: 1 });
 
     expect(screen.getByRole('dialog', { name: /ALA.*NQZ/ })).toBeVisible();
+    expect(popup).not.toHaveClass('is-closing');
     expect(popup.style.transform).toBe('');
   });
 
@@ -143,7 +147,7 @@ describe('RosterPage AIMS import flow', () => {
     fireEvent.click(await screen.findByRole('button', { name: /KC931/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: 2000 });
   });
 
   it('shows flights and every roster activity in one list, highlights OFF, DOFF and today, and focuses today', async () => {

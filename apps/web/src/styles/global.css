@@ -1960,8 +1960,11 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   .aims-import-overlay,
-  .aims-import-sheet {
+  .aims-import-sheet,
+  .flight-popup-overlay,
+  .flight-popup {
     animation: none;
+    transition: none;
   }
 }
 
@@ -3207,7 +3210,17 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   justify-content: center;
   padding: 1rem;
   background: var(--popup-scrim);
-  animation: aims-overlay-in 160ms ease-out both;
+  animation: flight-popup-scrim-in 220ms ease-out backwards;
+  /* The scrim leaves on the sheet's curve and duration so the two go together; on the old ease it
+     was all but gone while the sheet was still halfway down the screen. */
+  transition: opacity 360ms cubic-bezier(.4, 0, .2, 1);
+}
+
+/* The scrim lifts with the sheet rather than cutting out under it. */
+.flight-popup-overlay.is-closing {
+  animation: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .flight-popup {
@@ -3223,13 +3236,32 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   box-shadow: var(--shadow-sheet);
   backdrop-filter: var(--blur-popup);
   -webkit-backdrop-filter: var(--blur-popup);
-  animation: aims-sheet-in 240ms cubic-bezier(.32, .72, 0, 1) both;
-  transition: transform 260ms cubic-bezier(.32, .72, 0, 1);
+  /* `backwards`, not `both`. A forward-filling animation keeps supplying `transform` after it has
+     finished, and a filled animation outranks the base style — so when the exit removed the
+     animation and set a new transform in the same frame, Chromium took the new value as the
+     starting point and ran no transition at all. The sheet jumped to its end state and sat there
+     for the exit's duration, which is exactly the abruptness this was meant to fix. Filling only
+     backwards gives the same entry and hands `transform` back afterwards. */
+  animation: flight-popup-in 320ms cubic-bezier(.32, .72, 0, 1) backwards;
+  transition: transform 320ms cubic-bezier(.32, .72, 0, 1);
 }
 
 /* While a finger is on it the sheet tracks the finger exactly; the transition is only for the
    spring back when the drag ends short of the dismiss threshold. */
 .flight-popup.is-dragging { transition: none; }
+
+/* Leaving, the sheet carries on down from wherever the finger let go — the same curve as the
+   spring back, so a dismissal reads as the swipe finishing rather than as the sheet disappearing.
+   `animation: none` matters: a finished entry animation with fill both would otherwise hold its
+   own transform and the exit would never move. */
+.flight-popup.is-closing {
+  animation: none;
+  opacity: .4;
+  /* A gentler curve than the spring back's. The entry curve is a decelerate — right for arriving,
+     wrong for leaving: it threw the sheet most of the way down in the first fifth of the duration
+     and then crawled. This one carries it out evenly. */
+  transition: transform 360ms cubic-bezier(.4, 0, .2, 1), opacity 360ms linear;
+}
 
 .flight-popup:focus { outline: none; }
 
@@ -3342,4 +3374,13 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   cursor: pointer;
   font: inherit;
   text-align: left;
+}
+
+
+@keyframes flight-popup-in {
+  from { transform: translateY(2.5rem); opacity: 0; }
+}
+
+@keyframes flight-popup-scrim-in {
+  from { opacity: 0; }
 }

@@ -54,12 +54,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     if (!openFlight) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpenFlight(undefined); };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', closeOnEscape);
-    };
+    return () => { document.body.style.overflow = previousOverflow; };
   }, [openFlight]);
   const rosterDays = useMemo(() => roster ? buildRosterDays(roster) : [], [roster]);
   // Every station the roster touches, fetched once across the whole span rather than per card.
@@ -269,7 +264,30 @@ function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFl
   // read the offset as it was then — which is zero for a flick fast enough not to re-render.
   const dragOffset = useRef(0);
   const [dragY, setDragY] = useState(0);
+  const [closing, setClosing] = useState(false);
   useEffect(() => { dialog.current?.focus(); }, []);
+
+  /**
+   * Every way out runs the same exit: the sheet slides on down from wherever the finger left it
+   * and the scrim fades with it, and only then does it unmount. Dismissing on the frame the
+   * threshold is crossed reads as the sheet vanishing rather than as the swipe completing.
+   */
+  const requestClose = useCallback(() => setClosing(true), []);
+  // The sheet unmounts when its own transform transition ends, so the timing lives in the
+  // stylesheet and cannot drift from a duration duplicated here. The timer is only a backstop for
+  // the cases where no transitionend arrives at all — reduced motion, or a backgrounded tab.
+  useEffect(() => {
+    if (!closing) return undefined;
+    const instant = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const timer = window.setTimeout(onClose, instant ? 0 : 500);
+    return () => window.clearTimeout(timer);
+  }, [closing, onClose]);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') requestClose(); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [requestClose]);
 
   /**
    * Swipe down from the top to dismiss.
@@ -295,7 +313,7 @@ function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFl
     const travelled = dragOffset.current;
     dragStart.current = undefined;
     dragOffset.current = 0;
-    if (travelled > DISMISS_AFTER) onClose();
+    if (travelled > DISMISS_AFTER) requestClose();
     else setDragY(0);
   };
 
@@ -311,14 +329,18 @@ function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFl
   // way, but there is a harder reason: backdrop-filter only frosts the content of its own backdrop
   // root, and .app-frame isolates one. Inside it the popup composited with no blur at all — glass
   // with nothing behind it — while the same element at body level frosts the whole page.
-  return createPortal(<div className="flight-popup-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(<div
+    className={'flight-popup-overlay' + (closing ? ' is-closing' : '')}
+    onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose(); }}
+  >
     <div
       aria-labelledby="flight-popup-title"
       aria-modal="true"
-      className={'flight-popup' + (dragStart.current !== undefined ? ' is-dragging' : '')}
+      className={'flight-popup' + (dragStart.current !== undefined ? ' is-dragging' : '') + (closing ? ' is-closing' : '')}
       ref={dialog}
+      onTransitionEnd={(event) => { if (closing && event.propertyName === 'transform') onClose(); }}
       role="dialog"
-      style={{ transform: dragY ? `translateY(${dragY}px)` : undefined }}
+      style={{ transform: closing ? 'translateY(110%)' : dragY ? `translateY(${dragY}px)` : undefined }}
       tabIndex={-1}
     >
       <div
@@ -330,7 +352,7 @@ function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFl
       >
         {/* Also the close control: a sheet that only closes by gesture cannot be closed by
             keyboard or by anyone who cannot make that gesture. Escape works too. */}
-        <button aria-label="Close" className="flight-popup__handle" onClick={onClose} type="button" />
+        <button aria-label="Close" className="flight-popup__handle" onClick={requestClose} type="button" />
       <header className="flight-popup__head">
         <p>{[flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.aircraftType].filter(Boolean).join(' · ')}</p>
         <h2 id="flight-popup-title">{flight.origin} <i>→</i> {flight.destination}</h2>
