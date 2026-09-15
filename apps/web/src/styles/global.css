@@ -3224,17 +3224,48 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   backdrop-filter: var(--blur-popup);
   -webkit-backdrop-filter: var(--blur-popup);
   animation: aims-sheet-in 240ms cubic-bezier(.32, .72, 0, 1) both;
+  transition: transform 260ms cubic-bezier(.32, .72, 0, 1);
 }
+
+/* While a finger is on it the sheet tracks the finger exactly; the transition is only for the
+   spring back when the drag ends short of the dismiss threshold. */
+.flight-popup.is-dragging { transition: none; }
 
 .flight-popup:focus { outline: none; }
 
-.flight-popup__handle {
-  width: 2.25rem;
-  height: .3rem;
-  margin: 0 auto .85rem;
-  border-radius: var(--radius-pill);
-  background: var(--line-strong);
+/* The grab area: the handle and the header. It alone takes touch-action: none, because the body
+   below it must stay scrollable for a long crew list. */
+.flight-popup__grab {
+  padding-bottom: .1rem;
+  cursor: grab;
+  touch-action: none;
 }
+
+.flight-popup__grab:active { cursor: grabbing; }
+
+.flight-popup__handle {
+  display: block;
+  width: 2.75rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  margin: -.35rem auto .5rem;
+  background: none;
+  cursor: pointer;
+}
+
+/* The bar is drawn inside a taller hit area, so it is easy to catch with a thumb. */
+.flight-popup__handle::before {
+  display: block;
+  width: 100%;
+  height: .3rem;
+  border-radius: var(--radius-pill);
+  margin-top: .55rem;
+  background: var(--line-strong);
+  content: '';
+}
+
+.flight-popup__handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
 .flight-popup__head { display: grid; gap: .1rem; }
 .flight-popup__head p {
@@ -3304,19 +3335,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .flight-popup__crew-row small { color: var(--muted); font-size: var(--caption-size); }
 .flight-popup__empty { color: var(--muted); font-size: var(--caption-size); }
 
-.flight-popup__close {
-  width: 100%;
-  min-height: 2.75rem;
-  margin-top: 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--body-size);
-  font-weight: var(--weight-header);
-}
 
 /* The flight card is a button now, not a link: it must still lay out like the other cards. */
 .roster-timeline__day button.roster-timeline-card {

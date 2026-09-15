@@ -86,7 +86,63 @@ describe('RosterPage AIMS import flow', () => {
     // the roster is still the page behind it
     expect(screen.getByRole('heading', { name: 'Roster' })).toBeVisible();
 
-    fireEvent.click(within(popup).getByRole('button', { name: 'Close' }));
+    // Dismissed by dragging the sheet down from its handle.
+    const handle = within(popup).getByRole('button', { name: 'Close' });
+    const grab = handle.parentElement!;
+    fireEvent.pointerDown(grab, { clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(grab, { clientY: 260, pointerId: 1 });
+    fireEvent.pointerUp(grab, { clientY: 260, pointerId: 1 });
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  // A short pull is a mis-swipe, not a dismissal: the sheet has to come back.
+  it('springs back when the swipe stops short of the threshold', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    saveAimsRoster({
+      period: { start: today, end: today },
+      duties: [{
+        date: today, report: `${today}T05:10`, start: `${today}T05:10`, end: `${today}T14:20`,
+        flights: [{
+          flightNumber: 'KC931', date: today, origin: 'ALA', destination: 'NQZ',
+          departure: '06:10', arrival: '08:05', deadhead: false, actualTimes: false,
+        }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: new Date().toISOString(),
+    });
+
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: /KC931/ }));
+
+    const popup = screen.getByRole('dialog', { name: /ALA.*NQZ/ });
+    const grab = within(popup).getByRole('button', { name: 'Close' }).parentElement!;
+    fireEvent.pointerDown(grab, { clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(grab, { clientY: 140, pointerId: 1 });
+    fireEvent.pointerUp(grab, { clientY: 140, pointerId: 1 });
+
+    expect(screen.getByRole('dialog', { name: /ALA.*NQZ/ })).toBeVisible();
+    expect(popup.style.transform).toBe('');
+  });
+
+  // The handle is the keyboard and assistive route out, since the gesture is not one.
+  it('closes from the handle without a gesture', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    saveAimsRoster({
+      period: { start: today, end: today },
+      duties: [{
+        date: today, report: `${today}T05:10`, start: `${today}T05:10`, end: `${today}T14:20`,
+        flights: [{
+          flightNumber: 'KC931', date: today, origin: 'ALA', destination: 'NQZ',
+          departure: '06:10', arrival: '08:05', deadhead: false, actualTimes: false,
+        }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: new Date().toISOString(),
+    });
+
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: /KC931/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 

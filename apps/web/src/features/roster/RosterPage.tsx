@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
@@ -263,7 +263,41 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
  */
 function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFlight; onClose(): void }) {
   const dialog = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<number | undefined>(undefined);
+  // The offset lives in a ref as well as in state: state drives the transform, but pointerup has
+  // to read how far the finger actually travelled, and a handler bound in an earlier render would
+  // read the offset as it was then — which is zero for a flick fast enough not to re-render.
+  const dragOffset = useRef(0);
+  const [dragY, setDragY] = useState(0);
   useEffect(() => { dialog.current?.focus(); }, []);
+
+  /**
+   * Swipe down from the top to dismiss.
+   *
+   * The grab area is the handle and the header, and it alone carries `touch-action: none` — the
+   * body below it has to stay scrollable for a long crew list, and a drag that claimed the whole
+   * sheet would take that scroll away. Pulling up rubber-bands instead of following the finger,
+   * so the gesture only has one direction that does anything.
+   */
+  const DISMISS_AFTER = 96;
+  const onPointerDown = (event: ReactPointerEvent) => {
+    dragStart.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onPointerMove = (event: ReactPointerEvent) => {
+    if (dragStart.current === undefined) return;
+    const delta = event.clientY - dragStart.current;
+    dragOffset.current = delta > 0 ? delta : delta / 5;
+    setDragY(dragOffset.current);
+  };
+  const onPointerUp = () => {
+    if (dragStart.current === undefined) return;
+    const travelled = dragOffset.current;
+    dragStart.current = undefined;
+    dragOffset.current = 0;
+    if (travelled > DISMISS_AFTER) onClose();
+    else setDragY(0);
+  };
 
   const times: Array<[string, string | undefined]> = [
     ['Report', shortTime(duty.report) ?? shortTime(duty.start)],
@@ -281,17 +315,28 @@ function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFl
     <div
       aria-labelledby="flight-popup-title"
       aria-modal="true"
-      className="flight-popup"
+      className={'flight-popup' + (dragStart.current !== undefined ? ' is-dragging' : '')}
       ref={dialog}
       role="dialog"
+      style={{ transform: dragY ? `translateY(${dragY}px)` : undefined }}
       tabIndex={-1}
     >
-      <div className="flight-popup__handle" aria-hidden="true" />
+      <div
+        className="flight-popup__grab"
+        onPointerCancel={onPointerUp}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+      >
+        {/* Also the close control: a sheet that only closes by gesture cannot be closed by
+            keyboard or by anyone who cannot make that gesture. Escape works too. */}
+        <button aria-label="Close" className="flight-popup__handle" onClick={onClose} type="button" />
       <header className="flight-popup__head">
         <p>{[flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.aircraftType].filter(Boolean).join(' · ')}</p>
         <h2 id="flight-popup-title">{flight.origin} <i>→</i> {flight.destination}</h2>
         <span>{compactDateLabel(flight.date)} · {flight.actualTimes ? 'Actual times' : 'Scheduled times'}</span>
       </header>
+      </div>
 
       <div className="flight-popup__times">
         {times.map(([label, value]) => <div key={label}>
@@ -312,7 +357,6 @@ function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFl
         </div>) : <span className="flight-popup__empty">Crew is not present in this AIMS archive.</span>}
       </div>
 
-      <button className="flight-popup__close" onClick={onClose} type="button">Close</button>
     </div>
   </div>, document.body);
 }
