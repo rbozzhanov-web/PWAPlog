@@ -50,6 +50,14 @@
   --blur-card: blur(24px) saturate(1.4);
   --blur-tab: blur(32px) saturate(1.5);
   --blur-sheet: blur(28px) saturate(1.4);
+  /* The popup sits over content the pilot is still reading, so it carries the heaviest blur in the
+     system — but it cannot lean on that blur alone. Chromium leaves any element that has its own
+     backdrop-filter out of an overlying element's backdrop, and every roster card has one, so the
+     cards stay sharp behind the glass however hard it blurs. The fill and the scrim are what make
+     the popup readable; the blur frosts the sky and the chrome, which is where it shows. */
+  --blur-popup: blur(36px) saturate(1.7);
+  --popup-glass: rgb(255 255 255 / 80%);
+  --popup-scrim: rgb(15 23 42 / 38%);
   --shadow-card: 0 10px 24px rgb(15 23 42 / 10%);
   --shadow-sheet: 0 20px 60px rgb(15 23 42 / 16%);
   --shadow-raised: 0 4px 12px rgb(15 23 42 / 6%);
@@ -138,6 +146,8 @@ html.theme-dark {
   --tint-hotel: rgb(216 154 102 / 20%);
   --tint-absence: rgb(235 111 121 / 18%);
 
+  --popup-glass: rgb(24 33 53 / 78%);
+  --popup-scrim: rgb(3 8 18 / 58%);
   --shadow-card: 0 10px 24px rgb(0 0 0 / 35%);
   --shadow-sheet: 0 24px 70px rgb(0 0 0 / 50%);
   --shadow-raised: 0 4px 12px rgb(0 0 0 / 28%);

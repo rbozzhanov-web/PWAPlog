@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   loadAimsRoster,
@@ -23,6 +24,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
   const [error, setError] = useState<string>();
   const [importing, setImporting] = useState(false);
   const [importFlowOpen, setImportFlowOpen] = useState(false);
+  const [openFlight, setOpenFlight] = useState<{ duty: AimsDuty; flight: AimsFlight }>();
   const todayElement = useRef<HTMLDivElement>(null);
   const focusAnimation = useRef<number | undefined>(undefined);
   const today = localDateKey();
@@ -48,6 +50,17 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
       window.removeEventListener('keydown', closeOnEscape);
     };
   }, [importFlowOpen, importing]);
+  useEffect(() => {
+    if (!openFlight) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpenFlight(undefined); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [openFlight]);
   const rosterDays = useMemo(() => roster ? buildRosterDays(roster) : [], [roster]);
   // Every station the roster touches, fetched once across the whole span rather than per card.
   const weatherTargets = useMemo(() => {
@@ -193,7 +206,13 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
               const report = isFirstInDuty ? shortTime(duty.report) ?? shortTime(duty.start) : undefined;
               const status = [flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.actualTimes ? 'ACT' : undefined].filter(Boolean).join(' · ');
               const timing = [flight.departure + ' – ' + flight.arrival, report ? 'Report ' + report : undefined, flight.crew?.length ? 'Crew ' + (flight.crew?.length ?? 0) : undefined].filter(Boolean).join(' · ');
-              return <Link className="roster-timeline-card roster-timeline-card--flight" to={'/flight/' + encodeURIComponent(id(flight))} key={'flight-' + flight.date + '-' + flight.flightNumber + '-' + index}>
+              return <button
+                className="roster-timeline-card roster-timeline-card--flight"
+                onClick={() => setOpenFlight({ duty, flight })}
+                type="button"
+                aria-haspopup="dialog"
+                key={'flight-' + flight.date + '-' + flight.flightNumber + '-' + index}
+              >
                 <div className="roster-timeline-card__top">
                   <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
                   <span>{status}</span>
@@ -201,12 +220,13 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                 <strong>{flight.origin} <i>→</i> {flight.destination}</strong>
                 <p>{timing}</p>
                 <CardWeather code={flight.destination} date={flight.arrivalDate ?? flight.date} forecast={byStationDate} />
-              </Link>;
+              </button>;
             })}
           </div>;
         })}
 
       </section> : null}
+      {openFlight ? <FlightPopup duty={openFlight.duty} flight={openFlight.flight} onClose={() => setOpenFlight(undefined)} /> : null}
       {importFlowOpen ? <div className="aims-import-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) closeImportFlow(); }}>
         <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog">
           <div className="aims-import-sheet__handle" aria-hidden="true" />
@@ -235,6 +255,68 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     </main>
   );
 }
+/**
+ * The sector opened in place, rather than on a page of its own: a pilot checking a report time or
+ * who they are flying with wants the answer over the roster they were already reading, not a
+ * navigation away from it and back. Times and crew only — everything else the detail route holds
+ * is still reachable at /flight/:key.
+ */
+function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFlight; onClose(): void }) {
+  const dialog = useRef<HTMLDivElement>(null);
+  useEffect(() => { dialog.current?.focus(); }, []);
+
+  const times: Array<[string, string | undefined]> = [
+    ['Report', shortTime(duty.report) ?? shortTime(duty.start)],
+    ['Departure', flight.departure],
+    ['Landing', flight.arrival],
+    ['Release', shortTime(duty.release) ?? shortTime(duty.end)],
+  ];
+  const crew = flight.crew ?? [];
+
+  // Rendered into <body> rather than in place. A modal belongs outside the scrolling pager either
+  // way, but there is a harder reason: backdrop-filter only frosts the content of its own backdrop
+  // root, and .app-frame isolates one. Inside it the popup composited with no blur at all — glass
+  // with nothing behind it — while the same element at body level frosts the whole page.
+  return createPortal(<div className="flight-popup-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div
+      aria-labelledby="flight-popup-title"
+      aria-modal="true"
+      className="flight-popup"
+      ref={dialog}
+      role="dialog"
+      tabIndex={-1}
+    >
+      <div className="flight-popup__handle" aria-hidden="true" />
+      <header className="flight-popup__head">
+        <p>{[flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.aircraftType].filter(Boolean).join(' · ')}</p>
+        <h2 id="flight-popup-title">{flight.origin} <i>→</i> {flight.destination}</h2>
+        <span>{compactDateLabel(flight.date)} · {flight.actualTimes ? 'Actual times' : 'Scheduled times'}</span>
+      </header>
+
+      <div className="flight-popup__times">
+        {times.map(([label, value]) => <div key={label}>
+          <span>{label}</span>
+          <strong>{value ?? '—'}</strong>
+          <small>LOCAL</small>
+        </div>)}
+      </div>
+      {flight.arrivalDate && flight.arrivalDate !== flight.date
+        ? <p className="flight-popup__note">Lands {compactDateLabel(flight.arrivalDate)}</p>
+        : null}
+
+      <div className="flight-popup__crew">
+        <p>CREW</p>
+        {crew.length ? crew.map((member, index) => <div className="flight-popup__crew-row" key={member.name + index}>
+          <b aria-hidden="true">{member.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2)}</b>
+          <span><strong>{member.name}</strong><small>{member.position ?? member.role}</small></span>
+        </div>) : <span className="flight-popup__empty">Crew is not present in this AIMS archive.</span>}
+      </div>
+
+      <button className="flight-popup__close" onClick={onClose} type="button">Close</button>
+    </div>
+  </div>, document.body);
+}
+
 /**
  * The station an activity names, whether through its hotel record or its own location field. A
  * "Day Off Downroute" carries the station in `location`, which is how a rest day away from base

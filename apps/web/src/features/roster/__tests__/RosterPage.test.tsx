@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { RosterPage } from '../RosterPage';
@@ -41,6 +41,53 @@ describe('RosterPage AIMS import flow', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Replace AIMS' }));
 
     expect(screen.getByRole('dialog', { name: 'Import from AIMS' })).toBeVisible();
+  });
+
+  // The sector opens in place rather than on a route of its own, so this asserts both halves:
+  // the times and crew appear, and the roster is still the page underneath.
+  it('reveals a flight\'s times and crew in place, without navigating away', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    saveAimsRoster({
+      period: { start: today, end: today },
+      duties: [{
+        date: today,
+        report: `${today}T05:10`,
+        start: `${today}T05:10`,
+        end: `${today}T14:20`,
+        flights: [{
+          flightNumber: 'KC931', date: today, origin: 'ALA', destination: 'NQZ',
+          departure: '06:10', arrival: '08:05', deadhead: false, actualTimes: false,
+          aircraftType: 'A321',
+          crew: [
+            { name: 'Bozzhanov Ramil', role: 'Flight deck', position: 'CPT' },
+            { name: 'Verzun Mark', role: 'Flight deck', position: 'FO' },
+          ],
+        }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {},
+      importedAt: new Date().toISOString(),
+    });
+
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: /KC931/ }));
+
+    const popup = screen.getByRole('dialog', { name: /ALA.*NQZ/ });
+    expect(popup).toBeVisible();
+    // times
+    expect(within(popup).getByText('05:10')).toBeVisible();
+    expect(within(popup).getByText('06:10')).toBeVisible();
+    expect(within(popup).getByText('08:05')).toBeVisible();
+    expect(within(popup).getByText('14:20')).toBeVisible();
+    // crew
+    expect(within(popup).getByText('Bozzhanov Ramil')).toBeVisible();
+    expect(within(popup).getByText('Verzun Mark')).toBeVisible();
+    // the roster is still the page behind it
+    expect(screen.getByRole('heading', { name: 'Roster' })).toBeVisible();
+
+    fireEvent.click(within(popup).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('shows flights and every roster activity in one list, highlights OFF, DOFF and today, and focuses today', async () => {
