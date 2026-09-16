@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { PilotLogbookDb } from '../../db/database';
 import { preparePdfImportCandidates } from '../../db/repositories/pdfImport';
 import { extractPdfText } from '../../platform/pdf/extractText';
+import { loadAimsRoster, type AimsRoster } from '../roster/aims';
 import { useImportDraft } from './importDraft';
 
 interface ImportLogbookPageProps {
@@ -19,9 +20,17 @@ interface ImportLogbookPageProps {
 }
 
 const EXTRACTION_ERROR = 'The PDF could not be read. Choose another PDF or export a fresh copy.';
+const ROSTER_COVERED_ERROR = 'Every flight in this report falls inside the period of your imported AIMS roster, which already has this month’s time. Import a report for a different period, or replace the AIMS roster first.';
 
 function isPdf(file: File): boolean {
   return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+}
+
+/** The live AIMS roster is the authoritative source for whatever period it covers, so a
+ *  historical PDF report is only for filling in the months around it — never for duplicating
+ *  the same flights the roster already accounts for. */
+function coveredByRoster(date: string | undefined, roster: AimsRoster): boolean {
+  return date !== undefined && date >= roster.period.start && date <= roster.period.end;
 }
 
 export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
@@ -59,7 +68,15 @@ export function ImportLogbookPage({ db }: ImportLogbookPageProps) {
         setError('No flight entries were found. Check the report and choose another PDF.');
         return;
       }
-      const candidates = await preparePdfImportCandidates(db, result.candidates);
+      const roster = loadAimsRoster();
+      const newCandidates = roster
+        ? result.candidates.filter((candidate) => !coveredByRoster(candidate.fields.date, roster))
+        : result.candidates;
+      if (newCandidates.length === 0) {
+        setError(ROSTER_COVERED_ERROR);
+        return;
+      }
+      const candidates = await preparePdfImportCandidates(db, newCandidates);
       if (processingToken !== processingTokenRef.current) return;
       setDraft({
         candidates,

@@ -15,6 +15,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AppRoutes } from '../../../app/routes';
 import type { PilotLogbookDb } from '../../../db/database';
 import { createPilotLogbookDb } from '../../../db/database';
+import { saveAimsRoster } from '../../roster/aims';
 
 function pdfFile(name = 'flight-time-report.pdf'): File {
   return new File(['%PDF-1.7'], name, { type: 'application/pdf' });
@@ -47,6 +48,7 @@ describe('logbook PDF import routes', () => {
 
   beforeEach(() => {
     extractPdfText.mockReset();
+    localStorage.clear();
   });
 
   afterEach(async () => {
@@ -202,6 +204,56 @@ describe('logbook PDF import routes', () => {
       'No flight entries were found. Check the report and choose another PDF.',
     );
     expect(screen.getByRole('heading', { name: 'Import logbook PDF' })).toBeVisible();
+    await expect(db.flightEntries.count()).resolves.toBe(0);
+  });
+
+  // The actual request this guards: the live AIMS roster is the authoritative source for whatever
+  // period it covers, so a historical PDF report for that same period would just duplicate what
+  // the roster (or "Import AIMS" from it) already accounts for.
+  test('skips a report whose flights all fall inside the imported AIMS roster period', async () => {
+    db = createPilotLogbookDb('pdf-import-roster-overlap-test');
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [], hotels: [], absences: [], activities: [], totals: {},
+      importedAt: '2026-09-01T00:00:00.000Z',
+    });
+    extractPdfText.mockResolvedValue(
+      pageWithLine(['11/09/2026', 'UAAA', 'UACC', '08:00', '09:30']),
+    );
+    render(
+      <MemoryRouter initialEntries={['/import/logbook']}>
+        <AppRoutes db={db} />
+      </MemoryRouter>,
+    );
+
+    await choosePdf();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Every flight in this report falls inside the period of your imported AIMS roster',
+    );
+    expect(screen.getByRole('heading', { name: 'Import logbook PDF' })).toBeVisible();
+    await expect(db.flightEntries.count()).resolves.toBe(0);
+  });
+
+  test('still imports flights outside the imported AIMS roster period', async () => {
+    db = createPilotLogbookDb('pdf-import-roster-partial-overlap-test');
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [], hotels: [], absences: [], activities: [], totals: {},
+      importedAt: '2026-09-01T00:00:00.000Z',
+    });
+    extractPdfText.mockResolvedValue(
+      pageWithLine(['11/08/2026', 'UAAA', 'UACC', '08:00', '09:30']),
+    );
+    render(
+      <MemoryRouter initialEntries={['/import/logbook']}>
+        <AppRoutes db={db} />
+      </MemoryRouter>,
+    );
+
+    await choosePdf();
+
+    expect(await screen.findByRole('heading', { name: 'Review imported flights' })).toBeVisible();
     await expect(db.flightEntries.count()).resolves.toBe(0);
   });
 
