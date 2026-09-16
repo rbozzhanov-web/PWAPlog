@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { formatFlightMinutes } from '../logbook/totals';
-import { loadAimsRoster, type AimsDuty } from '../roster/aims';
+import { loadAimsRoster, type AimsDuty, type AimsRoster } from '../roster/aims';
 import { rosterMonthTotals } from '../roster/completedSectors';
+import { layoverWindow, useArrivalWeather, weatherIcon, windDirectionLabel } from '../weather/weatherService';
 
 export function HomePage() {
   const [now, setNow] = useState(() => Date.now());
   const [roster, setRoster] = useState(() => loadAimsRoster());
+  const [weatherExpanded, setWeatherExpanded] = useState(false);
 
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
   useEffect(() => {
@@ -25,6 +27,11 @@ export function HomePage() {
     .filter((duty) => dutyEndTimestamp(duty) >= now)
     .sort((a, b) => dutyReportBoundary(a).localeCompare(dutyReportBoundary(b)))[0], [roster, now]);
   const nextFlight = useMemo(() => nextDuty?.flights.find((flight) => Date.parse(`${flight.date}T${flight.departure}:00`) >= now) ?? nextDuty?.flights[0], [nextDuty, now]);
+  const weatherWindow = useMemo(() => nextFlight ? layoverWindow(roster, nextFlight) : undefined, [roster, nextFlight]);
+  const arrivalWeather = useArrivalWeather(nextFlight?.destination, weatherWindow?.startDate, weatherWindow?.days ?? 1);
+  const layoverHours = useMemo(() => nextFlight ? nextLayoverHours(roster, nextFlight) : 0, [roster, nextFlight]);
+  const canExpandWeather = layoverHours > 3;
+  const weatherSummary = arrivalWeather.weather ? weatherIcon(arrivalWeather.weather.weatherCode, arrivalWeather.weather.isDay) : undefined;
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
   const today = new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date()).toUpperCase();
@@ -51,7 +58,14 @@ export function HomePage() {
           <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock(nextDuty)}</strong></div>
           <div className="home-time-grid"><div><span>Report</span><strong>{reportClock(nextDuty)}</strong><small>LOCAL</small></div><div><span>Departure</span><strong>{nextFlight.departure}</strong><small>LOCAL</small></div><div><span>Landing</span><strong>{nextFlight.arrival}</strong><small>LOCAL</small></div></div>
         </> : <><h2>{roster ? 'Ready for your next sector.' : 'Bring in your AIMS roster.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
-        {!nextFlight ? <div className="home-hero__actions"><Link to="/logbook/new">Log a flight <span>＋</span></Link></div> : null}
+        <div className="home-hero__actions">
+          {nextFlight ? <div className={'home-destination-weather' + (canExpandWeather ? ' is-expandable' : '')}>
+            <button aria-expanded={canExpandWeather ? weatherExpanded : undefined} disabled={!canExpandWeather} onClick={() => { if (canExpandWeather) setWeatherExpanded((value) => !value); }} type="button">
+              <b aria-hidden="true">{weatherSummary?.icon ?? '◌'}</b><span><small>DESTINATION · {nextFlight.destination}</small><strong>{arrivalWeather.weather ? [arrivalWeather.weather.temp + '°', weatherSummary?.label, windDirectionLabel(arrivalWeather.weather.windDeg) + ' ' + arrivalWeather.weather.windSpeed + ' kt'].join(' · ') : arrivalWeather.status === 'loading' ? 'Loading weather…' : 'Weather unavailable'}</strong></span>{canExpandWeather ? <i aria-hidden="true">{weatherExpanded ? '⌃' : '⌄'}</i> : null}
+            </button>
+            {canExpandWeather && weatherExpanded ? <div className="home-destination-weather__forecast">{arrivalWeather.forecast?.map((day) => { const forecast = weatherIcon(day.weatherCode); return <span key={day.date}><small>{day.date}</small><strong>{forecast.icon} {day.tempMax}° / {day.tempMin}°</strong></span>; }) ?? <p>Forecast is loading…</p>}</div> : null}
+          </div> : <Link to="/logbook/new">Log a flight <span>＋</span></Link>}
+        </div>
       </section>
 
       <section className="home-stats home-stats--escrew" aria-label="Logbook overview">
@@ -66,6 +80,11 @@ export function HomePage() {
       </section>
     </main>
   );
+}
+function nextLayoverHours(roster: AimsRoster | undefined, flight: { destination: string; date: string; arrivalDate?: string; arrival: string }) {
+  const arrival = Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00`);
+  const nextSector = roster?.duties.flatMap((duty) => duty.flights).filter((candidate) => candidate.origin === flight.destination && Date.parse(`${candidate.date}T${candidate.departure}:00`) > arrival).sort((a, b) => Date.parse(`${a.date}T${a.departure}:00`) - Date.parse(`${b.date}T${b.departure}:00`))[0];
+  return nextSector ? Math.max(0, (Date.parse(`${nextSector.date}T${nextSector.departure}:00`) - arrival) / 3_600_000) : 0;
 }
 function crewInitials(name: string) { return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2); }
 function countdownClock(value: number) { const seconds = Math.max(0, Math.floor(value / 1000)); return `${Math.floor(seconds / 86_400)}d ${String(Math.floor(seconds / 3_600) % 24).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
