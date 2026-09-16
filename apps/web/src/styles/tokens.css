@@ -15,17 +15,17 @@
 :root {
   /* ---- palette: light ---------------------------------------------------- */
   --bg: #f6f7fa;
-  --surface: rgb(255 255 255 / 72%);
+  --surface: rgb(255 255 255 / 80%);
   --surface-strong: rgb(255 255 255 / 88%);
   --surface-solid: #fff;
-  --text: #0f172a;
-  --muted: #687280;
-  --line: rgb(15 23 42 / 9%);
-  --line-strong: rgb(15 23 42 / 14%);
-  --accent: #2d7dff;
-  --accent-soft: #e4edff;
+  --text: #0b1220;
+  --muted: #45566c;
+  --line: rgb(15 23 42 / 16%);
+  --line-strong: rgb(15 23 42 / 24%);
+  --accent: #0b52f0;
+  --accent-soft: #d6e4ff;
   --accent-ink: #fff;
-  --highlight: #a58b4f;
+  --highlight: #7a5a1e;
   --highlight-soft: rgb(165 139 79 / 14%);
   --danger: #e5484d;
   --danger-soft: rgb(229 72 77 / 10%);
@@ -63,7 +63,7 @@
   --blur-popup: blur(36px) saturate(1.7);
   --popup-glass: rgb(255 255 255 / 80%);
   --popup-scrim: rgb(15 23 42 / 38%);
-  --shadow-card: 0 10px 24px rgb(15 23 42 / 10%);
+  --shadow-card: 0 10px 24px rgb(15 23 42 / 14%);
   --shadow-sheet: 0 20px 60px rgb(15 23 42 / 16%);
   --shadow-raised: 0 4px 12px rgb(15 23 42 / 6%);
 
@@ -124,17 +124,17 @@
 html.theme-dark {
   /* ---- palette: dark ----------------------------------------------------- */
   --bg: #0b1220;
-  --surface: rgb(19 27 44 / 72%);
+  --surface: rgb(19 27 44 / 82%);
   --surface-strong: rgb(24 33 53 / 88%);
   --surface-solid: #131b2c;
-  --text: #f5f7fa;
-  --muted: #8b95a5;
-  --line: rgb(139 149 165 / 18%);
-  --line-strong: rgb(139 149 165 / 28%);
-  --accent: #4c8dff;
-  --accent-soft: rgb(76 141 255 / 16%);
+  --text: #ffffff;
+  --muted: #b7c2d6;
+  --line: rgb(139 149 165 / 24%);
+  --line-strong: rgb(139 149 165 / 34%);
+  --accent: #5b93ff;
+  --accent-soft: rgb(91 147 255 / 24%);
   --accent-ink: #0b1220;
-  --highlight: #c9ac72;
+  --highlight: #e3c68a;
   --highlight-soft: rgb(201 172 114 / 18%);
   --danger: #eb6f79;
   --danger-soft: rgb(235 111 121 / 16%);
@@ -157,7 +157,7 @@ html.theme-dark {
 
   --popup-glass: rgb(24 33 53 / 78%);
   --popup-scrim: rgb(3 8 18 / 58%);
-  --shadow-card: 0 10px 24px rgb(0 0 0 / 35%);
+  --shadow-card: 0 10px 24px rgb(0 0 0 / 45%);
   --shadow-sheet: 0 24px 70px rgb(0 0 0 / 50%);
   --shadow-raised: 0 4px 12px rgb(0 0 0 / 28%);
 
