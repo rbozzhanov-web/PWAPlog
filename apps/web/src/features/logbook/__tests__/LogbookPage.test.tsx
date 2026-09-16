@@ -162,7 +162,10 @@ describe('LogbookPage', () => {
     fireEvent.click(year2024);
     expect(await screen.findByRole('region', { name: 'April 2024' })).toBeVisible();
     expect(year2024).toHaveAttribute('aria-pressed', 'true');
-    expect(scrolledElements).toContain(year2024);
+    // The chip strip brings the active year into view by scrolling itself. It must never reach for
+    // scrollIntoView, which would drag the primary-tab pager off Home — see YearChips.test.tsx.
+    expect(scrolledElements).not.toContain(year2024);
+    expect(scrolledElements).toEqual([]);
   });
 
   // The actual bug report: Import AIMS only skipped a sector already carrying its own id scheme,
