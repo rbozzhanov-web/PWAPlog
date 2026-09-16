@@ -60,8 +60,15 @@ export function HomePage({ db }: HomePageProps) {
       <section className="home-hero home-hero--escrew">
         <p className="home-hero__eyebrow">{nextFlight ? 'NEXT SECTOR' : 'PILOT LOGBOOK'}</p>
         {nextFlight ? <>
-          <div className="home-route"><span><strong>{nextFlight.origin}</strong><small>{airportName(nextFlight.origin)}</small></span><svg className="home-route__plane" aria-hidden="true" viewBox="0 0 32 20"><path d="M29 10 18 2h-4l5 8H9L5 6H2l2 4-2 4h3l4-4h10l-5 8h4z" /></svg><span><strong>{nextFlight.destination}</strong><small>{airportName(nextFlight.destination)}</small></span></div>
-          <p className="home-flight-meta">{[nextFlight.flightNumber, nextFlight.aircraftType].filter(Boolean).join(' · ')}</p>
+          <div className="home-route">
+            <span><strong>{nextFlight.origin}</strong><small>{airportName(nextFlight.origin)}</small></span>
+            <div className="home-route__flight">
+              <svg className="home-route__plane" aria-hidden="true" viewBox="0 0 32 20"><path d="M29 10 18 2h-4l5 8H9L5 6H2l2 4-2 4h3l4-4h10l-5 8h4z" /></svg>
+              <strong>{nextFlight.flightNumber}</strong>
+              {nextFlight.aircraftType ? <small>{nextFlight.aircraftType}</small> : null}
+            </div>
+            <span><strong>{nextFlight.destination}</strong><small>{airportName(nextFlight.destination)}</small></span>
+          </div>
           <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock(nextDuty)}</strong></div>
           <div className="home-time-grid"><div><span>Report</span><strong>{reportClock(nextDuty)}</strong><small>LOCAL</small></div><div><span>Departure</span><strong>{nextFlight.departure}</strong><small>LOCAL</small></div><div><span>Landing</span><strong>{nextFlight.arrival}</strong><small>LOCAL</small></div></div>
         </> : <><h2>{loading ? 'Loading your flights' : entries.length ? 'Your flying, in one place.' : 'Ready for your next sector.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
