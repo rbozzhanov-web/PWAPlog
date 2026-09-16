@@ -46,8 +46,10 @@
 
   /* Today's card is picked out by a soft glow rather than a drawn edge — a box-shadow blur fades
      to nothing at its own radius regardless of how opaque the colour looks at its centre, so this
-     reads as light spilling from the card rather than a ring around it. */
-  --glow-today: 0 0 1.5rem rgb(45 125 255 / 45%);
+     reads as light spilling from the card rather than a ring around it. Two layers: a tight, more
+     opaque inner glow so it reads clearly right at the edge, and a wider, softer outer one so it
+     still spills rather than reading as a hard ring. */
+  --glow-today: 0 0 .5rem rgb(45 125 255 / 55%), 0 0 2.25rem rgb(45 125 255 / 60%);
 
   /* ---- material ---------------------------------------------------------- */
   /* Glass is additive: the flat palette above carries the design on its own, these only lift
@@ -153,7 +155,7 @@ html.theme-dark {
 
   /* Carried a touch stronger than light's, matching the tint tokens above: the same alpha reads
      weaker against a dark surface. */
-  --glow-today: 0 0 1.75rem rgb(76 141 255 / 55%);
+  --glow-today: 0 0 .6rem rgb(76 141 255 / 65%), 0 0 2.75rem rgb(76 141 255 / 70%);
 
   --popup-glass: rgb(24 33 53 / 78%);
   --popup-scrim: rgb(3 8 18 / 58%);
