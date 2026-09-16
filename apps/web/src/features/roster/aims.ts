@@ -1,5 +1,5 @@
 export type AimsCrewMember = { id?: string; name: string; role: 'Flight deck' | 'Cabin'; position?: string; deadhead?: boolean };
-export type AimsFlight = { flightNumber: string; date: string; origin: string; destination: string; departure: string; arrival: string; arrivalDate?: string; deadhead: boolean; actualTimes: boolean; aircraftType?: string; crew?: AimsCrewMember[] };
+export type AimsFlight = { flightNumber: string; date: string; origin: string; destination: string; departure: string; arrival: string; arrivalDate?: string; deadhead: boolean; /** The sector has operated, so its printed times are the ones flown. */ actualTimes: boolean; aircraftType?: string; crew?: AimsCrewMember[] };
 export type AimsDuty = { date: string; start?: string; end?: string; report?: string; release?: string; flights: AimsFlight[] };
 export type AimsHotel = { station: string; name?: string; address?: string; phone?: string; locator?: string };
 export type AimsAbsence = { code: 'SICK' | 'UFF' | 'VAC' | 'CHLD'; date: string };
@@ -88,7 +88,16 @@ function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
       arrival,
       arrivalDate: arrivalDate !== date ? arrivalDate : undefined,
       deadhead: Boolean(event.IsDeadhead),
-      actualTimes: outPrefix === 'A' && inPrefix === 'A',
+      // AIMS marks a time with "A" only when it differs from the schedule: the three sectors in
+      // the sample that pushed back exactly on time print a bare departure and carry no "Flight
+      // delay" line, while a delayed one prints both. A bare time on a sector that has operated is
+      // therefore the actual time, not a timetable entry — confirmed against the real days flown.
+      //
+      // So the arrival is what says a sector is complete. It can never match its schedule to the
+      // minute in practice, and it is the last thing to happen: a flight that has departed late
+      // but not yet landed prints an actual departure and a scheduled arrival, and is still in the
+      // air rather than ready for the logbook.
+      actualTimes: inPrefix === 'A',
       aircraftType: aircraft(event),
     });
     previousDeparture = departure;
