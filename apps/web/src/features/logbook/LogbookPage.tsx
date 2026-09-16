@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import type { PilotLogbookDb } from '../../db/database';
 import { listFlightEntries, putFlightEntries } from '../../db/repositories/flightEntries';
 import { loadAimsRoster } from '../roster/aims';
-import { aimsSectorId, sectorIdentity, sectorMinutes } from '../roster/completedSectors';
+import { aimsSectorId, legacySectorMinutes, sectorDayNight, sectorIdentity, sectorMinutes } from '../roster/completedSectors';
 import { LogbookList } from './LogbookList';
 import { formatFlightMinutes, sumFlightMinutes } from './totals';
 import { YearChips } from './YearChips';
@@ -81,29 +81,57 @@ export function LogbookPage({ db }: LogbookPageProps) {
     // manual entry or a PDF import, neither of which ever carries this module's own id scheme.
     const existingSectors = new Map(entries.map((entry) => [sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport), entry]));
     const now = Date.now();
-    const flown = roster.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead && flight.actualTimes && Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00`) < now);
-    const candidates = flown.map((flight) => ({
-      id: aimsSectorId(flight),
-      date: flight.date, flightNumber: flight.flightNumber, departureAirport: flight.origin, arrivalAirport: flight.destination,
-      aircraftType: flight.aircraftType, timeOut: flight.departure, timeIn: flight.arrival, totalTimeMinutes: sectorMinutes(flight),
-      ...NEW_ENTRY_DEFAULTS, source: 'aims_import' as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    })).filter((entry) => !existingSectors.has(sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)));
+    const past = roster.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead && Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00`) < now);
+    const flown = past.filter((flight) => flight.actualTimes);
+    // A sector whose date has passed but which AIMS still prints on scheduled times is not written
+    // to the logbook — a legal record should not carry a block time taken off a timetable. Saying
+    // so matters: the pilot was told how many sectors were added and had no way to notice that
+    // some of the month's flying was missing from the count.
+    const awaitingActuals = past.filter((flight) => !flight.actualTimes && !existingSectors.has(sectorIdentity(flight.date, flight.origin, flight.destination)));
+    // Loaded on demand: the day/night calculator reaches core's 855 KB airport dataset, which must
+    // not sit in the app's entry chunk for a button most launches never press.
+    const { calculateDayNight } = await import('@pilot-logbook/core/daynight/nightCalc');
+    const candidates = flown.map((flight) => {
+      const totalTimeMinutes = sectorMinutes(flight);
+      return {
+        id: aimsSectorId(flight),
+        date: flight.date, flightNumber: flight.flightNumber, departureAirport: flight.origin, arrivalAirport: flight.destination,
+        aircraftType: flight.aircraftType, timeOut: flight.departure, timeIn: flight.arrival, totalTimeMinutes,
+        ...NEW_ENTRY_DEFAULTS, ...sectorDayNight(flight, totalTimeMinutes, calculateDayNight),
+        source: 'aims_import' as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      };
+    }).filter((entry) => !existingSectors.has(sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)));
     // Sectors this importer wrote earlier can carry a block time it computed wrongly — before the
-    // station-local fix, anything crossing an offset was out by the difference. Re-importing used
-    // to skip them silently because the sector was already present. Only entries this importer
-    // owns are rewritten; a manual or PDF entry is the pilot's own figure and is left alone.
+    // station-local fix, anything crossing an offset was out by the difference — and day/night it
+    // never filled in at all. Re-importing used to skip them silently because the sector was
+    // already present, so the bad figures would have stayed in the record forever.
+    //
+    // Only what this importer itself wrote is rewritten. A manual or PDF entry is the pilot's own
+    // figure; so is an AIMS entry whose block time they have since edited, which is why the total
+    // is only replaced when it still matches exactly what the old calculation produced.
     const corrections = flown.flatMap((flight) => {
       const existing = existingSectors.get(sectorIdentity(flight.date, flight.origin, flight.destination));
+      if (!existing || existing.source !== 'aims_import') return [];
       const minutes = sectorMinutes(flight);
-      if (!existing || existing.source !== 'aims_import' || existing.totalTimeMinutes === minutes) return [];
-      return [{ ...existing, totalTimeMinutes: minutes, updatedAt: new Date().toISOString() }];
+      const untouchedTotal = existing.totalTimeMinutes === legacySectorMinutes(flight);
+      const corrected = { ...existing, ...(untouchedTotal ? { totalTimeMinutes: minutes } : {}) };
+      // Day/night is only filled in where the defaults were never replaced — by this importer or
+      // by the pilot.
+      if (!corrected.dayMinutes && !corrected.nightMinutes && !corrected.dayLandings && !corrected.nightLandings) {
+        Object.assign(corrected, sectorDayNight(flight, corrected.totalTimeMinutes, calculateDayNight));
+      }
+      const changed = (Object.keys(corrected) as Array<keyof typeof corrected>).some((key) => corrected[key] !== existing[key]);
+      return changed ? [{ ...corrected, updatedAt: new Date().toISOString() }] : [];
     });
-    if (!candidates.length && !corrections.length) { setAimsMessage('No new completed AIMS sectors to add.'); return; }
+    const pending = awaitingActuals.length
+      ? ` ${awaitingActuals.length} flown sector${awaitingActuals.length === 1 ? '' : 's'} (${awaitingActuals.map((flight) => `${flight.flightNumber} ${flight.date}`).join(', ')}) still show scheduled times in AIMS — add ${awaitingActuals.length === 1 ? 'it' : 'them'} by hand or re-import once AIMS posts the actuals.`
+      : '';
+    if (!candidates.length && !corrections.length) { setAimsMessage(`No new completed AIMS sectors to add.${pending}`); return; }
     await putFlightEntries(db, [...candidates, ...corrections]);
     setEntries(await listFlightEntries(db));
     const added = candidates.length ? `${candidates.length} completed AIMS sector${candidates.length === 1 ? '' : 's'} added locally.` : '';
-    const fixed = corrections.length ? `${corrections.length} block time${corrections.length === 1 ? '' : 's'} corrected.` : '';
-    setAimsMessage([added, fixed].filter(Boolean).join(' '));
+    const fixed = corrections.length ? `${corrections.length} existing sector${corrections.length === 1 ? '' : 's'} updated.` : '';
+    setAimsMessage([added, fixed].filter(Boolean).join(' ') + pending);
   };
 
   return (

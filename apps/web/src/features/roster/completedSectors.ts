@@ -2,6 +2,9 @@ import { stationLocalToUtc } from '@pilot-logbook/core';
 
 import type { AimsFlight, AimsRoster } from './aims';
 
+/** Type-only, so core's airport dataset stays out of whatever bundle imports this. */
+type CalculateDayNight = typeof import('@pilot-logbook/core/daynight/nightCalc').calculateDayNight;
+
 /**
  * What the pilot is rostered to fly this month, from the roster alone.
  *
@@ -60,6 +63,16 @@ export function sectorMinutes(flight: AimsFlight): number {
   return clockDifferenceMinutes(flight.date, flight.departure, arrivalDate, flight.arrival);
 }
 
+/**
+ * What `sectorMinutes` returned before it learned about station offsets.
+ *
+ * Kept so the importer can tell a block time it wrote itself and got wrong from one the pilot has
+ * since corrected by hand, and only rewrite the former.
+ */
+export function legacySectorMinutes(flight: AimsFlight): number {
+  return clockDifferenceMinutes(flight.date, flight.departure, flight.arrivalDate ?? flight.date, flight.arrival);
+}
+
 function clockDifferenceMinutes(
   outDate: string,
   outTime: string,
@@ -94,4 +107,33 @@ export function rosterMonthTotals(roster: AimsRoster | undefined, month: string)
     minutes: sectors.reduce((total, flight) => total + sectorMinutes(flight), 0),
     flights: sectors.length,
   };
+}
+
+/**
+ * Day and night for one AIMS sector.
+ *
+ * AIMS publishes a Night Hours total for the period but nothing per sector, and Import AIMS wrote
+ * every entry with the zeroed defaults — so a logbook built from the roster claimed no night
+ * flying at all, on a month that was 20:50 of it. Night hours count towards currency, so a zero is
+ * not a harmless blank.
+ *
+ * Core's calculator wants a real UTC departure instant; AIMS gives a clock at the departure
+ * station, so this converts before handing it over. `calculate` is passed in rather than imported:
+ * it reaches the 855 KB airport dataset, which must not end up in the app's entry chunk, so the
+ * one caller loads it on demand.
+ */
+export function sectorDayNight(
+  flight: AimsFlight,
+  minutes: number,
+  calculate: CalculateDayNight,
+): ReturnType<CalculateDayNight> {
+  const departure = stationLocalToUtc(flight.date, flight.departure, flight.origin);
+  if (!departure || minutes <= 0) return undefined;
+  return calculate({
+    date: departure.toISOString().slice(0, 10),
+    departureAirport: flight.origin,
+    arrivalAirport: flight.destination,
+    departureTime: departure.toISOString().slice(11, 16),
+    totalTimeMinutes: minutes,
+  });
 }

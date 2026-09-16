@@ -40,6 +40,9 @@ function entry(overrides: Partial<FlightLogEntry> = {}): FlightLogEntry {
   };
 }
 
+/** The zeroed day/night an entry carries when it came from NEW_ENTRY_DEFAULTS. */
+const noDayNight = { dayMinutes: 0, nightMinutes: 0, dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0 };
+
 describe('LogbookPage', () => {
   let db: PilotLogbookDb | undefined;
   let scrolledElements: Element[];
@@ -196,11 +199,12 @@ describe('LogbookPage', () => {
   // Sectors this importer wrote before the station-local block-time fix carry a total that is out
   // by the offset between their endpoints. Re-importing skipped them, because the sector was
   // already in the logbook, so the wrong figure stayed in the permanent record forever.
-  test('Import AIMS corrects a block time it wrote wrongly before, without touching a manual one', async () => {
+  test('Import AIMS corrects what it wrote wrongly before, without touching a manual one', async () => {
     db = createPilotLogbookDb('import-aims-correction-test');
     await seedEntries([
-      // 4:37 is what subtracting the printed clocks used to give for this sector; it blocks 7:37.
-      entry({ id: 'aims-2026-09-04-921-NQZ-FRA', date: '2026-09-04', departureAirport: 'NQZ', arrivalAirport: 'FRA', totalTimeMinutes: 277, source: 'aims_import' }),
+      // What the old importer wrote: 4:37 from subtracting the printed clocks (it blocks 7:37),
+      // and the zeroed day/night defaults.
+      entry({ id: 'aims-2026-09-04-921-NQZ-FRA', date: '2026-09-04', departureAirport: 'NQZ', arrivalAirport: 'FRA', totalTimeMinutes: 277, source: 'aims_import', ...noDayNight }),
       entry({ id: 'manual-1', date: '2026-09-05', departureAirport: 'FRA', arrivalAirport: 'NQZ', totalTimeMinutes: 400, source: 'manual' }),
     ]);
     saveAimsRoster({
@@ -219,10 +223,117 @@ describe('LogbookPage', () => {
     await screen.findByRole('link', { name: /NQZ to FRA/i });
     fireEvent.click(screen.getByRole('button', { name: 'Import AIMS' }));
 
-    expect(await screen.findByText('1 block time corrected.')).toBeVisible();
-    await expect(db.flightEntries.get('aims-2026-09-04-921-NQZ-FRA')).resolves.toMatchObject({ totalTimeMinutes: 7 * 60 + 37 });
+    expect(await screen.findByText('1 existing sector updated.')).toBeVisible();
+    await expect(db.flightEntries.get('aims-2026-09-04-921-NQZ-FRA')).resolves.toMatchObject({
+      totalTimeMinutes: 7 * 60 + 37,
+      // AIMS publishes a Night Hours total but nothing per sector, and this importer used to write
+      // the zeroed defaults. This one lands at Frankfurt at 14:54Z in September — all daylight.
+      dayMinutes: 7 * 60 + 37,
+      nightMinutes: 0,
+      dayTakeoffs: 1,
+      dayLandings: 1,
+    });
     // The pilot's own figure is theirs, however wrong this importer thinks it is.
     await expect(db.flightEntries.get('manual-1')).resolves.toMatchObject({ totalTimeMinutes: 400 });
     await expect(db.flightEntries.count()).resolves.toBe(2);
+  });
+
+  test('Import AIMS leaves a block time the pilot has edited since alone', async () => {
+    db = createPilotLogbookDb('import-aims-edited-total-test');
+    await seedEntries([
+      // Neither the old calculation's 4:37 nor the new 7:37 — the pilot put this in by hand.
+      entry({ id: 'aims-2026-09-04-921-NQZ-FRA', date: '2026-09-04', departureAirport: 'NQZ', arrivalAirport: 'FRA', totalTimeMinutes: 450, source: 'aims_import', ...noDayNight }),
+    ]);
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [{
+        date: '2026-09-04',
+        flights: [{ flightNumber: '921', date: '2026-09-04', origin: 'NQZ', destination: 'FRA', departure: '12:17', arrival: '16:54', deadhead: false, actualTimes: true }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-01T00:00:00.000Z',
+    });
+
+    renderLogbook();
+    await screen.findByRole('link', { name: /NQZ to FRA/i });
+    fireEvent.click(screen.getByRole('button', { name: 'Import AIMS' }));
+
+    // Day/night was still missing, so there is an update — but the edited total survives it.
+    expect(await screen.findByText('1 existing sector updated.')).toBeVisible();
+    await expect(db.flightEntries.get('aims-2026-09-04-921-NQZ-FRA')).resolves.toMatchObject({
+      totalTimeMinutes: 450,
+      dayMinutes: 450,
+    });
+  });
+
+  test('Import AIMS does nothing on a second press, rather than churning its own entries', async () => {
+    db = createPilotLogbookDb('import-aims-idempotent-test');
+    await seedEntries([
+      entry({ id: 'aims-2026-09-04-921-NQZ-FRA', date: '2026-09-04', departureAirport: 'NQZ', arrivalAirport: 'FRA', totalTimeMinutes: 7 * 60 + 37, source: 'aims_import', dayMinutes: 7 * 60 + 37, nightMinutes: 0, dayTakeoffs: 1, nightTakeoffs: 0, dayLandings: 1, nightLandings: 0 }),
+    ]);
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [{
+        date: '2026-09-04',
+        flights: [{ flightNumber: '921', date: '2026-09-04', origin: 'NQZ', destination: 'FRA', departure: '12:17', arrival: '16:54', deadhead: false, actualTimes: true }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-01T00:00:00.000Z',
+    });
+
+    renderLogbook();
+    await screen.findByRole('link', { name: /NQZ to FRA/i });
+    fireEvent.click(screen.getByRole('button', { name: 'Import AIMS' }));
+
+    expect(await screen.findByText('No new completed AIMS sectors to add.')).toBeVisible();
+    await expect(db.flightEntries.get('aims-2026-09-04-921-NQZ-FRA')).resolves.toMatchObject({ updatedAt: '2025-01-02T10:00:00.000Z' });
+  });
+
+  test('Import AIMS says which flown sectors AIMS is still showing on scheduled times', async () => {
+    db = createPilotLogbookDb('import-aims-awaiting-actuals-test');
+    await seedEntries([]);
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [{
+        date: '2026-09-04',
+        flights: [
+          { flightNumber: '921', date: '2026-09-04', origin: 'NQZ', destination: 'FRA', departure: '12:17', arrival: '16:54', deadhead: false, actualTimes: true },
+          // Flown — the date has passed — but AIMS has not posted an actual off-blocks time, so a
+          // block figure for it would be taken off the timetable.
+          { flightNumber: '922', date: '2026-09-05', origin: 'FRA', destination: 'NQZ', departure: '18:28', arrivalDate: '2026-09-06', arrival: '04:15', deadhead: false, actualTimes: false },
+        ],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-01T00:00:00.000Z',
+    });
+
+    renderLogbook();
+    fireEvent.click(await screen.findByRole('button', { name: 'Import AIMS' }));
+
+    const message = await screen.findByText(/1 completed AIMS sector added locally\./);
+    expect(message).toHaveTextContent('922 2026-09-05');
+    expect(message).toHaveTextContent('still show scheduled times in AIMS');
+    await expect(db.flightEntries.count()).resolves.toBe(1);
+  });
+
+  test('Import AIMS gives a new night sector its night time', async () => {
+    db = createPilotLogbookDb('import-aims-night-test');
+    await seedEntries([]);
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [{
+        date: '2026-09-05',
+        flights: [{ flightNumber: '922', date: '2026-09-05', origin: 'FRA', destination: 'NQZ', departure: '18:28', arrivalDate: '2026-09-06', arrival: '04:15', deadhead: false, actualTimes: true }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-01T00:00:00.000Z',
+    });
+
+    renderLogbook();
+    fireEvent.click(await screen.findByRole('button', { name: 'Import AIMS' }));
+
+    expect(await screen.findByText('1 completed AIMS sector added locally.')).toBeVisible();
+    const stored = await db.flightEntries.get('aims-2026-09-05-922-FRA-NQZ');
+    expect(stored?.totalTimeMinutes).toBe(6 * 60 + 47);
+    // Departs Frankfurt at 16:28Z and lands in Astana at 23:15Z — most of it after dark.
+    expect(stored?.nightMinutes).toBe(5 * 60 + 20);
+    expect(stored?.dayMinutes).toBe(stored!.totalTimeMinutes - stored!.nightMinutes);
+    expect(stored?.nightLandings).toBe(1);
   });
 });
