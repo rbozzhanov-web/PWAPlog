@@ -67,6 +67,12 @@ export function AppFrame({ db }: AppFrameProps) {
   );
   const usesDarkTheme = themePreference === 'dark' || (themePreference === 'system' && systemPrefersDark);
   const launchRouteHandled = useRef(false);
+  const isDirectTaskRoute = location.pathname.startsWith('/import/')
+    || location.pathname.startsWith('/flight/')
+    || location.pathname.startsWith('/logbook/');
+  const resetToHome = useCallback(() => {
+    if (location.pathname !== '/' && !isDirectTaskRoute) navigate('/', { replace: true });
+  }, [isDirectTaskRoute, location.pathname, navigate]);
 
   // A fresh PWA/document launch always starts at Home. Dedicated import and detail links remain intact.
   //
@@ -76,11 +82,20 @@ export function AppFrame({ db }: AppFrameProps) {
   useEffect(() => {
     if (launchRouteHandled.current) return;
     launchRouteHandled.current = true;
-    const isDirectTaskRoute = location.pathname.startsWith('/import/')
-      || location.pathname.startsWith('/flight/')
-      || location.pathname.startsWith('/logbook/');
-    if (location.pathname !== '/' && !isDirectTaskRoute) navigate('/', { replace: true });
-  }, [location.pathname, navigate]);
+    resetToHome();
+  }, [resetToHome]);
+
+  // Backgrounding rather than quitting is the common case on a phone, and it never re-mounts this
+  // component, so the effect above alone left the app reopening on whatever tab it was backgrounded
+  // on. Resetting while hidden, rather than when it becomes visible again, means the tab has already
+  // changed by the time the pilot looks at the screen instead of it flashing in front of them.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') resetToHome();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [resetToHome]);
 
   const displayProgress = useCallback((value: number) => {
     navRef.current?.style.setProperty('--tab-progress', String(value));

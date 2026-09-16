@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
 
@@ -48,6 +48,36 @@ test('moves between primary tabs smoothly while leaving Roster focus behavior in
   fireEvent.click(screen.getByRole('link', { name: 'Pay' }));
 
   expect(scrollTo).toHaveBeenCalledWith({ left: 780, behavior: 'smooth' });
+});
+
+// The actual bug report: backgrounding rather than quitting never re-mounts AppFrame, so the
+// once-only launch redirect above never got a second chance to fire, and reopening the app
+// showed whatever tab it had been backgrounded on instead of Home.
+function backgroundApp() {
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+}
+
+test('resets to Home when the app is backgrounded from another primary tab', async () => {
+  render(<MemoryRouter><App /></MemoryRouter>);
+  const pager = document.querySelector<HTMLElement>('.primary-tab-pager');
+  Object.defineProperty(pager!, 'clientWidth', { configurable: true, value: 400 });
+  pager!.scrollLeft = 400; // index 1: Roster
+  fireEvent.scroll(pager!);
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Roster' })).toHaveAttribute('aria-current', 'page'));
+
+  backgroundApp();
+
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page'));
+});
+
+test('leaves a dedicated task route alone when the app is backgrounded', async () => {
+  render(<MemoryRouter initialEntries={['/logbook/new']}><App /></MemoryRouter>);
+  expect(await screen.findByRole('heading', { name: 'New flight' })).toBeVisible();
+
+  backgroundApp();
+
+  expect(screen.getByRole('heading', { name: 'New flight' })).toBeVisible();
 });
 
 test('tracks a native horizontal swipe and settles on the final tab', async () => {
