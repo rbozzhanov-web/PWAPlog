@@ -67,14 +67,18 @@ export function AppFrame({ db }: AppFrameProps) {
   );
   const usesDarkTheme = themePreference === 'dark' || (themePreference === 'system' && systemPrefersDark);
   const launchRouteHandled = useRef(false);
+  // Only a genuine deep link and an unsaved draft survive the reset. Opening back into a saved
+  // logbook entry doesn't carry the same "you'd lose real work" risk a fresh draft does, and it
+  // was the actual bug report: a pilot who'd last been on that entry kept reopening onto it,
+  // which reads as the app always landing on the Logbook tab rather than Home.
   const isDirectTaskRoute = location.pathname.startsWith('/import/')
     || location.pathname.startsWith('/flight/')
-    || location.pathname.startsWith('/logbook/');
+    || location.pathname === '/logbook/new';
   const resetToHome = useCallback(() => {
     if (location.pathname !== '/' && !isDirectTaskRoute) navigate('/', { replace: true });
   }, [isDirectTaskRoute, location.pathname, navigate]);
 
-  // A fresh PWA/document launch always starts at Home. Dedicated import and detail links remain intact.
+  // A fresh PWA/document launch always starts at Home.
   //
   // Deliberately an effect and not a layout effect: useNavigate arms itself in a passive effect,
   // so a navigate() issued during the layout phase of the first render is dropped with only a

@@ -50,6 +50,19 @@ function entry(overrides: Partial<FlightLogEntry> = {}): FlightLogEntry {
   };
 }
 
+// AppFrame now sends a fresh launch landing directly on a saved entry's own route back to Home
+// (only a still-unsaved draft at /logbook/new survives that), so reaching an existing entry in a
+// test has to look like real in-app navigation — settle on the Logbook tab, then follow its link —
+// rather than mounting the app fresh at that entry's URL, which the app itself would never do.
+async function openEntryFromLogbookTab(name: RegExp) {
+  const pager = document.querySelector<HTMLElement>('.primary-tab-pager')!;
+  Object.defineProperty(pager, 'clientWidth', { configurable: true, value: 400 });
+  pager.scrollLeft = 3 * 400; // index 3: Logbook
+  fireEvent.scroll(pager);
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Open flight records' })).toHaveAttribute('aria-current', 'page'));
+  fireEvent.click(await screen.findByRole('link', { name }));
+}
+
 describe('EntryEditorPage', () => {
   let db: PilotLogbookDb | undefined;
 
@@ -165,10 +178,11 @@ describe('EntryEditorPage', () => {
     await createFlightEntry(db, original);
 
     render(
-      <MemoryRouter initialEntries={['/logbook/entry-1']}>
+      <MemoryRouter>
         <AppRoutes db={db} />
       </MemoryRouter>,
     );
+    await openEntryFromLogbookTab(/UAAA to UACC/i);
 
     expect(await screen.findByDisplayValue('UAAA')).toBeVisible();
     fireEvent.change(screen.getByLabelText('Remarks'), { target: { value: 'Training sector' } });
@@ -192,10 +206,11 @@ describe('EntryEditorPage', () => {
     await createFlightEntry(db, entry());
 
     render(
-      <MemoryRouter initialEntries={['/logbook/entry-1']}>
+      <MemoryRouter>
         <AppRoutes db={db} />
       </MemoryRouter>,
     );
+    await openEntryFromLogbookTab(/UAAA to UACC/i);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Delete flight' }));
     expect(screen.getByRole('heading', { name: 'Delete this flight?' })).toBeVisible();

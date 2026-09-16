@@ -80,6 +80,17 @@ test('leaves a dedicated task route alone when the app is backgrounded', async (
   expect(screen.getByRole('heading', { name: 'New flight' })).toBeVisible();
 });
 
+// The actual bug report, precisely: a pilot who'd last opened a specific saved logbook entry kept
+// reopening the app onto that entry — which reads as "it always lands on the Logbook tab" — even
+// after the fix above, because /logbook/:id was being treated the same as the still-unsaved draft
+// at /logbook/new. Only the draft's route carries a real "lose your work" risk; a saved entry's
+// own edit screen does not, so it resets to Home on launch like any other primary tab, the same
+// way plain /logbook already did.
+test('resets an existing logbook entry route to Home on launch, unlike a fresh draft', async () => {
+  render(<MemoryRouter initialEntries={['/logbook/some-existing-id']}><App /></MemoryRouter>);
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page'));
+});
+
 test('tracks a native horizontal swipe and settles on the final tab', async () => {
   render(<MemoryRouter><App /></MemoryRouter>);
   const pager = document.querySelector<HTMLElement>('.primary-tab-pager');
