@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import type { PilotLogbookDb } from '../../db/database';
 import { listFlightEntries, putFlightEntries } from '../../db/repositories/flightEntries';
 import { loadAimsRoster } from '../roster/aims';
-import { aimsSectorId, sectorMinutes } from '../roster/completedSectors';
+import { aimsSectorId, sectorIdentity, sectorMinutes } from '../roster/completedSectors';
 import { LogbookList } from './LogbookList';
 import { formatFlightMinutes, sumFlightMinutes } from './totals';
 import { YearChips } from './YearChips';
@@ -77,14 +77,16 @@ export function LogbookPage({ db }: LogbookPageProps) {
   const importCompletedAims = async () => {
     const roster = loadAimsRoster();
     if (!roster) { setAimsMessage('Import the current AIMS Web Archive first.'); return; }
-    const existing = new Set(entries.map((entry) => entry.id));
+    // Identity (date + airport pair), not id: an entry can already cover this real sector from a
+    // manual entry or a PDF import, neither of which ever carries this module's own id scheme.
+    const existingSectors = new Set(entries.map((entry) => sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)));
     const now = Date.now();
     const candidates = roster.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead && flight.actualTimes && Date.parse(`${flight.date}T${flight.arrival}:00`) < now).map((flight) => ({
       id: aimsSectorId(flight),
       date: flight.date, flightNumber: flight.flightNumber, departureAirport: flight.origin, arrivalAirport: flight.destination,
       aircraftType: flight.aircraftType, timeOut: flight.departure, timeIn: flight.arrival, totalTimeMinutes: sectorMinutes(flight),
       ...NEW_ENTRY_DEFAULTS, source: 'aims_import' as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    })).filter((entry) => !existing.has(entry.id));
+    })).filter((entry) => !existingSectors.has(sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)));
     if (!candidates.length) { setAimsMessage('No new completed AIMS sectors to add.'); return; }
     await putFlightEntries(db, candidates);
     setEntries(await listFlightEntries(db));

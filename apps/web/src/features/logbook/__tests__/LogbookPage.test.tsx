@@ -8,6 +8,7 @@ import { LogbookPage } from '../LogbookPage';
 import type { PilotLogbookDb } from '../../../db/database';
 import { createPilotLogbookDb } from '../../../db/database';
 import { createFlightEntry } from '../../../db/repositories/flightEntries';
+import { saveAimsRoster } from '../../roster/aims';
 
 function entry(overrides: Partial<FlightLogEntry> = {}): FlightLogEntry {
   return {
@@ -45,6 +46,7 @@ describe('LogbookPage', () => {
 
   beforeEach(() => {
     scrolledElements = [];
+    localStorage.clear();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: vi.fn(function scrollIntoView(this: Element) {
@@ -158,5 +160,36 @@ describe('LogbookPage', () => {
     expect(await screen.findByRole('region', { name: 'April 2024' })).toBeVisible();
     expect(year2024).toHaveAttribute('aria-pressed', 'true');
     expect(scrolledElements).toContain(year2024);
+  });
+
+  // The actual bug report: Import AIMS only skipped a sector already carrying its own id scheme,
+  // so a sector already logged some other way (here: by hand) got written a second time under a
+  // fresh id, and Home's month total came out doubled. It has to recognise the sector by identity
+  // (date + airport pair), not by id, whichever way it already reached the logbook.
+  test('Import AIMS does not duplicate a sector already logged under a different id', async () => {
+    db = createPilotLogbookDb('import-aims-existing-sector-test');
+    await seedEntries([
+      entry({ id: 'manual-1', date: '2020-01-02', departureAirport: 'UAAA', arrivalAirport: 'UACC', totalTimeMinutes: 90 }),
+    ]);
+    saveAimsRoster({
+      period: { start: '2020-01-01', end: '2020-01-31' },
+      duties: [{
+        date: '2020-01-02',
+        flights: [{
+          flightNumber: 'KC100', date: '2020-01-02', origin: 'UAAA', destination: 'UACC',
+          departure: '08:00', arrival: '09:30', deadhead: false, actualTimes: true,
+        }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2020-01-01T00:00:00.000Z',
+    });
+
+    renderLogbook();
+    // Wait for the seeded entry to actually be loaded into the page's own state — clicking Import
+    // AIMS before that would race the read and see no existing entries at all.
+    await screen.findByRole('link', { name: /UAAA to UACC/i });
+    fireEvent.click(screen.getByRole('button', { name: 'Import AIMS' }));
+
+    expect(await screen.findByText('No new completed AIMS sectors to add.')).toBeVisible();
+    await expect(db.flightEntries.count()).resolves.toBe(1);
   });
 });

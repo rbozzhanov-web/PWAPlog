@@ -91,3 +91,14 @@ test('still counts a genuinely different sector on the same day separately', () 
 test('leaves other months out of the total', () => {
   expect(monthTotals([], roster([flight({ date: '2026-08-02' })]), '2026-09').flights).toBe(0);
 });
+
+// The actual bug report: two logbook entries had ended up claiming the same real flight — an
+// id-based dedup upstream (in Import AIMS) let it write a second row for a sector already logged
+// by hand, so the month's total came out exactly doubled. monthTotals only used to dedupe the
+// roster against the logbook, never the logbook against itself.
+test('counts a sector once even when the logbook itself has a duplicate row for it', () => {
+  const first = logEntry({ id: 'entry-1', source: 'manual' });
+  const second = logEntry({ id: 'entry-2', source: 'aims_import', totalTimeMinutes: 115 });
+
+  expect(monthTotals([first, second], roster([]), '2026-09')).toEqual({ flights: 1, minutes: 115 });
+});

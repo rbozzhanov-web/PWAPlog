@@ -28,8 +28,23 @@ export function aimsSectorId(flight: AimsFlight): string {
  * the roster. Matching on date and the airport pair instead recognises the flight whichever way it
  * reached the logbook.
  */
-function sectorIdentity(date: string, departure: string, arrival: string): string {
+export function sectorIdentity(date: string, departure: string, arrival: string): string {
   return `${date}|${departure.trim().toUpperCase()}|${arrival.trim().toUpperCase()}`;
+}
+
+/** Two logbook entries can end up claiming the same real flight — a stale id-based dedup letting
+ *  Import AIMS write it twice, or the same sector reaching the logbook once by hand and once
+ *  through a PDF import before either was aware of the other. `monthTotals` already trusts flight
+ *  identity over id to reconcile the logbook against the roster; a duplicate already sitting in
+ *  the logbook needs the same treatment; otherwise it is summed twice from that side alone. */
+function dedupeByIdentity(entries: FlightLogEntry[]): FlightLogEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const identity = sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport);
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
 }
 
 /**
@@ -69,7 +84,7 @@ export function monthTotals(
   roster: AimsRoster | undefined,
   month: string,
 ): MonthTotals {
-  const logged = entries.filter((entry) => entry.date.startsWith(month));
+  const logged = dedupeByIdentity(entries.filter((entry) => entry.date.startsWith(month)));
   const loggedSectors = new Set(
     logged.map((entry) => sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)),
   );
