@@ -1,14 +1,11 @@
-import type { FlightLogEntry } from '@pilot-logbook/core';
-
 import type { AimsFlight, AimsRoster } from './aims';
 
 /**
- * What the pilot is rostered to fly this month, from the roster rather than only from the logbook.
+ * What the pilot is rostered to fly this month, from the roster alone.
  *
- * Home used to total the logbook alone, so a pilot with a freshly imported roster and an empty
- * logbook was told they had flown nothing this month — while the same screen showed them their
- * next sector. The roster already knows the sectors; counting them is not a claim about the
- * logbook, it is the honest answer to "this month".
+ * Home and Roster answer entirely from the currently loaded AIMS archive, with no logbook
+ * involved: a pilot who has imported a roster but not yet written any of it to the logbook still
+ * has this month's schedule, and the screen should say so without waiting on the logbook to agree.
  */
 
 /** Stable across re-imports, so a sector already written to the logbook by Import AIMS specifically
@@ -30,21 +27,6 @@ export function aimsSectorId(flight: AimsFlight): string {
  */
 export function sectorIdentity(date: string, departure: string, arrival: string): string {
   return `${date}|${departure.trim().toUpperCase()}|${arrival.trim().toUpperCase()}`;
-}
-
-/** Two logbook entries can end up claiming the same real flight — a stale id-based dedup letting
- *  Import AIMS write it twice, or the same sector reaching the logbook once by hand and once
- *  through a PDF import before either was aware of the other. `monthTotals` already trusts flight
- *  identity over id to reconcile the logbook against the roster; a duplicate already sitting in
- *  the logbook needs the same treatment; otherwise it is summed twice from that side alone. */
-function dedupeByIdentity(entries: FlightLogEntry[]): FlightLogEntry[] {
-  const seen = new Set<string>();
-  return entries.filter((entry) => {
-    const identity = sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport);
-    if (seen.has(identity)) return false;
-    seen.add(identity);
-    return true;
-  });
 }
 
 /**
@@ -69,39 +51,19 @@ export interface MonthTotals {
 }
 
 /**
- * One month's flying: every logbook entry for the month, plus every roster sector for the month
- * that has not been written to the logbook yet. This is the month's full scheduled total — the
- * same figure AIMS itself publishes as the period's Block Hours — not just what has landed so
- * far, so it matches the roster on day one rather than growing into it. Deadhead legs are travel,
- * not flying, and never count. Deduplicated by flight identity (date + airport pair) rather than
- * by id — a logbook entry can reach the logbook by hand, through the PDF flight-time importer, or
- * through Import AIMS, and only the last of those writes an id this module would otherwise
- * recognise. Matching by identity catches all three, so the same real sector is never added into
- * the total from both sides.
+ * One month's flying, straight from the roster: every non-deadhead sector for the month,
+ * scheduled or already flown. This is the month's full scheduled total — the same figure AIMS
+ * itself publishes as the period's Block Hours — not just what has landed so far, so it matches
+ * the roster on day one rather than growing into it. Deadhead legs are travel, not flying, and
+ * never count.
  */
-export function monthTotals(
-  entries: FlightLogEntry[],
-  roster: AimsRoster | undefined,
-  month: string,
-): MonthTotals {
-  const logged = dedupeByIdentity(entries.filter((entry) => entry.date.startsWith(month)));
-  const loggedSectors = new Set(
-    logged.map((entry) => sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)),
-  );
-
-  const unlogged = (roster?.duties ?? [])
+export function rosterMonthTotals(roster: AimsRoster | undefined, month: string): MonthTotals {
+  const sectors = (roster?.duties ?? [])
     .flatMap((duty) => duty.flights)
-    .filter(
-      (flight) =>
-        !flight.deadhead &&
-        flight.date.startsWith(month) &&
-        !loggedSectors.has(sectorIdentity(flight.date, flight.origin, flight.destination)),
-    );
+    .filter((flight) => !flight.deadhead && flight.date.startsWith(month));
 
   return {
-    minutes:
-      logged.reduce((total, entry) => total + entry.totalTimeMinutes, 0) +
-      unlogged.reduce((total, flight) => total + sectorMinutes(flight), 0),
-    flights: logged.length + unlogged.length,
+    minutes: sectors.reduce((total, flight) => total + sectorMinutes(flight), 0),
+    flights: sectors.length,
   };
 }

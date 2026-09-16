@@ -242,7 +242,7 @@ export function AppFrame({ db }: AppFrameProps) {
       </header> : null}
       <div className="app-frame__content">
         {isPrimaryRoute ? <div className="primary-tab-pager" onScroll={handlePagerScroll} ref={pagerRef}>
-          <div aria-hidden={visualIndex !== 0} className="primary-tab-pager__page" inert={visualIndex !== 0} ref={(element) => { pageRefs.current[0] = element; }}><HomePage db={db} /></div>
+          <div aria-hidden={visualIndex !== 0} className="primary-tab-pager__page" inert={visualIndex !== 0} ref={(element) => { pageRefs.current[0] = element; }}><HomePage /></div>
           <div aria-hidden={visualIndex !== 1} className="primary-tab-pager__page" inert={visualIndex !== 1} ref={(element) => { pageRefs.current[1] = element; }}><RosterPage isActive={visualIndex === 1} /></div>
           <div aria-hidden={visualIndex !== 2} className="primary-tab-pager__page" inert={visualIndex !== 2} ref={(element) => { pageRefs.current[2] = element; }}><PayPage db={db} /></div>
           <div aria-hidden={visualIndex !== 3} className="primary-tab-pager__page" inert={visualIndex !== 3} ref={(element) => { pageRefs.current[3] = element; }}><LogbookPage db={db} /></div>

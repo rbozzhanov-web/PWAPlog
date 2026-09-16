@@ -2164,59 +2164,9 @@ body,
 }
 
 
-/* Home destination weather replaces the flight-action button. */
 .home-hero__actions {
   margin-top: 1rem;
 }
-
-.home-destination-weather {
-  width: 100%;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: .9rem;
-  background: var(--bg);
-}
-
-.home-destination-weather > button {
-  display: flex;
-  width: 100%;
-  min-height: 3.35rem;
-  align-items: center;
-  gap: .65rem;
-  border: 0;
-  padding: .55rem .7rem;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-}
-
-.home-destination-weather.is-expandable > button { cursor: pointer; }
-.home-destination-weather > button:disabled { opacity: 1; }
-.home-destination-weather > button > b { font-size: var(--header-size); font-weight: 400; }
-.home-destination-weather > button > span { display: grid; min-width: 0; gap: .08rem; flex: 1; }
-.home-destination-weather > button small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .09em; }
-.home-destination-weather > button strong { overflow: hidden; color: var(--text); font-size: var(--caption-size); text-overflow: ellipsis; white-space: nowrap; }
-.home-destination-weather > button > i { color: var(--muted); font-size: var(--header-size); font-style: normal; }
-
-.home-destination-weather__forecast {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(6.3rem, 1fr));
-  gap: .35rem;
-  border-top: 1px solid var(--line);
-  padding: .55rem .7rem .7rem;
-}
-
-.home-destination-weather__forecast span {
-  display: grid;
-  gap: .15rem;
-  border-radius: .6rem;
-  padding: .45rem;
-  background: var(--surface-solid);
-}
-
-.home-destination-weather__forecast small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; }
-.home-destination-weather__forecast strong { color: var(--text); font-size: var(--caption-size); }
-.home-destination-weather__forecast p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: var(--caption-size); }
 
 
 /* Original eScrew visual composition — Home and Roster only. */
@@ -2339,34 +2289,6 @@ body,
   margin-top: .2rem;
   border-top: 0;
   padding-top: 0;
-}
-
-.home-hero--escrew .home-destination-weather {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.home-hero--escrew .home-destination-weather > button {
-  min-height: 2.7rem;
-  padding: .4rem 0;
-}
-
-.home-hero--escrew .home-destination-weather > button > b {
-  width: 1.35rem;
-  font-size: var(--header-size);
-  text-align: center;
-}
-
-.home-hero--escrew .home-destination-weather > button small {
-  font-size: var(--caption-size);
-}
-
-.home-hero--escrew .home-destination-weather__forecast {
-  border-top-color: var(--line);
-  padding-right: 0;
-  padding-bottom: .6rem;
-  padding-left: 0;
 }
 
 .home-stats--escrew {
@@ -2867,7 +2789,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .home-stats strong,
 .home-time-grid strong,
 .home-report-countdown strong,
-.home-destination-weather strong,
 .logbook-summary strong,
 .month-card__total,
 .pay-result h2,
@@ -3011,13 +2932,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 }
 
 /* ---- corrections to the pass above ---------------------------------------- */
-/* Monospace is for numbers only — the weather line is prose that happens to sit beside one. */
-.home-destination-weather strong {
-  font-family: var(--font-sans);
-  font-variant-numeric: normal;
-  font-weight: var(--weight-header);
-}
-
 /* The route is the scan target in a roster row, so it sits at header size like every other
    card title — not at the display size the previous look gave it. */
 .roster-timeline-card h2,
@@ -3167,30 +3081,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .roster-timeline__day--doff .roster-timeline-card--activity .roster-timeline-card__top > span {
   background: var(--good-soft);
   color: var(--good);
-}
-
-/* ---- roster: weather on the card ------------------------------------------- */
-.roster-card-weather {
-  display: flex;
-  align-items: baseline;
-  gap: .4rem;
-  margin: .45rem 0 0;
-  border-top: 1px solid var(--line);
-  padding-top: .4rem;
-  color: var(--muted);
-  font-size: var(--caption-size);
-  line-height: var(--caption-line);
-}
-
-.roster-card-weather b { font-size: var(--body-size); line-height: 1; }
-.roster-card-weather span { font-weight: var(--weight-header); letter-spacing: .04em; }
-.roster-card-weather em { flex: 1; overflow: hidden; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
-.roster-card-weather strong {
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--weight-number);
-  white-space: nowrap;
 }
 
 /* ---- flight popup ---------------------------------------------------------- */

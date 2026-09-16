@@ -31,7 +31,7 @@ export function AppRoutes({ db: routeDb = db }: AppRoutesProps) {
       <Suspense fallback={<p role="status">Loading…</p>}>
         <Routes>
           <Route element={<AppFrame db={routeDb} />}>
-            <Route path="/" element={<HomePage db={routeDb} />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/roster" element={<RosterPage />} />
             <Route path="/flight/:key" element={<FlightDetailPage />} />
             <Route path="/pay" element={<PayPage db={routeDb} />} />
