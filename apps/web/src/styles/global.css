@@ -48,7 +48,6 @@ body {
 .suite-mark { display: grid; width: 2.45rem; height: 2.45rem; place-items: center; border: 1px solid var(--surface); border-radius: 0.9rem; background: var(--surface); box-shadow: 0 0.45rem 1.1rem var(--accent-soft); color: var(--accent); }
 .suite-header p, .suite-page-header p, .home-section__title p { margin: 0; color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: 0.12em; }
 .suite-header h1 { margin: 0.12rem 0 0; font-size: var(--header-size); letter-spacing: -0.04em; }
-.suite-header__more { margin-left: auto; color: var(--muted); font-size: var(--header-size); font-weight: 600; letter-spacing: 0.07em; text-decoration: none; }
 .home-hero { overflow: hidden; border: 1px solid var(--surface); border-radius: 2rem; padding: 1.5rem; background: linear-gradient(135deg, var(--surface), var(--accent-soft)); box-shadow: 0 1rem 2.4rem var(--accent-soft); backdrop-filter: blur(1.3rem); }
 .home-hero__eyebrow { margin: 0; color: var(--accent); font-size: var(--caption-size); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 .home-hero h2 { max-width: 18rem; margin: 0.55rem 0; font-size: var(--title-size); letter-spacing: -0.065em; line-height: 0.96; }
@@ -57,7 +56,7 @@ body {
 .home-hero__actions a { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: 0.4rem; border-radius: 0.95rem; padding: 0 1rem; background: var(--accent); box-shadow: 0 0.6rem 1.3rem var(--accent-soft); color: var(--surface-solid); font-size: var(--body-size); font-weight: 600; text-decoration: none; }
 .home-hero__actions a + a { background: var(--surface); box-shadow: none; color: var(--accent); }
 .home-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-top: 0.8rem; }
-.home-stats > div, .home-empty, .home-recent-list { border: 1px solid var(--surface); border-radius: 1.35rem; background: var(--surface); box-shadow: 0 0.65rem 1.4rem var(--accent-soft); backdrop-filter: blur(1rem); }
+.home-stats > div, .home-empty { border: 1px solid var(--surface); border-radius: 1.35rem; background: var(--surface); box-shadow: 0 0.65rem 1.4rem var(--accent-soft); backdrop-filter: blur(1rem); }
 .home-stats > div { display: grid; gap: 0.4rem; padding: 1rem; }
 .home-stats span { color: var(--muted); font-size: var(--caption-size); font-weight: 600; text-transform: uppercase; }
 .home-stats strong { font-size: var(--number-size); letter-spacing: -0.055em; }
@@ -65,13 +64,6 @@ body {
 .home-section__title { display: flex; align-items: end; justify-content: space-between; margin: 0 0.7rem 0.65rem; }
 .home-section__title h2 { margin: 0.25rem 0 0; font-size: var(--header-size); letter-spacing: -0.045em; }
 .home-section__title a { color: var(--accent); font-size: var(--caption-size); font-weight: 600; text-decoration: none; }
-.home-recent-list { overflow: hidden; }
-.home-recent-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.7rem; align-items: center; min-height: 3.75rem; border-top: 1px solid var(--line-strong); padding: 0.55rem 0.9rem; color: inherit; text-decoration: none; }
-.home-recent-row:first-child { border-top: 0; }
-.home-recent-row__date { color: var(--muted); font-size: var(--caption-size); font-weight: 600; }
-.home-recent-row strong { overflow: hidden; font-size: var(--body-size); text-overflow: ellipsis; white-space: nowrap; }
-.home-recent-row i { color: var(--accent); font-style: normal; }
-.home-recent-row > span:last-child { color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); font-weight: 600; }
 .home-empty { padding: 1rem; color: var(--muted); font-size: var(--caption-size); }
 .suite-page-header { padding: 0.8rem 0.6rem 1.3rem; }
 .suite-page-header h1 { margin: 0.3rem 0 0.45rem; font-size: var(--title-size); letter-spacing: -0.065em; line-height: 0.95; }
@@ -84,31 +76,6 @@ body {
 .roster-import-action { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; margin-top: 1.2rem; border-radius: 0.95rem; padding: 0 1rem; background: var(--accent); box-shadow: 0 0.6rem 1.3rem var(--accent-soft); color: var(--surface-solid); cursor: pointer; font-size: var(--body-size); font-weight: 600; }
 .roster-import-action input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .roster-import-error { margin: 0.8rem 0 0; color: var(--danger) !important; font-size: var(--caption-size); }
-.roster-flight-list { display: grid; gap: 0.45rem; margin-top: 1rem; }
-.roster-flight-list > div { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: 0.1rem 0.65rem; align-items: center; border: 1px solid var(--surface); border-radius: 1rem; padding: 0.7rem 0.8rem; background: var(--surface); box-shadow: 0 0.55rem 1.2rem var(--accent-soft); backdrop-filter: blur(1rem); }
-.roster-flight-list span { color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); font-weight: 600; }
-.roster-flight-list strong { font-size: var(--body-size); letter-spacing: 0.01em; }
-.roster-flight-list i { color: var(--accent); font-style: normal; }
-.roster-flight-list small { grid-column: 2; color: var(--muted); font-size: var(--caption-size); }
-.roster-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; margin: 0.95rem 0; }
-.roster-summary > div { display: grid; gap: 0.25rem; border: 1px solid var(--surface); border-radius: 1rem; padding: 0.8rem; background: var(--surface); box-shadow: 0 0.45rem 1.1rem var(--accent-soft); }
-.roster-summary span { color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.roster-summary strong { font-size: var(--header-size); letter-spacing: -.04em; }
-.roster-duty-list { display: grid; gap: 0.75rem; }
-.roster-duty-card { overflow: hidden; border: 1px solid var(--surface); border-radius: 1.25rem; background: var(--surface); box-shadow: 0 .7rem 1.6rem var(--accent-soft); backdrop-filter: blur(1rem); }
-.roster-duty-card > header { display: flex; align-items: center; justify-content: space-between; padding: .85rem 1rem; }
-.roster-duty-card > header p { margin: 0; color: var(--accent); font-size: var(--caption-size); font-weight: 600; letter-spacing: .1em; }
-.roster-duty-card > header h2 { margin: .14rem 0 0; font-size: var(--header-size); letter-spacing: -.04em; }
-.roster-duty-card > header > span { color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); font-weight: 600; }
-.roster-duty-card__sectors { border-top: 1px solid var(--accent-soft); }
-.roster-sector { display: flex; min-height: 3.7rem; align-items: center; justify-content: space-between; border-top: 1px solid var(--accent-soft); padding: .55rem 1rem; }
-.roster-sector:first-child { border-top: 0; }
-.roster-sector > div { display: grid; gap: .13rem; }
-.roster-sector strong { font-size: var(--body-size); letter-spacing: .01em; }
-.roster-sector i { color: var(--accent); font-style: normal; }
-.roster-sector small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; }
-.roster-sector > span { display: grid; gap: .12rem; color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); font-weight: 600; text-align: right; }
-.roster-sector > span small { font-family: inherit; }
 .pay-page { width: min(100%, 42rem); box-sizing: border-box; margin: auto; padding: max(1.25rem, env(safe-area-inset-top)) 1rem 2rem; }
 .pay-setup { display: grid; gap: .7rem; border: 1px solid var(--surface); border-radius: 1.35rem; padding: 1rem; background: var(--surface); box-shadow: 0 .7rem 1.6rem var(--accent-soft); backdrop-filter: blur(1rem); }
 .pay-setup label { display: grid; grid-template-columns: minmax(0, 1fr) auto 7rem; align-items: center; gap: .5rem; color: var(--muted); font-size: var(--caption-size); font-weight: 600; }
@@ -138,9 +105,6 @@ body {
 .flight-duty-times { display: flex; gap: 1.4rem; border-top: 1px solid var(--accent-soft); margin-top: .9rem; padding-top: .75rem; }.flight-duty-times span { display: grid; gap: .18rem; color: var(--muted); font-size: var(--caption-size); font-weight: 600; }.flight-duty-times strong, .flight-aircraft { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--body-size); }
 .flight-hotel { display: grid; gap: .35rem; color: var(--muted); font-size: var(--caption-size); }.flight-hotel strong { color: var(--text); font-size: var(--header-size); }.flight-adjacent { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; }.flight-adjacent a { color: var(--accent); font-size: var(--caption-size); font-weight: 600; text-decoration: none; }
 .flight-crew-row { display: flex; gap: .7rem; align-items: center; border-top: 1px solid var(--accent-soft); padding: .65rem 0; }.flight-crew-row b { display: grid; width: 2.15rem; height: 2.15rem; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: var(--caption-size); }.flight-crew-row span { display: grid; gap: .12rem; }.flight-crew-row strong { font-size: var(--caption-size); }.flight-crew-row small { color: var(--muted); font-size: var(--caption-size); }.flight-crew-row i { margin-left: auto; color: var(--muted); font-size: var(--header-size); font-style: normal; }
-.roster-sector { color: inherit; text-decoration: none; }
-.roster-view-switch { display: grid; grid-template-columns: repeat(3, 1fr); gap: .25rem; margin: .9rem 0; border-radius: 1rem; padding: .25rem; background: var(--surface); }.roster-view-switch button { min-height: 2.45rem; border: 0; border-radius: .75rem; background: transparent; color: var(--muted); cursor: pointer; font-size: var(--caption-size); font-weight: 600; text-transform: capitalize; }.roster-view-switch button[aria-selected="true"] { background: var(--surface); box-shadow: 0 .25rem .75rem var(--line-strong); color: var(--accent); }.roster-calendar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }.roster-calendar__day { display: grid; min-height: 4.6rem; gap: .35rem; border: 1px solid var(--surface); border-radius: 1rem; padding: .7rem; background: var(--surface); color: var(--muted); }.roster-calendar__day small { font-weight: 600; }.roster-calendar__day strong { overflow: hidden; color: var(--muted); font-size: var(--caption-size); text-overflow: ellipsis; white-space: nowrap; }.roster-calendar__day--duty { background: var(--surface); box-shadow: 0 .45rem 1.1rem var(--accent-soft); }.roster-calendar__day--duty strong { color: var(--accent); }.roster-stats { min-height: 11rem; }
-.roster-calendar__day--activity { background: var(--good-soft); }.roster-calendar__day--activity strong { color: var(--good); }
 
 /* ---- canvas -------------------------------------------------------------- */
 /* The sky wallpaper stays: it is what the app looks like, and the glass tiers above are tuned
@@ -163,8 +127,7 @@ body {
 .suite-header p, .suite-page-header p, .home-section__title p, .flight-detail__eyebrow { color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .14em; }
 .suite-header h1 { margin: 0; color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; }
 .suite-header::after { content: none; }
-.suite-header__more { margin-left: .25rem; color: var(--text); font-size: var(--header-size); letter-spacing: 0; }
-.home-hero, .roster-empty-card, .roster-duty-card, .pay-setup, .pay-result, .flight-detail-hero, .flight-detail-card, .home-stats > div, .home-empty, .home-recent-list, .roster-summary > div { border-color: var(--line); background: var(--surface-solid); box-shadow: 0 .35rem 1.2rem var(--line); backdrop-filter: none; }
+.home-hero, .roster-empty-card, .pay-setup, .pay-result, .flight-detail-hero, .flight-detail-card, .home-stats > div, .home-empty { border-color: var(--line); background: var(--surface-solid); box-shadow: 0 .35rem 1.2rem var(--line); backdrop-filter: none; }
 .home-hero { border-radius: 1.1rem; padding: 1rem; }
 .home-hero__eyebrow { color: var(--muted); font-size: var(--caption-size); letter-spacing: .12em; }
 .home-hero h2 { max-width: none; margin: .42rem 0 .3rem; color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; line-height: 1.03; }
@@ -174,39 +137,20 @@ body {
 .home-hero__actions a + a { border: 1px solid var(--line); background: var(--surface-solid); color: var(--text); }
 .home-stats { gap: .55rem; margin-top: .55rem; }
 .home-stats > div { gap: .26rem; border-radius: .95rem; padding: .75rem; }
-.home-stats span, .roster-summary span { color: var(--muted); font-size: var(--caption-size); font-weight: 600; }
+.home-stats span { color: var(--muted); font-size: var(--caption-size); font-weight: 600; }
 .home-stats strong { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--header-size); }
 .home-section { margin-top: 1.25rem; }
 .home-section__title { margin: 0 .2rem .48rem; }.home-section__title h2 { color: var(--text); font-size: var(--header-size); }.home-section__title a { color: var(--accent); font-size: var(--caption-size); }
-.home-recent-list { border-radius: 1rem; }.home-recent-row { min-height: 3.25rem; border-color: var(--line); padding: .45rem .72rem; }.home-recent-row__date, .home-recent-row > span:last-child { color: var(--muted); font-size: var(--caption-size); }.home-recent-row strong { color: var(--text); font-size: var(--caption-size); }.home-recent-row i, .roster-sector i { color: var(--highlight); }
 
 .suite-page-header { padding: .35rem .15rem 1rem; }.suite-page-header h1, .flight-detail-page h1 { color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; }.suite-page-header span { color: var(--muted); font-size: var(--caption-size); }
-.roster-empty-card { min-height: 12rem; border-radius: 1.1rem; padding: 1rem; }.roster-empty-card > span { width: 2.5rem; height: 2.5rem; background: var(--accent-soft); color: var(--accent); }.roster-empty-card h2 { color: var(--text); font-size: var(--header-size); }.roster-empty-card p { color: var(--muted); font-size: var(--caption-size); }.roster-summary { gap: .45rem; margin: .65rem 0; }.roster-summary > div { border-radius: .85rem; padding: .65rem; }.roster-summary strong { color: var(--text); font-size: var(--body-size); }
-.roster-view-switch, .flight-detail-tabs { border: 1px solid var(--line); border-radius: .9rem; padding: .18rem; background: var(--bg); }.roster-view-switch button, .flight-detail-tabs button { min-height: 2.1rem; border-radius: .7rem; color: var(--muted); font-size: var(--caption-size); }.roster-view-switch button[aria-selected="true"], .flight-detail-tabs button[aria-selected="true"] { background: var(--accent); box-shadow: 0 .25rem .6rem var(--accent-soft); color: var(--surface-solid); }
-.roster-duty-list { gap: .55rem; }.roster-duty-card { border-radius: 1rem; }.roster-duty-card > header { padding: .7rem .8rem; }.roster-duty-card > header p { color: var(--muted); }.roster-duty-card > header h2 { color: var(--text); font-size: var(--header-size); }.roster-duty-card > header > span, .roster-sector small { color: var(--muted); }.roster-duty-card__sectors { border-color: var(--line); }.roster-sector { min-height: 3.35rem; border-color: var(--line); padding: .45rem .8rem; }.roster-sector strong { color: var(--text); font-size: var(--caption-size); }.roster-sector > span { color: var(--text); font-size: var(--caption-size); }.roster-calendar { gap: .45rem; }.roster-calendar__day { min-height: 4rem; border-color: var(--line); border-radius: .85rem; padding: .6rem; background: var(--surface-solid); }.roster-calendar__day--duty { box-shadow: 0 .25rem .7rem var(--line); }.roster-calendar__day--activity { background: var(--good-soft); }
-.roster-view-switch--two { grid-template-columns: repeat(2, 1fr); }
-.roster-day-card { scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 7.75rem); }
+.roster-empty-card { min-height: 12rem; border-radius: 1.1rem; padding: 1rem; }.roster-empty-card > span { width: 2.5rem; height: 2.5rem; background: var(--accent-soft); color: var(--accent); }.roster-empty-card h2 { color: var(--text); font-size: var(--header-size); }.roster-empty-card p { color: var(--muted); font-size: var(--caption-size); }
+.flight-detail-tabs { border: 1px solid var(--line); border-radius: .9rem; padding: .18rem; background: var(--bg); }.flight-detail-tabs button { min-height: 2.1rem; border-radius: .7rem; color: var(--muted); font-size: var(--caption-size); }.flight-detail-tabs button[aria-selected="true"] { background: var(--accent); box-shadow: 0 .25rem .6rem var(--accent-soft); color: var(--surface-solid); }
 .roster-today-label { margin-left: .45rem; border-radius: 999px; padding: .14rem .38rem; background: var(--accent); color: var(--surface-solid); font-size: var(--caption-size); letter-spacing: .08em; }
-.roster-activity { display: flex; min-height: 3.35rem; align-items: center; justify-content: space-between; gap: .75rem; border-top: 1px solid var(--line); padding: .45rem .8rem; }
-.roster-activity:first-child { border-top: 0; }
-.roster-activity > div { display: grid; min-width: 0; gap: .13rem; }
-.roster-activity strong { color: var(--text); font-size: var(--caption-size); }
-.roster-activity small { overflow: hidden; color: var(--muted); font-size: var(--caption-size); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.roster-activity > span { color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); font-weight: 600; white-space: nowrap; }
-.roster-day-card--off { border-color: var(--good-soft); background: var(--good-soft); }
-.roster-day-card--off > header p, .roster-day-card--off .roster-activity strong { color: var(--good); }
-.roster-day-card--doff { border-color: var(--good-soft); background: var(--good-soft); }
-.roster-day-card--doff > header p, .roster-day-card--doff .roster-activity strong { color: var(--good); }
-.roster-day-card--today { border-color: var(--accent-soft); background: var(--accent-soft); box-shadow: 0 .5rem 1.25rem var(--accent-soft); }
-.roster-day-card--today > header { background: var(--accent-soft); }
-.roster-day-card--today > header p { color: var(--accent); }
 
 .pay-pdf-check { margin-top: .55rem; }.pay-pdf-check p, .pay-hint { color: var(--muted); }.pay-source-list button { border-color: var(--line); background: var(--surface-solid); color: var(--muted); }.pay-source-list button.is-active { background: var(--accent); color: var(--surface-solid); }.pay-setup { border-radius: 1rem; padding: .85rem; }.pay-setup label { color: var(--text); font-size: var(--caption-size); }.pay-setup label > span { color: var(--muted); }.pay-setup input { border-color: var(--line); border-radius: .65rem; background: var(--bg); }.pay-setup button { border-radius: .75rem; background: var(--accent); }.pay-result { border-radius: 1rem; padding: 1rem; background: var(--surface-solid); }.pay-result > p, .pay-result > span, .pay-result > div p { color: var(--muted); }.pay-result h2, .pay-result > div strong { color: var(--text); }.pay-result h2 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--title-size); }
 .flight-detail-header { margin-bottom: .75rem; }.flight-detail-header a, .flight-detail-header span { color: var(--text); }.flight-detail__date { color: var(--muted); }.flight-detail-hero, .flight-detail-card { margin-top: .7rem; border-radius: 1rem; padding: .85rem; }.flight-detail-hero strong, .flight-times strong, .flight-aircraft { color: var(--text); }.flight-detail-hero i { color: var(--highlight); }.flight-detail-hero p, .flight-detail-card > p, .flight-detail-empty, .flight-times span, .flight-weather__current small, .flight-weather__forecast span, .flight-weather__current em, .flight-duty-times span { color: var(--muted); }.flight-crew-row { border-color: var(--line); }.flight-crew-row b { background: var(--accent-soft); color: var(--accent); }
 .pay-audit { display: grid; gap: .85rem; margin-top: .7rem; border: 1px solid var(--line); border-radius: 1rem; padding: .9rem; background: var(--surface-solid); box-shadow: 0 .35rem 1.2rem var(--line); }.pay-audit header { display: grid; gap: .18rem; }.pay-audit header p, .pay-audit__group > p, .pay-audit__sectors > p { margin: 0; color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }.pay-audit h2 { margin: 0; color: var(--text); font-size: var(--header-size); letter-spacing: -.04em; }.pay-audit header > span { color: var(--muted); font-size: var(--caption-size); }.pay-audit__totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; }.pay-audit__totals p { display: grid; gap: .2rem; margin: 0; border-radius: .65rem; padding: .45rem; background: var(--bg); color: var(--muted); font-size: var(--caption-size); }.pay-audit__totals strong { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); }.pay-audit__group { display: grid; gap: .36rem; border-top: 1px solid var(--line); padding-top: .8rem; }.pay-audit__group div, .pay-audit__sectors div { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; color: var(--muted); font-size: var(--caption-size); }.pay-audit__group strong, .pay-audit__sectors strong { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); white-space: nowrap; }.pay-audit__sectors { display: grid; gap: .4rem; border-top: 1px solid var(--line); padding-top: .8rem; }.pay-audit__sectors small { color: var(--muted); font-family: inherit; font-size: var(--caption-size); }.pay-audit__warning, .pay-audit__note { margin: 0; border-radius: .65rem; padding: .6rem; font-size: var(--caption-size); line-height: 1.4; }.pay-audit__warning { background: var(--highlight-soft); color: var(--highlight); }.pay-audit__note { background: var(--accent-soft); color: var(--muted); }
 .home-route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .55rem; margin: .7rem 0 .45rem; }.home-route span { display: grid; gap: .08rem; }.home-route span:last-child { text-align: right; }.home-route strong { color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; }.home-route small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .08em; }.home-route b { display:inline-block; color: var(--highlight); font-size: var(--header-size); transform: rotate(45deg); }.home-time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin-top: .9rem; }.home-time-grid > div { display: grid; gap: .12rem; min-width: 0; border: 1px solid var(--line); border-radius: .7rem; padding: .5rem; background: var(--bg); }.home-time-grid span, .home-time-grid small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }.home-time-grid strong { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--body-size); }.home-time-grid small { font-size: var(--caption-size); }
-
-.home-duty { display: grid; gap: .35rem; margin-top: .6rem; border: 1px solid var(--line); border-radius: .95rem; padding: .75rem; background: var(--surface-solid); box-shadow: 0 .35rem 1.2rem var(--line); }.home-duty > p { margin: 0; color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .12em; }.home-duty > div { display:flex; justify-content:space-between; align-items:baseline; }.home-duty strong { color:var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--header-size); }.home-duty span,.home-duty small { color:var(--muted); font-size: var(--caption-size); }.home-duty small { border-top:1px solid var(--line); padding-top:.45rem; }
 .home-route__plane { width:1.8rem; height:1.15rem; fill:var(--highlight); }
 .home-report-countdown { display:grid; grid-template-columns:auto 1fr auto; align-items:baseline; gap:.55rem; margin-top:.8rem; border:1px solid var(--accent-soft); border-radius:.8rem; padding:.65rem .75rem; background:var(--accent-soft); }
 .home-report-countdown span,.home-report-countdown small { color:var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing:.1em; }
@@ -1276,14 +1220,6 @@ html {
   padding: 0.5rem 0.25rem 1.75rem;
 }
 
-.settings-back-link {
-  display: inline-block;
-  margin-bottom: 2.5rem;
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
 .settings-header h1 {
   margin: 0.15rem 0 0.75rem;
   font-size: var(--title-size);
@@ -1530,7 +1466,6 @@ html {
   line-height: 1.15;
 }
 
-.tab-page-note,
 .settings-intro--body {
   box-sizing: border-box;
   margin: 0 0 .75rem;
@@ -1571,10 +1506,6 @@ html {
   max-width: none;
 }
 
-.roster-day-card {
-  scroll-margin-top: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 6mm + 4.4rem);
-}
-
 @media (max-width: 38rem) {
   .logbook-toolbar {
     align-items: stretch;
@@ -1583,12 +1514,6 @@ html {
 }
 
 /* Compact roster import lives in the fixed title bar; imported rosters start at content. */
-.roster-header__title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
 
 .roster-header__import {
   display: inline-flex;
@@ -1961,7 +1886,6 @@ html {
   }
 }
 
-
 /* Global scrollbar suppression for the installed app. Scrolling remains native. */
 html,
 body,
@@ -1975,7 +1899,6 @@ body,
   width: 0;
   height: 0;
 }
-
 
 /* Pay mobile form: stable columns, no clipping on narrow iPhones. */
 .pay-pdf-check {
@@ -2015,7 +1938,6 @@ body,
     text-align: left;
   }
 }
-
 
 /* Home: countdown priority, current-month totals, and next-flight crew. */
 .home-report-countdown {
@@ -2063,106 +1985,7 @@ body,
 .home-crew-row strong { overflow: hidden; color: var(--text); font-size: var(--caption-size); text-overflow: ellipsis; white-space: nowrap; }
 .home-crew-row small { color: var(--muted); font-size: var(--caption-size); }
 
-
 /* Roster cards: original eScrew schedule hierarchy. */
-.roster-duty-list {
-  gap: .72rem;
-}
-
-.roster-duty-card {
-  border: 1px solid var(--line);
-  border-radius: 1.45rem;
-  background: var(--surface-strong);
-  box-shadow: 0 .28rem .9rem var(--line);
-}
-
-.roster-day-card:has(.roster-sector):not(.roster-day-card--off):not(.roster-day-card--doff) {
-  border-color: var(--accent-soft);
-  background: var(--accent-soft);
-}
-
-.roster-day-card--off {
-  border-color: var(--good-soft);
-  background: var(--good-soft);
-  box-shadow: none;
-}
-
-.roster-day-card--doff {
-  border-color: var(--good-soft);
-  background: var(--good-soft);
-  box-shadow: none;
-}
-
-.roster-duty-card > header {
-  min-height: 4.55rem;
-  box-sizing: border-box;
-  padding: .82rem 1rem .7rem;
-}
-
-.roster-duty-card > header p {
-  color: var(--muted);
-  font-size: var(--caption-size);
-  letter-spacing: .1em;
-}
-
-.roster-duty-card > header h2 {
-  margin-top: .2rem;
-  color: var(--text);
-  font-size: var(--header-size);
-  line-height: 1;
-  letter-spacing: -.05em;
-}
-
-.roster-duty-card > header > span {
-  align-self: flex-start;
-  padding-top: .12rem;
-  color: var(--muted);
-  font-size: var(--caption-size);
-}
-
-.roster-duty-card__sectors {
-  border-top-color: var(--accent-soft);
-}
-
-.roster-sector,
-.roster-activity {
-  min-height: 4.15rem;
-  box-sizing: border-box;
-  padding: .7rem 1rem;
-}
-
-.roster-sector {
-  border-top-color: var(--accent-soft);
-}
-
-.roster-sector strong {
-  color: var(--text);
-  font-size: var(--header-size);
-  letter-spacing: -.035em;
-}
-
-.roster-sector i {
-  color: var(--highlight);
-}
-
-.roster-sector small,
-.roster-activity small {
-  margin-top: .16rem;
-  color: var(--muted);
-  font-size: var(--caption-size);
-}
-
-.roster-sector > span {
-  color: var(--text);
-  font-size: var(--caption-size);
-}
-
-.roster-day-card--off .roster-activity strong,
-.roster-day-card--doff .roster-activity strong {
-  color: var(--good);
-  font-size: var(--header-size);
-}
-
 
 /* Home destination weather replaces the flight-action button. */
 .home-hero__actions {
@@ -2217,7 +2040,6 @@ body,
 .home-destination-weather__forecast small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; }
 .home-destination-weather__forecast strong { color: var(--text); font-size: var(--caption-size); }
 .home-destination-weather__forecast p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: var(--caption-size); }
-
 
 /* Original eScrew visual composition — Home and Roster only. */
 .home-hero--escrew {
@@ -2591,7 +2413,6 @@ body,
   }
 }
 
-
 /* Keep PDF import available in the Logbook toolbar on compact iPhone widths. */
 @media (max-width: 31rem) {
   .logbook-header__actions {
@@ -2611,7 +2432,6 @@ body,
     white-space: nowrap;
   }
 }
-
 
 /* Roster: every flight sector uses one blue material, including today. */
 .roster-timeline__day--flight .roster-timeline-card--flight,
@@ -2649,7 +2469,6 @@ body,
   font-weight: 600;
   text-decoration: none;
 }
-
 
 /* App chrome: reserve the floating dock as a functional safe area. */
 :root {
@@ -2739,7 +2558,6 @@ body,
   color: var(--accent);
 }
 
-
 /* Floating flows use the dock clearance too; their final actions must remain tappable. */
 .aims-import-overlay {
   box-sizing: border-box;
@@ -2764,7 +2582,6 @@ body,
 .pdf-review-actions {
   bottom: calc(var(--tab-dock-safe-clearance) + env(safe-area-inset-bottom, 0px));
 }
-
 
 /* The dock uses centered optical layers: each tab receives the same material at every position. */
 .tab-dock {
@@ -3075,7 +2892,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   font-size: var(--body-size);
 }
 
-
 /* ---- pay: the import action stands on its own ------------------------------ */
 /* A single button does not need a card behind it: the card read as an empty panel with a button
    floating in it, which is what the surface tier is for — grouping related content, not framing
@@ -3362,7 +3178,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .flight-popup__crew-row small { color: var(--muted); font-size: var(--caption-size); }
 .flight-popup__empty { color: var(--muted); font-size: var(--caption-size); }
 
-
 /* The flight card is a button now, not a link: it must still lay out like the other cards. */
 .roster-timeline__day button.roster-timeline-card {
   width: 100%;
@@ -3370,7 +3185,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   font: inherit;
   text-align: left;
 }
-
 
 @keyframes flight-popup-in {
   from { transform: translateY(2.5rem); opacity: 0; }
