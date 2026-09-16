@@ -3,6 +3,8 @@ import {
   type FlightLogEntry,
 } from '@pilot-logbook/core';
 
+import { localDateKey } from '../../platform/localDate';
+
 export const numericEntryFields = [
   ['totalTimeMinutes', 'Total minutes'],
   ['picMinutes', 'PIC minutes'],
@@ -47,15 +49,9 @@ function optionalValue(value: string): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function currentDate(): string {
-  const date = new Date();
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return localDate.toISOString().slice(0, 10);
-}
-
 export function manualEntryInput(entry?: FlightLogEntry): ManualEntryInput {
   return {
-    date: entry?.date ?? currentDate(),
+    date: entry?.date ?? localDateKey(),
     departureAirport: entry?.departureAirport ?? '',
     arrivalAirport: entry?.arrivalAirport ?? '',
     flightNumber: entry?.flightNumber ?? '',

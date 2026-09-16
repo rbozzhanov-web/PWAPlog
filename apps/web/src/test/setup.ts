@@ -40,3 +40,8 @@ if (typeof window.PointerEvent === 'undefined') {
 // Nor does it implement pointer capture, which any drag handler calls on the way in.
 Element.prototype.setPointerCapture ??= function setPointerCapture() {};
 Element.prototype.releasePointerCapture ??= function releasePointerCapture() {};
+
+// jsdom has no layout, so it has no scrollIntoView either. RosterPage calls it from an animation
+// frame, which lands as an *uncaught* exception rather than a test failure — noise that would hide
+// a real one.
+Element.prototype.scrollIntoView ??= function scrollIntoView() {};

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { formatLocalDateHeader, localMonthKey } from '../../platform/localDate';
 import { formatFlightMinutes } from '../logbook/totals';
 import { loadAimsRoster, type AimsDuty, type AimsRoster } from '../roster/aims';
 import { rosterMonthTotals } from '../roster/completedSectors';
@@ -18,7 +19,7 @@ export function HomePage() {
     return () => window.removeEventListener('aims-roster-updated', refreshRoster);
   }, []);
 
-  const currentMonth = `${new Date(now).getFullYear()}-${String(new Date(now).getMonth() + 1).padStart(2, '0')}`;
+  const currentMonth = localMonthKey(new Date(now));
   const month = useMemo(
     () => rosterMonthTotals(roster, currentMonth),
     [roster, currentMonth],
@@ -34,7 +35,7 @@ export function HomePage() {
   const weatherSummary = arrivalWeather.weather ? weatherIcon(arrivalWeather.weather.weatherCode, arrivalWeather.weather.isDay) : undefined;
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
-  const today = new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date()).toUpperCase();
+  const today = formatLocalDateHeader(new Date(now));
 
   return (
     <main className="home-page">

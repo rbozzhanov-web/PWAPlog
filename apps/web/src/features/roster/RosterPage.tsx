@@ -12,6 +12,7 @@ import {
   type AimsRoster,
 } from './aims';
 import { id } from './FlightDetailPage';
+import { localDateKey } from '../../platform/localDate';
 import { HOME_BASE, stationsByDay, useRosterWeather, weatherIcon, type ForecastDay } from '../weather/weatherService';
 
 type RosterTimelineEntry =
@@ -436,10 +437,6 @@ function buildRosterDays(roster: AimsRoster): RosterDay[] {
   return [...byDate.values()]
     .map((entry) => ({ ...entry, entries: entry.entries.sort((a, b) => timelineStart(a).localeCompare(timelineStart(b))) }))
     .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-function localDateKey(value = new Date()) {
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
 }
 
 function rosterDate(value: string) { return new Date(`${value}T00:00:00Z`); }

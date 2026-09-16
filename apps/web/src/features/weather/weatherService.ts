@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { airportCoords } from './airports';
+import { localDateKey } from '../../platform/localDate';
 import type { AimsFlight, AimsRoster } from '../roster/aims';
 
 export type AirportWeather = { code: string; temp: number; weatherCode: number; isDay: boolean; windSpeed: number; windDeg: number; pressure: number; fetchedAt: number };
@@ -188,7 +189,7 @@ export function useRosterWeather(
     const codes = [...new Set(stations.map((code) => code.trim().toUpperCase()).filter(Boolean))];
     if (!codes.length || !isoDay(fromDate) || !isoDay(toDate)) { setStatus('ready'); return; }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     const from = clampToForecastWindow(fromDate!, today);
     const to = clampToForecastWindow(toDate!, today);
     if (!from || !to || from > to) { setStatus('ready'); return; }
