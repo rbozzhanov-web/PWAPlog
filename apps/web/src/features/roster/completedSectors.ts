@@ -3,7 +3,7 @@ import type { FlightLogEntry } from '@pilot-logbook/core';
 import type { AimsFlight, AimsRoster } from './aims';
 
 /**
- * What the pilot has actually flown, from the roster rather than only from the logbook.
+ * What the pilot is rostered to fly this month, from the roster rather than only from the logbook.
  *
  * Home used to total the logbook alone, so a pilot with a freshly imported roster and an empty
  * logbook was told they had flown nothing this month — while the same screen showed them their
@@ -48,59 +48,40 @@ export function sectorMinutes(flight: AimsFlight): number {
   return Math.round((incoming - out) / 60_000);
 }
 
-/**
- * True once the sector has landed. Deadhead legs are travel, not flying, and never count.
- *
- * Rolls an overnight sector's arrival to the next day the same way `sectorMinutes` does, rather
- * than trusting `arrivalDate` to always be set. The roster parser does set it whenever a sector
- * crosses midnight, so this only matters if that ever isn't true — but a missing rollover here
- * computes an arrival clock *before* the departure clock, which reads as already landed the
- * moment the sector exists, hours before it has actually even departed.
- */
-export function isFlownSector(flight: AimsFlight, now: number): boolean {
-  if (flight.deadhead) return false;
-  const departure = Date.parse(`${flight.date}T${flight.departure}:00Z`);
-  let arrival = Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00Z`);
-  if (!Number.isFinite(departure) || !Number.isFinite(arrival)) return false;
-  if (arrival < departure) arrival += 24 * 60 * 60 * 1000;
-  return arrival <= now;
-}
-
-export function flownSectors(roster: AimsRoster | undefined, now: number): AimsFlight[] {
-  return (roster?.duties ?? [])
-    .flatMap((duty) => duty.flights)
-    .filter((flight) => isFlownSector(flight, now));
-}
-
 export interface MonthTotals {
   minutes: number;
   flights: number;
 }
 
 /**
- * One month's flying: every logbook entry for the month, plus any sector the roster shows as flown
- * that has not been written to the logbook yet. Deduplicated by flight identity (date + airport
- * pair) rather than by id — a logbook entry can reach the logbook by hand, through the PDF
- * flight-time importer, or through Import AIMS, and only the last of those writes an id this
- * module would otherwise recognise. Matching by identity catches all three, so the same real
- * sector is never added into the total from both sides.
+ * One month's flying: every logbook entry for the month, plus every roster sector for the month
+ * that has not been written to the logbook yet. This is the month's full scheduled total — the
+ * same figure AIMS itself publishes as the period's Block Hours — not just what has landed so
+ * far, so it matches the roster on day one rather than growing into it. Deadhead legs are travel,
+ * not flying, and never count. Deduplicated by flight identity (date + airport pair) rather than
+ * by id — a logbook entry can reach the logbook by hand, through the PDF flight-time importer, or
+ * through Import AIMS, and only the last of those writes an id this module would otherwise
+ * recognise. Matching by identity catches all three, so the same real sector is never added into
+ * the total from both sides.
  */
 export function monthTotals(
   entries: FlightLogEntry[],
   roster: AimsRoster | undefined,
   month: string,
-  now: number,
 ): MonthTotals {
   const logged = entries.filter((entry) => entry.date.startsWith(month));
   const loggedSectors = new Set(
     logged.map((entry) => sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)),
   );
 
-  const unlogged = flownSectors(roster, now).filter(
-    (flight) =>
-      flight.date.startsWith(month) &&
-      !loggedSectors.has(sectorIdentity(flight.date, flight.origin, flight.destination)),
-  );
+  const unlogged = (roster?.duties ?? [])
+    .flatMap((duty) => duty.flights)
+    .filter(
+      (flight) =>
+        !flight.deadhead &&
+        flight.date.startsWith(month) &&
+        !loggedSectors.has(sectorIdentity(flight.date, flight.origin, flight.destination)),
+    );
 
   return {
     minutes:

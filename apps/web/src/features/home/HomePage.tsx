@@ -32,14 +32,10 @@ export function HomePage({ db }: HomePageProps) {
 
   const currentMonth = `${new Date(now).getFullYear()}-${String(new Date(now).getMonth() + 1).padStart(2, '0')}`;
   // Counted from the logbook and the roster together: a pilot who has imported a roster but not
-  // yet written it to the logbook has still flown this month, and the screen should say so.
-  // Recomputed on the month rather than on `now` so the countdown's tick does not redo it.
-  // Keyed on the minute rather than on `now`: the countdown ticks every second and this answer
-  // cannot change that fast.
-  const nowMinute = Math.floor(now / 60_000);
+  // yet written it to the logbook still has this month's schedule, and the screen should say so.
   const month = useMemo(
-    () => monthTotals(entries, roster, currentMonth, nowMinute * 60_000),
-    [entries, roster, currentMonth, nowMinute],
+    () => monthTotals(entries, roster, currentMonth),
+    [entries, roster, currentMonth],
   );
   const nextDuty = useMemo(() => roster?.duties
     .filter((duty) => dutyEndTimestamp(duty) >= now)
