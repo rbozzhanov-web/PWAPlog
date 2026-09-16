@@ -60,3 +60,9 @@ export {
   type PayrollResult,
 } from './crew-pay/kzPayroll';
 export { lastDayOfMonthDdMmYyyy, parseNbrkEurRate } from './crew-pay/nbrkRate';
+/*
+ * Safe in this barrel where the rest of `daynight` is not: this carries a ~35 KB zone table, not
+ * the 855 KB airport dataset, and the roster screens in the entry chunk need it to read AIMS
+ * times correctly.
+ */
+export { stationLocalToUtc, stationTimezone } from './daynight/stationTime';

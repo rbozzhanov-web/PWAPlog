@@ -9,6 +9,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/luxon": "^3.7.4"
+    "@types/luxon": "^3.7.4",
+    "tz-lookup": "^6.1.25"
   }
 }

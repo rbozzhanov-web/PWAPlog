@@ -192,4 +192,37 @@ describe('LogbookPage', () => {
     expect(await screen.findByText('No new completed AIMS sectors to add.')).toBeVisible();
     await expect(db.flightEntries.count()).resolves.toBe(1);
   });
+
+  // Sectors this importer wrote before the station-local block-time fix carry a total that is out
+  // by the offset between their endpoints. Re-importing skipped them, because the sector was
+  // already in the logbook, so the wrong figure stayed in the permanent record forever.
+  test('Import AIMS corrects a block time it wrote wrongly before, without touching a manual one', async () => {
+    db = createPilotLogbookDb('import-aims-correction-test');
+    await seedEntries([
+      // 4:37 is what subtracting the printed clocks used to give for this sector; it blocks 7:37.
+      entry({ id: 'aims-2026-09-04-921-NQZ-FRA', date: '2026-09-04', departureAirport: 'NQZ', arrivalAirport: 'FRA', totalTimeMinutes: 277, source: 'aims_import' }),
+      entry({ id: 'manual-1', date: '2026-09-05', departureAirport: 'FRA', arrivalAirport: 'NQZ', totalTimeMinutes: 400, source: 'manual' }),
+    ]);
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [{
+        date: '2026-09-04',
+        flights: [
+          { flightNumber: '921', date: '2026-09-04', origin: 'NQZ', destination: 'FRA', departure: '12:17', arrival: '16:54', deadhead: false, actualTimes: true },
+          { flightNumber: '922', date: '2026-09-05', origin: 'FRA', destination: 'NQZ', departure: '18:28', arrivalDate: '2026-09-06', arrival: '04:15', deadhead: false, actualTimes: true },
+        ],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-01T00:00:00.000Z',
+    });
+
+    renderLogbook();
+    await screen.findByRole('link', { name: /NQZ to FRA/i });
+    fireEvent.click(screen.getByRole('button', { name: 'Import AIMS' }));
+
+    expect(await screen.findByText('1 block time corrected.')).toBeVisible();
+    await expect(db.flightEntries.get('aims-2026-09-04-921-NQZ-FRA')).resolves.toMatchObject({ totalTimeMinutes: 7 * 60 + 37 });
+    // The pilot's own figure is theirs, however wrong this importer thinks it is.
+    await expect(db.flightEntries.get('manual-1')).resolves.toMatchObject({ totalTimeMinutes: 400 });
+    await expect(db.flightEntries.count()).resolves.toBe(2);
+  });
 });

@@ -79,18 +79,31 @@ export function LogbookPage({ db }: LogbookPageProps) {
     if (!roster) { setAimsMessage('Import the current AIMS Web Archive first.'); return; }
     // Identity (date + airport pair), not id: an entry can already cover this real sector from a
     // manual entry or a PDF import, neither of which ever carries this module's own id scheme.
-    const existingSectors = new Set(entries.map((entry) => sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)));
+    const existingSectors = new Map(entries.map((entry) => [sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport), entry]));
     const now = Date.now();
-    const candidates = roster.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead && flight.actualTimes && Date.parse(`${flight.date}T${flight.arrival}:00`) < now).map((flight) => ({
+    const flown = roster.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead && flight.actualTimes && Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00`) < now);
+    const candidates = flown.map((flight) => ({
       id: aimsSectorId(flight),
       date: flight.date, flightNumber: flight.flightNumber, departureAirport: flight.origin, arrivalAirport: flight.destination,
       aircraftType: flight.aircraftType, timeOut: flight.departure, timeIn: flight.arrival, totalTimeMinutes: sectorMinutes(flight),
       ...NEW_ENTRY_DEFAULTS, source: 'aims_import' as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     })).filter((entry) => !existingSectors.has(sectorIdentity(entry.date, entry.departureAirport, entry.arrivalAirport)));
-    if (!candidates.length) { setAimsMessage('No new completed AIMS sectors to add.'); return; }
-    await putFlightEntries(db, candidates);
+    // Sectors this importer wrote earlier can carry a block time it computed wrongly — before the
+    // station-local fix, anything crossing an offset was out by the difference. Re-importing used
+    // to skip them silently because the sector was already present. Only entries this importer
+    // owns are rewritten; a manual or PDF entry is the pilot's own figure and is left alone.
+    const corrections = flown.flatMap((flight) => {
+      const existing = existingSectors.get(sectorIdentity(flight.date, flight.origin, flight.destination));
+      const minutes = sectorMinutes(flight);
+      if (!existing || existing.source !== 'aims_import' || existing.totalTimeMinutes === minutes) return [];
+      return [{ ...existing, totalTimeMinutes: minutes, updatedAt: new Date().toISOString() }];
+    });
+    if (!candidates.length && !corrections.length) { setAimsMessage('No new completed AIMS sectors to add.'); return; }
+    await putFlightEntries(db, [...candidates, ...corrections]);
     setEntries(await listFlightEntries(db));
-    setAimsMessage(`${candidates.length} completed AIMS sector${candidates.length === 1 ? '' : 's'} added locally.`);
+    const added = candidates.length ? `${candidates.length} completed AIMS sector${candidates.length === 1 ? '' : 's'} added locally.` : '';
+    const fixed = corrections.length ? `${corrections.length} block time${corrections.length === 1 ? '' : 's'} corrected.` : '';
+    setAimsMessage([added, fixed].filter(Boolean).join(' '));
   };
 
   return (

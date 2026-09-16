@@ -1,3 +1,5 @@
+import { stationLocalToUtc } from '@pilot-logbook/core';
+
 import type { AimsFlight, AimsRoster } from './aims';
 
 /**
@@ -30,16 +32,42 @@ export function sectorIdentity(date: string, departure: string, arrival: string)
 }
 
 /**
- * Block minutes from the roster's own clocks.
+ * Block minutes for one sector, reading each clock at the station it belongs to.
  *
- * AIMS prints each leg in the local time of the station it sits under, so this is exact for a
- * sector that stays within one offset and drifts by the difference where it does not — the same
- * approximation the logbook's own AIMS import has always written. Good enough to total a month;
- * not good enough to pay on, which is why crew pay uses published norms instead.
+ * This used to subtract the two printed clocks directly. That is only right when both stations
+ * share an offset, and this pilot's month is mostly NQZ↔FRA, three hours apart: the outbound came
+ * out at 4:37 and the identical return at 9:47. Across a balanced out-and-back the two errors
+ * cancel, so the month still totalled AIMS's own 47:20 and the mistake stayed invisible in the
+ * summary while every individual sector — including the ones Import AIMS writes into the permanent
+ * logbook as `totalTimeMinutes` — was wrong by the offset between its endpoints.
+ *
+ * See `stationTime.ts` in core for the evidence that AIMS's clocks are station-local.
+ *
+ * When a station isn't in the zone table, this falls back to the old clock difference rather than
+ * dropping the sector: a slightly wrong total beats a missing one, and for a domestic sector the
+ * two readings agree anyway.
  */
 export function sectorMinutes(flight: AimsFlight): number {
-  const out = Date.parse(`${flight.date}T${flight.departure}:00Z`);
-  let incoming = Date.parse(`${flight.arrivalDate ?? flight.date}T${flight.arrival}:00Z`);
+  const arrivalDate = flight.arrivalDate ?? flight.date;
+  const out = stationLocalToUtc(flight.date, flight.departure, flight.origin);
+  const incoming = stationLocalToUtc(arrivalDate, flight.arrival, flight.destination);
+  if (out && incoming) {
+    let minutes = Math.round((incoming.getTime() - out.getTime()) / 60_000);
+    // An arrival with no explicit next-day marker that lands before its departure crossed midnight.
+    if (minutes < 0) minutes += 24 * 60;
+    return minutes;
+  }
+  return clockDifferenceMinutes(flight.date, flight.departure, arrivalDate, flight.arrival);
+}
+
+function clockDifferenceMinutes(
+  outDate: string,
+  outTime: string,
+  inDate: string,
+  inTime: string,
+): number {
+  const out = Date.parse(`${outDate}T${outTime}:00Z`);
+  let incoming = Date.parse(`${inDate}T${inTime}:00Z`);
   if (!Number.isFinite(out) || !Number.isFinite(incoming)) return 0;
   if (incoming < out) incoming += 24 * 60 * 60 * 1000;
   return Math.round((incoming - out) / 60_000);
