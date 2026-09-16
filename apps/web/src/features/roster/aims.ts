@@ -50,7 +50,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
   }
   if (!duties.length) throw new Error('The saved AIMS schedule contains no flight sectors. Make sure the calendar was fully loaded before saving it.');
   duties.sort((a, b) => (a.start ?? a.date).localeCompare(b.start ?? b.date));
-  attachCrew(duties, findElement(result.elementList, 'members'));
+  attachCrew(duties, findElement(result.elementList, 'members'), selfCrewId(events));
   const hours = findElement(result.elementList, 'hours');
   const totals = Array.isArray(hours?.data) ? hours.data.reduce<{ blockMinutes?: number; nightMinutes?: number }>((summary, row) => {
     if (!record(row)) return summary; const value = minutes(text(row.hours)); const label = text(row.desc).toLowerCase();
@@ -105,7 +105,13 @@ function sectorDetails(event: RecordValue) {
 function aircraft(event: RecordValue) { return ['aircraftType', 'AircraftType', 'aircraft', 'Aircraft', 'acType', 'ACType'].map((key) => scalar(event[key])).find(Boolean) || undefined; }
 function absenceCode(event: RecordValue): AimsAbsence['code'] | undefined { const value = `${text(event.type)} ${text(event.text)} ${text(event.details)}`.toUpperCase(); return (['SICK', 'UFF', 'VAC', 'CHLD'] as const).find((code) => new RegExp(`\\b${code}\\b`).test(value)); }
 function eventCode(event: RecordValue) { return /^([A-Z0-9]{2,8})\b/i.exec(text(event.text).trim())?.[1]?.toUpperCase(); }
-function attachCrew(duties: AimsDuty[], members?: RecordValue) {
+/**
+ * A duty's own `IsDeadhead` flag applies to the whole event, but a multi-sector duty can have the
+ * pilot operate one leg and deadhead home on another \u2014 AIMS still marks both sectors with the same
+ * flag. The per-sector crew list carries the true, per-leg answer for whoever is "self" in it, so
+ * once we know self's crew id we prefer that over the event-level flag wherever it's available.
+ */
+function attachCrew(duties: AimsDuty[], members: RecordValue | undefined, self: string | undefined) {
   const groups = Array.isArray(members?.data) ? members.data : [];
   for (const group of groups) {
     if (!record(group) || !Array.isArray(group.data)) continue;
@@ -119,8 +125,21 @@ function attachCrew(duties: AimsDuty[], members?: RecordValue) {
     if (!crew.length) continue;
     const date = `${year}-${month}-${day}`; const normalizedNumber = number.replace(/^KC/i, '');
     const flight = duties.flatMap((duty) => duty.flights).find((candidate) => candidate.date === date && candidate.flightNumber.replace(/^KC/i, '') === normalizedNumber && candidate.origin === origin.toUpperCase() && candidate.destination === destination.toUpperCase());
-    if (flight) flight.crew = crew;
+    if (!flight) continue;
+    flight.crew = crew;
+    const own = crew.find((member) => member.id === self);
+    if (own) flight.deadhead = Boolean(own.deadhead);
   }
+}
+/** The crew id every event in a personal AIMS schedule is filed under \u2014 AIMS names each event
+ *  `<crewId>on<timestamp>_...`, so any event's id reveals whose schedule this is. */
+function selfCrewId(events: unknown[]): string | undefined {
+  for (const event of events) {
+    if (!record(event)) continue;
+    const match = /^(\d+)on/.exec(scalar(event.id));
+    if (match) return match[1];
+  }
+  return undefined;
 }
 function hotels(element?: RecordValue): AimsHotel[] {
   return (Array.isArray(element?.data) ? element.data : []).flatMap((row): AimsHotel[] => {

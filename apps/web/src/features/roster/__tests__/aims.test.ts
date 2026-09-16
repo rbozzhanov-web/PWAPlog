@@ -37,4 +37,31 @@ describe('parseAimsArchive', () => {
       departure: '18:28', arrival: '04:15', arrivalDate: '2026-09-06',
     });
   });
+
+  // The real bug this guards: a duty's own IsDeadhead flag applies to the whole event, but a
+  // pilot can operate one leg of a multi-sector duty and deadhead home on the other — AIMS still
+  // marks both sectors with the same flag. Confirmed against a real archive: this pilot operated
+  // FRA-NQZ as CP but deadheaded the NQZ-ALA return, and trusting the event-level flag for both
+  // undercounted the month's block hours by the whole operated leg. The per-sector crew list (via
+  // whichever crew id every event in this schedule is filed under) carries the true, per-leg
+  // answer and must win over that event-level flag.
+  it("trusts each sector's own crew list over the duty's single deadhead flag", async () => {
+    const initialResult = {
+      SchedulerEvents: [{
+        id: '1234on2026-09-12T17:30:00_x',
+        start: '2026-09-12T17:30:00', end: '2026-09-13T08:54:00',
+        report: '17:30', debrief: '08:54', type: 'Flight', IsDeadhead: true,
+        details: '922  - FRA  (A1830) - NQZ  (A0435⁺¹) \r\n622  - NQZ  (A0709⁺¹) - ALA  (A0854⁺¹) ',
+      }],
+      elementList: [{ id: 'members', data: [
+        { value: '12/09/2026 922 FRA - NQZ', data: [{ value2: 'SELF NAME', value3: 1234, value4: 'CP' }] },
+        { value: '13/09/2026 622 NQZ - ALA', data: [{ value2: 'SELF NAME', value3: 1234, value4: 'CP - DHC' }] },
+      ] }],
+    };
+    const archive = `<script>localStorage['PeriodStart']='2026-09-01';localStorage['PeriodEnd']='2026-09-30';var initialResult = ${JSON.stringify(initialResult)};</script>CrewSchedule`;
+    const roster = await parseAimsArchive(archiveFile(archive));
+    const [operated, deadheaded] = roster.duties[0].flights;
+    expect(operated).toMatchObject({ flightNumber: 'KC922', deadhead: false });
+    expect(deadheaded).toMatchObject({ flightNumber: 'KC622', deadhead: true });
+  });
 });
