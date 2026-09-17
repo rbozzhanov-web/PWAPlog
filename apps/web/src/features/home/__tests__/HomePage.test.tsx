@@ -80,3 +80,77 @@ describe('HomePage date header', () => {
     expect(overview).not.toHaveTextContent('1h 30m');
   });
 });
+
+function leg(date: string, flightNumber: string, origin: string, destination: string, departure: string, arrival: string, arrivalDate?: string): AimsFlight {
+  return { date, flightNumber, origin, destination, departure, arrival, arrivalDate, deadhead: false, actualTimes: false };
+}
+
+function dutyRoster(report: string, ...flights: AimsFlight[]): AimsRoster {
+  return {
+    period: { start: '2026-09-01', end: '2026-10-31' },
+    duties: [{ date: flights[0].date, report, flights }],
+    hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-01T00:00:00.000Z',
+  };
+}
+
+const BEFORE_THE_DUTY = new Date('2026-09-25T06:00:00Z');
+
+describe('HomePage hero', () => {
+  it('shows the whole day the pilot flies, not just the leg in front of them', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    saveAimsRoster(dutyRoster(
+      '2026-09-25T18:25',
+      leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25'),
+      leg('2026-09-25', 'KC856', 'NQZ', 'ALA', '22:25', '00:05', '2026-09-26'),
+    ));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    const route = document.querySelector('.home-route');
+    expect([...route!.querySelectorAll('.home-route__stop strong')].map((node) => node.textContent))
+      .toEqual(['ALA', 'NQZ', 'ALA']);
+    expect([...route!.querySelectorAll('.home-route__flight strong')].map((node) => node.textContent))
+      .toEqual(['KC855', 'KC856']);
+  });
+
+  it('spans the day with its times: report, first off-blocks, last on-blocks', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    saveAimsRoster(dutyRoster(
+      '2026-09-25T18:25',
+      leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25'),
+      leg('2026-09-25', 'KC856', 'NQZ', 'ALA', '22:25', '00:05', '2026-09-26'),
+    ));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    const times = [...document.querySelectorAll('.home-time-grid > div')].map((cell) => cell.textContent);
+    // 00:05 is the second leg's arrival — the first leg's 21:25 would only describe half the day.
+    expect(times).toEqual(['Report18:25L', 'Departure19:40L', 'Landing00:05L']);
+    // The clock carries an L rather than a LOCAL caption under every column.
+    expect(screen.queryByText('LOCAL')).toBeNull();
+  });
+
+  it('reads a single-sector day as a plain pair', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    saveAimsRoster(dutyRoster('2026-09-25T10:40', leg('2026-09-25', 'KC921', 'NQZ', 'FRA', '12:17', '16:54')));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    const route = document.querySelector('.home-route');
+    expect([...route!.querySelectorAll('.home-route__stop strong')].map((node) => node.textContent))
+      .toEqual(['NQZ', 'FRA']);
+    // The chain modifier is what steps the code size down; a two-stop day does not need it.
+    expect(route).not.toHaveClass('home-route--chain');
+  });
+
+  it('puts the destination and its weather on one line', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    saveAimsRoster(dutyRoster('2026-09-25T18:25', leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25')));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    const strip = document.querySelector('.home-destination-weather strong');
+    expect(strip?.textContent).toMatch(/^NQZ • /);
+    expect(document.querySelector('.home-destination-weather')?.textContent).not.toMatch(/DESTINATION/);
+  });
+});

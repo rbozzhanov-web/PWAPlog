@@ -51,6 +51,17 @@
      still spills rather than reading as a hard ring. */
   --glow-today: 0 0 .5rem rgb(45 125 255 / 55%), 0 0 2.25rem rgb(45 125 255 / 60%);
 
+  /* The Home hero is the one card the pilot looks at before anything else, so it is the only one
+     lit from behind. Far softer than --glow-today, which has to win a scan down a list of roster
+     days: this sits under a card that is already the largest thing on the screen and only needs to
+     lift it off the sky. Same two-layer shape — a tight inner spill and a wide outer one. */
+  --glow-hero: 0 0 1.1rem rgb(45 125 255 / 30%), 0 0 3.4rem rgb(45 125 255 / 34%);
+
+  /* The card tier's own glass fill. Thinner than --surface-strong, which is what a card uses when
+     it is carrying text straight over the wallpaper and needs the contrast; this is for cards that
+     also blur what is behind them, where the blur does half the work of separating them. */
+  --card-glass: rgb(255 255 255 / 62%);
+
   /* ---- material ---------------------------------------------------------- */
   /* Glass is additive: the flat palette above carries the design on its own, these only lift
      elevated layers off it. Blur strength scales with how far a layer sits above the page. */
@@ -108,6 +119,10 @@
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
   --title-size: 28px;
+  /* Station codes in the Home hero's route. A day can be one sector or three, and the chain has to
+     fit a phone either way, so the compact step is what a route with more than two stops uses. */
+  --route-code-size: 28px;
+  --route-code-size-compact: 22px;
   --title-line: 34px;
   --header-size: 17px;
   --header-line: 22px;
@@ -156,6 +171,8 @@ html.theme-dark {
   /* Carried a touch stronger than light's, matching the tint tokens above: the same alpha reads
      weaker against a dark surface. */
   --glow-today: 0 0 .6rem rgb(76 141 255 / 65%), 0 0 2.75rem rgb(76 141 255 / 70%);
+  --glow-hero: 0 0 1.2rem rgb(76 141 255 / 38%), 0 0 3.8rem rgb(76 141 255 / 42%);
+  --card-glass: rgb(24 33 53 / 58%);
 
   --popup-glass: rgb(24 33 53 / 78%);
   --popup-scrim: rgb(3 8 18 / 58%);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { formatLocalDateHeader, localMonthKey } from '../../platform/localDate';
@@ -33,6 +33,15 @@ export function HomePage() {
   const layoverHours = useMemo(() => nextFlight ? nextLayoverHours(roster, nextFlight) : 0, [roster, nextFlight]);
   const canExpandWeather = layoverHours > 3;
   const weatherSummary = arrivalWeather.weather ? weatherIcon(arrivalWeather.weather.weatherCode, arrivalWeather.weather.isDay) : undefined;
+  // The hero is one duty day, so the route is the whole chain the pilot flies that day —
+  // ALA-NQZ-ALA, not just the leg in front of them — and the three times below it span the same
+  // day: report, first off-blocks, last on-blocks.
+  const dayRoute = useMemo(() => {
+    const legs = nextDuty?.flights ?? [];
+    return legs.length ? { origin: legs[0].origin, legs } : undefined;
+  }, [nextDuty]);
+  const dayDeparture = dayRoute?.legs[0];
+  const dayArrival = dayRoute?.legs.at(-1);
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
   const today = formatLocalDateHeader(new Date(now));
@@ -45,24 +54,37 @@ export function HomePage() {
       </header>
 
       <section className="home-hero home-hero--escrew">
-        <p className="home-hero__eyebrow">{nextFlight ? 'NEXT SECTOR' : 'PILOT LOGBOOK'}</p>
+        <p className="home-hero__eyebrow">{nextFlight ? 'NEXT DUTY' : 'PILOT LOGBOOK'}</p>
         {nextFlight ? <>
-          <div className="home-route">
-            <span><strong>{nextFlight.origin}</strong><small>{airportName(nextFlight.origin)}</small></span>
-            <div className="home-route__flight">
-              <svg className="home-route__plane" aria-hidden="true" viewBox="0 0 32 20"><path d="M29 10 18 2h-4l5 8H9L5 6H2l2 4-2 4h3l4-4h10l-5 8h4z" /></svg>
-              <strong>{nextFlight.flightNumber}</strong>
-              {nextFlight.aircraftType ? <small>{nextFlight.aircraftType}</small> : null}
-            </div>
-            <span><strong>{nextFlight.destination}</strong><small>{airportName(nextFlight.destination)}</small></span>
+          <div className={'home-route' + ((dayRoute?.legs.length ?? 0) > 1 ? ' home-route--chain' : '') + ((dayRoute?.legs.length ?? 0) > 2 ? ' home-route--dense' : '')}>
+            <span className="home-route__stop"><strong>{dayRoute?.origin ?? nextFlight.origin}</strong><small>{airportName(dayRoute?.origin ?? nextFlight.origin)}</small></span>
+            {(dayRoute?.legs ?? [nextFlight]).map((leg, index) => (
+              <Fragment key={`${leg.flightNumber}-${leg.date}-${index}`}>
+                <span className="home-route__flight">
+                  <svg className="home-route__plane" aria-hidden="true" viewBox="0 0 32 20"><path d="M29 10 18 2h-4l5 8H9L5 6H2l2 4-2 4h3l4-4h10l-5 8h4z" /></svg>
+                  <strong>{leg.flightNumber}</strong>
+                  {leg.aircraftType && (dayRoute?.legs.length ?? 1) === 1 ? <small>{leg.aircraftType}</small> : null}
+                </span>
+                <span className="home-route__stop"><strong>{leg.destination}</strong><small>{airportName(leg.destination)}</small></span>
+              </Fragment>
+            ))}
           </div>
           <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock(nextDuty)}</strong></div>
-          <div className="home-time-grid"><div><span>Report</span><strong>{reportClock(nextDuty)}</strong><small>LOCAL</small></div><div><span>Departure</span><strong>{nextFlight.departure}</strong><small>LOCAL</small></div><div><span>Landing</span><strong>{nextFlight.arrival}</strong><small>LOCAL</small></div></div>
+          <div className="home-time-grid">
+            <div><span>Report</span><strong>{reportClock(nextDuty)}<i>L</i></strong></div>
+            <div><span>Departure</span><strong>{(dayDeparture ?? nextFlight).departure}<i>L</i></strong></div>
+            <div><span>Landing</span><strong>{(dayArrival ?? nextFlight).arrival}<i>L</i></strong></div>
+          </div>
         </> : <><h2>{roster ? 'Ready for your next sector.' : 'Bring in your AIMS roster.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
         <div className="home-hero__actions">
           {nextFlight ? <div className={'home-destination-weather' + (canExpandWeather ? ' is-expandable' : '')}>
             <button aria-expanded={canExpandWeather ? weatherExpanded : undefined} disabled={!canExpandWeather} onClick={() => { if (canExpandWeather) setWeatherExpanded((value) => !value); }} type="button">
-              <b aria-hidden="true">{weatherSummary?.icon ?? '◌'}</b><span><small>DESTINATION · {nextFlight.destination}</small><strong>{arrivalWeather.weather ? [arrivalWeather.weather.temp + '°', weatherSummary?.label, windDirectionLabel(arrivalWeather.weather.windDeg) + ' ' + arrivalWeather.weather.windSpeed + ' kt'].join(' · ') : arrivalWeather.status === 'loading' ? 'Loading weather…' : 'Weather unavailable'}</strong></span>{canExpandWeather ? <i aria-hidden="true">{weatherExpanded ? '⌃' : '⌄'}</i> : null}
+              <b aria-hidden="true">{weatherSummary?.icon ?? '◌'}</b><span><strong>{[
+                nextFlight.destination,
+                ...(arrivalWeather.weather
+                  ? [arrivalWeather.weather.temp + '°', weatherSummary?.label, windDirectionLabel(arrivalWeather.weather.windDeg) + ' ' + arrivalWeather.weather.windSpeed + ' kt']
+                  : [arrivalWeather.status === 'loading' ? 'Loading weather…' : 'Weather unavailable']),
+              ].filter(Boolean).join(' • ')}</strong></span>{canExpandWeather ? <i aria-hidden="true">{weatherExpanded ? '⌃' : '⌄'}</i> : null}
             </button>
             {canExpandWeather && weatherExpanded ? <div className="home-destination-weather__forecast">{arrivalWeather.forecast?.map((day) => { const forecast = weatherIcon(day.weatherCode); return <span key={day.date}><small>{day.date}</small><strong>{forecast.icon} {day.tempMax}° / {day.tempMin}°</strong></span>; }) ?? <p>Forecast is loading…</p>}</div> : null}
           </div> : <Link to="/logbook/new">Log a flight <span>＋</span></Link>}
