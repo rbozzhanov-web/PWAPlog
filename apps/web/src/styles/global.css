@@ -3296,3 +3296,101 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .aims-import-sheet__pastebox button:disabled {
   opacity: .5;
 }
+
+/* The roster header carries two actions now: paste what the shortcut copied, or pick a file. */
+.primary-tab-header__actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: .4rem;
+  align-items: center;
+}
+
+.primary-tab-header__paste {
+  display: inline-flex;
+  min-height: 2.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  padding: 0 .7rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--caption-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.primary-tab-header__paste > span {
+  color: var(--accent);
+  font-size: var(--body-size);
+  line-height: 1;
+}
+
+/*
+ * The cross-fading tab titles are decoration, and they stretch the full width of a header that is
+ * fixed over every page. Left tappable they swallowed presses meant for the buttons beside them —
+ * the roster's own header row sits directly underneath, and only cleared the title text by being
+ * far enough right.
+ */
+.primary-tab-header__titles {
+  pointer-events: none;
+}
+
+.roster-paste-box {
+  display: grid;
+  gap: .45rem;
+  margin: .75rem 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: .8rem;
+  background: var(--card-glass);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  color: var(--muted);
+  font-size: var(--caption-size);
+  font-weight: 600;
+}
+
+.roster-paste-box textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: .7rem;
+  padding: .55rem;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--caption-size);
+  resize: vertical;
+}
+
+.roster-paste-box > div {
+  display: flex;
+  gap: .4rem;
+}
+
+.roster-paste-box button {
+  min-height: 2.5rem;
+  flex: 1;
+  border: 0;
+  border-radius: .7rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+  font-size: var(--caption-size);
+  font-weight: 600;
+}
+
+.roster-paste-box button:disabled {
+  opacity: .5;
+}
+
+/* Two classes, to outrank `.roster-paste-box button` above without reaching for !important. */
+.roster-paste-box .roster-paste-box__cancel {
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+  color: var(--text);
+}

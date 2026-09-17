@@ -41,6 +41,12 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     window.addEventListener('open-aims-import', openImportFlow);
     return () => window.removeEventListener('open-aims-import', openImportFlow);
   }, [openImportFlow]);
+  // Both roster actions live in the app's fixed header, which sits above this page's own.
+  useEffect(() => {
+    const paste = () => { void pasteFromClipboard(); };
+    window.addEventListener('paste-aims-roster', paste);
+    return () => window.removeEventListener('paste-aims-roster', paste);
+  });
   useEffect(() => {
     if (!importFlowOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -171,10 +177,26 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           {importing ? 'Reading…' : roster ? 'Replace AIMS' : 'Add AIMS'}
         </button>
       </header>
+      {pasteOpen && !importFlowOpen ? <label className="roster-paste-box">
+        Paste what the AIMS shortcut copied
+        <textarea
+          aria-label="Paste the roster link from AIMS"
+          disabled={importing}
+          onChange={(event) => setPasted(event.target.value)}
+          placeholder="Long-press here and choose Paste"
+          rows={3}
+          value={pasted}
+        />
+        <div>
+          <button disabled={importing || !pasted.trim()} onClick={() => void importPastedRoster(pasted)} type="button">Import it</button>
+          <button className="roster-paste-box__cancel" disabled={importing} onClick={() => { setPasteOpen(false); setPasted(''); setError(undefined); }} type="button">Cancel</button>
+        </div>
+      </label> : null}
+      {error && !importFlowOpen ? <p className="roster-import-error" role="alert">{error}</p> : null}
       {!roster ? <section className="roster-empty-card roster-empty-card--compact">
         <span aria-hidden="true">✈</span>
         <h2>Bring in your AIMS roster</h2>
-        <p>In AIMS, open Crew Schedule, wait for it to load, save it as a Web Archive, then use Add AIMS above.</p>
+        <p>Set up the one-tap shortcut in Settings, then Share it from AIMS and press Paste above. Or save the Crew Schedule as a Web Archive and use Add AIMS.</p>
       </section> : null}
       {roster ? <section aria-label="Crew schedule" className="roster-timeline">
         {rosterDays.map((day) => {

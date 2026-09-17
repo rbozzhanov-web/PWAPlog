@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { RosterPage } from '../RosterPage';
@@ -248,6 +248,28 @@ describe('pasting a roster from the AIMS shortcut', () => {
 
     expect(await screen.findByRole('button', { name: 'Replace AIMS' })).toBeVisible();
     expect(JSON.parse(localStorage.getItem('pwaplog.aims-roster.v1')!).duties[0].flights[0].flightNumber).toBe('KC921');
+  });
+
+  /**
+   * Both roster actions live in the app's fixed header, which is layered above this page's own —
+   * a button rendered here would be behind it and untappable. The header dispatches instead.
+   */
+  it('imports when the app header asks it to, without the sheet being open', async () => {
+    Object.assign(navigator, { clipboard: { readText: async () => `https://pwaplog.pages.dev/import/aims#r=${payload}` } });
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+
+    await act(async () => { window.dispatchEvent(new Event('paste-aims-roster')); });
+
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('pwaplog.aims-roster.v1')!).duties[0].flights[0].flightNumber).toBe('KC921'));
+  });
+
+  it('opens the box under the header when the clipboard read is refused', async () => {
+    Object.assign(navigator, { clipboard: { readText: async () => { throw new Error('NotAllowedError'); } } });
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+
+    await act(async () => { window.dispatchEvent(new Event('paste-aims-roster')); });
+
+    expect(await screen.findByLabelText('Paste the roster link from AIMS')).toBeVisible();
   });
 
   it('shows the reason the shortcut gave rather than a parse failure', async () => {
