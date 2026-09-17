@@ -200,3 +200,63 @@ describe('RosterPage AIMS import flow', () => {
     vi.unstubAllGlobals();
   });
 });
+
+/**
+ * The route that gets a roster into an installed PWA. Safari and a home-screen app keep separate
+ * storage on iOS, so the shortcut's link cannot carry it across — the clipboard has to.
+ */
+describe('pasting a roster from the AIMS shortcut', () => {
+  let payload: string;
+
+  beforeEach(async () => {
+    localStorage.clear();
+    const { encodeHandoff } = await import('../aimsHandoff');
+    const gz = await encodeHandoff({
+      v: 1,
+      result: { SchedulerEvents: [{ start: '2026-09-04T10:40:00', end: '2026-09-04T17:24:00', report: '10:40', debrief: '17:24', type: 'Flight', IsDeadhead: false, details: '921  - NQZ  (A1217) - FRA  (A1654)' }] },
+      periodStart: '2026-09-01',
+      periodEnd: '2026-09-30',
+    });
+    payload = gz;
+  });
+
+  async function openPasteBox() {
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Add AIMS' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Paste roster from AIMS' }));
+    return screen.findByLabelText('Paste the roster link from AIMS');
+  }
+
+  it('imports straight from the clipboard when iOS allows the read', async () => {
+    Object.assign(navigator, { clipboard: { readText: async () => `https://pwaplog.pages.dev/import/aims#r=${payload}` } });
+
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Add AIMS' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Paste roster from AIMS' }));
+
+    expect(await screen.findByRole('button', { name: 'Replace AIMS' })).toBeVisible();
+    expect(JSON.parse(localStorage.getItem('pwaplog.aims-roster.v1')!).duties[0].flights[0].flightNumber).toBe('KC921');
+  });
+
+  it('offers a box to paste into when the clipboard read is refused', async () => {
+    // iOS asks before letting a page read the clipboard, so a refusal is ordinary, not exceptional.
+    Object.assign(navigator, { clipboard: { readText: async () => { throw new Error('NotAllowedError'); } } });
+
+    const box = await openPasteBox();
+    fireEvent.change(box, { target: { value: `https://pwaplog.pages.dev/import/aims#r=${payload}` } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import it' }));
+
+    expect(await screen.findByRole('button', { name: 'Replace AIMS' })).toBeVisible();
+    expect(JSON.parse(localStorage.getItem('pwaplog.aims-roster.v1')!).duties[0].flights[0].flightNumber).toBe('KC921');
+  });
+
+  it('shows the reason the shortcut gave rather than a parse failure', async () => {
+    Object.assign(navigator, { clipboard: { readText: async () => '' } });
+
+    const box = await openPasteBox();
+    fireEvent.change(box, { target: { value: `https://pwaplog.pages.dev/import/aims#e=${encodeURIComponent('Let the AIMS page finish loading.')}` } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import it' }));
+
+    expect(await screen.findByText('Let the AIMS page finish loading.')).toBeVisible();
+  });
+});

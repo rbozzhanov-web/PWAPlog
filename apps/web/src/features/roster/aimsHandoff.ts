@@ -91,6 +91,27 @@ export async function rosterFromHandoff(encoded: string, compressed = true): Pro
 }
 
 /**
+ * Reads whatever the shortcut left on the clipboard — the whole link, or only its payload.
+ *
+ * This exists because of a wall the navigating route cannot cross. An installed PWA has its own
+ * storage on iOS, separate from Safari's, and a link opened from the AIMS page lands in Safari.
+ * The roster imports perfectly and into the wrong copy of the app, which looks from the home
+ * screen exactly like nothing happening at all. The clipboard is one of the few things both sides
+ * share, so the payload crosses on it and the pilot pastes it into the app they actually use.
+ */
+export async function rosterFromHandoffText(text: string): Promise<AimsRoster> {
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error('Nothing was pasted. Run the shortcut on your AIMS schedule first, then come back.');
+  // The script reports its own failures in the link rather than losing them.
+  const reported = /[#&]e=([^&\s]+)/.exec(trimmed);
+  if (reported) throw new Error(decodeURIComponent(reported[1]));
+  const payload = /[#&](r|j)=([A-Za-z0-9_-]+)/.exec(trimmed);
+  if (payload) return rosterFromHandoff(payload[2], payload[1] === 'r');
+  if (/^[A-Za-z0-9_-]{64,}$/.test(trimmed)) return rosterFromHandoff(trimmed, false);
+  throw new Error('That is not a roster link. Copy what the shortcut produced, without changing it.');
+}
+
+/**
  * The script the pilot runs on the AIMS Crew Schedule page.
  *
  * Entirely synchronous, which is the whole design. Shortcuts' "Run JavaScript on Web Page" does

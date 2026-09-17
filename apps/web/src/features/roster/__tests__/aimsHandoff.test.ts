@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseAimsArchive } from '../aims';
-import { decodeHandoff, encodeHandoff, aimsBookmarklet, aimsHandoffScript, rosterFromHandoff, HANDOFF_VERSION } from '../aimsHandoff';
+import { decodeHandoff, encodeHandoff, aimsBookmarklet, aimsHandoffScript, rosterFromHandoff, rosterFromHandoffText, HANDOFF_VERSION } from '../aimsHandoff';
 
 const schedule = {
   SchedulerEvents: [
@@ -151,5 +151,56 @@ describe('the script the pilot runs on the AIMS page', () => {
     expect(folded.startsWith('javascript:')).toBe(true);
     expect(folded).not.toMatch(/\n/);
     expect(decodeURIComponent(folded.slice('javascript:'.length))).toContain('initialResult');
+  });
+});
+
+/**
+ * An app added to the iOS home screen keeps its own storage, separate from Safari's, so a link
+ * opened from the AIMS page imports into Safari's copy of eScrew while the installed one shows
+ * nothing. The clipboard crosses that line; these cover what arrives on it.
+ */
+describe('reading the roster off the clipboard', () => {
+  const ORIGIN = 'https://pwaplog.pages.dev';
+  const script = aimsHandoffScript(ORIGIN);
+
+  function copiedByTheShortcut(): string {
+    (window as unknown as { initialResult?: unknown }).initialResult = schedule;
+    localStorage.PeriodStart = '2026-09-01';
+    localStorage.PeriodEnd = '2026-09-30';
+    let url = '';
+    new Function('completion', `return ${script}`)((u: string) => { url = u; });
+    delete (window as unknown as { initialResult?: unknown }).initialResult;
+    return url;
+  }
+
+  it('takes the whole link, which is what Copy to Clipboard hands over', async () => {
+    const roster = await rosterFromHandoffText(copiedByTheShortcut());
+    expect(roster.duties[0].flights[0]).toMatchObject({ flightNumber: 'KC921', origin: 'NQZ' });
+  });
+
+  it('takes just the payload, for a shortcut trimmed to copy only that', async () => {
+    const roster = await rosterFromHandoffText(copiedByTheShortcut().split('#j=')[1]);
+    expect(roster.duties[0].flights[0]).toMatchObject({ flightNumber: 'KC921' });
+  });
+
+  it('forgives whitespace around a pasted link', async () => {
+    const roster = await rosterFromHandoffText(`\n  ${copiedByTheShortcut()}  \n`);
+    expect(roster.period).toEqual({ start: '2026-09-01', end: '2026-09-30' });
+  });
+
+  it('still reads the older compressed form, so an installed shortcut keeps working', async () => {
+    const encoded = await encodeHandoff({ v: HANDOFF_VERSION, result: schedule, periodStart: '2026-09-01', periodEnd: '2026-09-30' });
+    const roster = await rosterFromHandoffText(`${ORIGIN}/import/aims#r=${encoded}`);
+    expect(roster.duties[0].flights[0]).toMatchObject({ flightNumber: 'KC921' });
+  });
+
+  it('passes on the reason the script reported rather than a parse failure', async () => {
+    await expect(rosterFromHandoffText(`${ORIGIN}/import/aims#e=${encodeURIComponent('Let it finish loading')}`))
+      .rejects.toThrow('Let it finish loading');
+  });
+
+  it('says what to do when the clipboard held nothing useful', async () => {
+    await expect(rosterFromHandoffText('   ')).rejects.toThrow(/Run the shortcut/);
+    await expect(rosterFromHandoffText('https://example.com/holiday-photos')).rejects.toThrow(/not a roster link/);
   });
 });

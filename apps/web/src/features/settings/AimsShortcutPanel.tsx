@@ -41,21 +41,23 @@ export function AimsShortcutPanel() {
         <li>
           <strong>On iPhone — a Shortcut</strong>
           <span>
-            One action is all it needs: <em>Run JavaScript on Web Page</em>, with the script below
-            pasted into it. The script opens eScrew itself, so there is nothing to wire up
-            afterwards — and no <em>Open URLs</em> action to argue with about whether a variable
-            counts as a URL.
+            Two actions. The second is what gets the roster past a wall iOS puts up: an app added
+            to your home screen keeps its own data, separate from Safari's, so a link opened from
+            the AIMS page imports into Safari's copy of eScrew and the one on your home screen
+            never sees it. The clipboard is shared, so the roster travels on that instead.
+          </span>
+          <ol className="settings-substeps">
+            <li><em>Run JavaScript on Web Page</em> — paste the script below into it.</li>
+            <li><em>Copy to Clipboard</em> — give it the <em>JavaScript Result</em>.</li>
+          </ol>
+          <span>
+            Then turn on <em>Show in Share Sheet</em> in the shortcut's settings and let it accept
+            web pages. From AIMS: Share → your shortcut → come back to eScrew → Roster →{' '}
+            <em>Replace AIMS</em> → <em>Paste roster from AIMS</em>.
           </span>
           <span>
-            Then in the shortcut's settings turn on <em>Show in Share Sheet</em> and let it accept
-            web pages. From AIMS: Share → your shortcut.
-          </span>
-          <span>
-            If the page does not move on its own, add two more actions after it: <em>URL</em>
-            holding the <em>JavaScript Result</em>, then <em>Open URLs</em> holding that{' '}
-            <em>URL</em>. Shortcuts may still show a warning next to <em>Open URLs</em> about
-            needing a valid URL — that is it failing to guess what the variable holds, and it runs
-            anyway.
+            If you use eScrew in Safari rather than from the home screen, there is no wall and no
+            second action is needed — the script opens the app itself.
           </span>
           <button onClick={() => void copy('script')} type="button">
             {copied === 'script' ? 'Copied' : 'Copy the script'}
