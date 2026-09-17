@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { aimsBookmarklet, aimsShortcutScript } from '../roster/aimsHandoff';
+import { aimsBookmarklet, aimsHandoffScript } from '../roster/aimsHandoff';
 
 /**
  * Installing the one-tap roster handoff.
@@ -13,7 +13,7 @@ export function AimsShortcutPanel() {
   const [copied, setCopied] = useState<'script' | 'bookmarklet'>();
 
   const copy = async (what: 'script' | 'bookmarklet') => {
-    const text = what === 'script' ? aimsShortcutScript(origin) : aimsBookmarklet(origin);
+    const text = what === 'script' ? aimsHandoffScript(origin) : aimsBookmarklet(origin);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(what);
@@ -41,20 +41,21 @@ export function AimsShortcutPanel() {
         <li>
           <strong>On iPhone — a Shortcut</strong>
           <span>
-            Three actions, in this order. The middle one matters: the script hands back a link as
-            plain text, and <em>Open URLs</em> will not accept text — without it you get
-            <em> “a valid URL is required”</em>.
+            One action is all it needs: <em>Run JavaScript on Web Page</em>, with the script below
+            pasted into it. The script opens eScrew itself, so there is nothing to wire up
+            afterwards — and no <em>Open URLs</em> action to argue with about whether a variable
+            counts as a URL.
           </span>
-          <ol className="settings-substeps">
-            <li><em>Run JavaScript on Web Page</em> — paste the script below into it.</li>
-            <li><em>URL</em> — put the <em>JavaScript Result</em> variable inside it, and nothing else.</li>
-            <li><em>Open URLs</em> — give it the <em>URL</em> from the step above.</li>
-          </ol>
           <span>
             Then in the shortcut's settings turn on <em>Show in Share Sheet</em> and let it accept
-            web pages. From AIMS: Share → your shortcut. (If your Shortcuts has no{' '}
-            <em>URL</em> action, a <em>Text</em> action holding the same variable does the same
-            job.)
+            web pages. From AIMS: Share → your shortcut.
+          </span>
+          <span>
+            If the page does not move on its own, add two more actions after it: <em>URL</em>
+            holding the <em>JavaScript Result</em>, then <em>Open URLs</em> holding that{' '}
+            <em>URL</em>. Shortcuts may still show a warning next to <em>Open URLs</em> about
+            needing a valid URL — that is it failing to guess what the variable holds, and it runs
+            anyway.
           </span>
           <button onClick={() => void copy('script')} type="button">
             {copied === 'script' ? 'Copied' : 'Copy the script'}
@@ -74,7 +75,7 @@ export function AimsShortcutPanel() {
 
       <details className="settings-disclosure">
         <summary>See exactly what it runs</summary>
-        <textarea readOnly rows={14} spellCheck={false} value={aimsShortcutScript(origin)} aria-label="Handoff script source" />
+        <textarea readOnly rows={14} spellCheck={false} value={aimsHandoffScript(origin)} aria-label="Handoff script source" />
       </details>
     </section>
   );

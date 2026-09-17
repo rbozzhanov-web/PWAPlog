@@ -105,15 +105,26 @@ export async function rosterFromHandoff(encoded: string, compressed = true): Pro
  *  - No async function wraps the whole thing and no `await` is used. The work is asynchronous, but
  *    keeping the outer scope plain means an unhandled rejection cannot swallow the callback.
  *
+ * It also delivers both ways at once — it navigates *and* it calls `completion` — which is what
+ * lets one script serve a Safari bookmark and a Shortcut alike. The Shortcut needs the callback or
+ * it refuses to run at all; navigating means it does not also need an "Open URLs" action, and
+ * Shortcuts will not pass a variable into one of those without complaining that it wants a literal
+ * URL. Setting `location.href` only schedules the navigation, so the callback still fires first.
+ *
  * Compression is what makes the link short enough to open at all — 9 KB against 67 KB. When it is
  * unavailable the script falls back to sending the schedule uncompressed rather than failing: a
  * long URL that works beats a clean error.
  */
-function handoffScript(appOrigin: string, deliver: (urlExpression: string) => string): string {
+export function aimsHandoffScript(appOrigin: string): string {
   return `(function () {
   var app = '${appOrigin}${HANDOFF_PATH}';
   var sent = false;
-  function done(u) { if (sent) return; sent = true; try { ${deliver('u')} } catch (e) {} }
+  function done(u) {
+    if (sent) return;
+    sent = true;
+    try { location.href = u; } catch (e) {}
+    try { if (typeof completion === 'function') completion(u); } catch (e) {}
+  }
   function fail(m) { done(app + '#e=' + encodeURIComponent(String(m && m.message ? m.message : m).slice(0, 300))); }
   function b64url(bin) { return btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, ''); }
   function binary(bytes) { var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return s; }
@@ -137,19 +148,6 @@ function handoffScript(appOrigin: string, deliver: (urlExpression: string) => st
     }).catch(function () { done(plain()); });
   } catch (e) { fail(e); }
 })()`;
-}
-
-/**
- * For Shortcuts' "Run JavaScript on Web Page". Follow it with a URL action and then Open URLs —
- * this hands back the link, it deliberately does not navigate.
- */
-export function aimsShortcutScript(appOrigin: string): string {
-  return handoffScript(appOrigin, (url) => `completion(${url});`);
-}
-
-/** For a Safari bookmark, where the script moves the tab itself. */
-export function aimsHandoffScript(appOrigin: string): string {
-  return handoffScript(appOrigin, (url) => `location.href = ${url};`);
 }
 
 /** The same script folded into a `javascript:` URL for use as a Safari bookmark. */

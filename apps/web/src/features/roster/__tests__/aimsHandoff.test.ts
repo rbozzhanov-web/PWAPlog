@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseAimsArchive } from '../aims';
-import { decodeHandoff, encodeHandoff, aimsBookmarklet, aimsHandoffScript, aimsShortcutScript, rosterFromHandoff, HANDOFF_VERSION } from '../aimsHandoff';
+import { decodeHandoff, encodeHandoff, aimsBookmarklet, aimsHandoffScript, rosterFromHandoff, HANDOFF_VERSION } from '../aimsHandoff';
 
 const schedule = {
   SchedulerEvents: [
@@ -59,14 +59,14 @@ describe('the AIMS handoff payload', () => {
  */
 describe('the script the pilot runs on the AIMS page', () => {
   const ORIGIN = 'https://pwaplog.pages.dev';
-  const shortcut = aimsShortcutScript(ORIGIN);
-  const bookmarklet = aimsHandoffScript(ORIGIN);
+  // One script serves both routes: it navigates and it calls completion.
+  const script = aimsHandoffScript(ORIGIN);
 
   /** Drives the script the way Shortcuts' "Run JavaScript on Web Page" action does. */
   function runShortcut(): Promise<string> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('the script never called completion()')), 5000);
-      new Function('completion', `return ${shortcut}`)((url: string) => { clearTimeout(timer); resolve(url); });
+      new Function('completion', `return ${script}`)((url: string) => { clearTimeout(timer); resolve(url); });
     });
   }
 
@@ -111,7 +111,7 @@ describe('the script the pilot runs on the AIMS page', () => {
 
   it('calls completion exactly once, so a late watchdog cannot overwrite a good link', async () => {
     const seen: string[] = [];
-    new Function('completion', `return ${shortcut}`)((url: string) => seen.push(url));
+    new Function('completion', `return ${script}`)((url: string) => seen.push(url));
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(seen).toHaveLength(1);
@@ -119,20 +119,24 @@ describe('the script the pilot runs on the AIMS page', () => {
   });
 
   it('reads only what the page already exposes, and names no URL but this app', () => {
-    for (const script of [shortcut, bookmarklet]) {
-      expect(script).toContain('window.initialResult');
-      expect(script).toContain('localStorage.PeriodStart');
-      // No credentials, no tokens, no third party.
-      expect(script.match(/https?:\/\/[^'"]+/g)).toEqual([`${ORIGIN}/import/aims`]);
-    }
+    expect(script).toContain('window.initialResult');
+    expect(script).toContain('localStorage.PeriodStart');
+    // No credentials, no tokens, no third party.
+    expect(script.match(/https?:\/\/[^'"]+/g)).toEqual([`${ORIGIN}/import/aims`]);
   });
 
-  it('delivers its answer the way each route needs', () => {
-    // Shortcuts rejects a script that navigates; a Safari bookmark has nothing to hand back to.
-    expect(shortcut).toContain('completion(u)');
-    expect(shortcut).not.toContain('location.href');
-    expect(bookmarklet).toContain('location.href = u');
-    expect(bookmarklet).not.toContain('completion(');
+  it('delivers both ways, so one script serves a bookmark and a Shortcut alike', () => {
+    // A Shortcut refuses to run without the callback; navigating means it needs no Open URLs
+    // action, which Shortcuts will not accept a variable into without complaining.
+    expect(script).toContain('location.href = u');
+    expect(script).toContain('completion(u)');
+    // The callback is guarded, because a Safari bookmark has nothing to hand back to.
+    expect(script).toContain("typeof completion === 'function'");
+  });
+
+  it('survives having no completion to call, as in a bookmark', () => {
+    // jsdom refuses the navigation, which is the point: the throw must not escape.
+    expect(() => new Function(`return ${script}`)()).not.toThrow();
   });
 
   it('folds into a bookmarklet Safari will accept', () => {
