@@ -37,18 +37,18 @@ export interface PaySettings {
    * medical-exam reimbursement — multiplied by that month's day count (`MonthlyDays`, entered on
    * the screen) rather than a flat monthly amount.
    *
-   * In tenge, not euros, and NOT converted by the month's rate: unlike salary/flight pay/night/
-   * productivity, this is not a euro contract term. It is Kazakhstan's «средний дневной
-   * заработок» (average daily earnings, Приказ Минтруда РК №908 от 30.11.2015) — a trailing
-   * 12-month average of already-tenge-converted earnings — so multiplying it again by a single
-   * month's EUR/KZT rate would double-convert. It also drifts month to month as that average
-   * rolls forward (confirmed against three real payslips: 160 114,59 → 162 221,38 → 164 159,09
-   * ₸/day across three consecutive months), so it is a setting the pilot re-enters when a payslip
-   * shows it changed, not a one-time contract figure.
+   * In euros, converted at the month's rate like salary and flight pay. These were previously
+   * held as tenge on the reasoning that they were Kazakhstan's «средний дневной заработок» — a
+   * trailing 12-month average of already-converted earnings, which would make a second conversion
+   * a double-count. The evidence for that was three consecutive payslips whose day rate drifted
+   * 160 114,59 → 162 221,38 → 164 159,09 ₸/day, read as the average rolling forward. It does not
+   * distinguish the two readings: a fixed euro amount converted at three different monthly rates
+   * drifts the same way, and those steps (+1.3%, +1.2%) are the size of ordinary EUR/KZT
+   * movement. The pilot, who reads the payslips, reports them as euro contract terms.
    */
-  vacationDayRateTenge: number;
-  trainingDayRateTenge: number;
-  medicalExamDayRateTenge: number;
+  vacationDayRateEur: number;
+  trainingDayRateEur: number;
+  medicalExamDayRateEur: number;
   /** Not part of the euro contract — a fixed tenge amount. */
   transportAllowance: number;
   /**
@@ -75,9 +75,9 @@ export const EMPTY_PAY_SETTINGS: PaySettings = {
   transportAllowance: 0,
   nightAllowanceEur: 0,
   productivityAllowanceEur: 0,
-  vacationDayRateTenge: 0,
-  trainingDayRateTenge: 0,
-  medicalExamDayRateTenge: 0,
+  vacationDayRateEur: 0,
+  trainingDayRateEur: 0,
+  medicalExamDayRateEur: 0,
   corporatePensionRate: 0,
   advance: 0,
   alimonyRate: 0,
@@ -88,10 +88,10 @@ export const EMPTY_PAY_SETTINGS: PaySettings = {
  *
  * `vacationDays` and `paidVacationDays` differ on purpose. A real January 2026 payslip settled
  * this: a 10-calendar-day vacation block (15th–24th, one of them a Sunday) shrank the accrued
- * salary by all 10 days, but Air Astana's own per-day vacation-pay rule excludes Sundays (see
- * `vacationDayRateTenge`'s May example) — 9 paid days, not 10. `vacationDays` is the raw calendar
- * count, used to shrink salary/night the same way training and medical-exam days do; only
- * `paidVacationDays` feeds the vacationPay line itself.
+ * salary by all 10 days, but Air Astana's own per-day vacation-pay rule excludes Sundays — 9 paid
+ * days, not 10. `vacationDays` is the raw calendar count, used to shrink salary/night the same
+ * way training and medical-exam days do; only `paidVacationDays` feeds the vacationPay line
+ * itself.
  */
 export interface MonthlyDays {
   vacationDays: number;
@@ -226,12 +226,12 @@ export function calculateEarnings(
   // vacation had the whole line missing, not reduced. Both are single payslips — recheck if a
   // future one, especially a month with only some vacation days, disagrees.
   const productivityAllowance = days.vacationDays > 0 ? 0 : settings.productivityAllowanceEur * eurToKztRate;
-  // Also not converted — see PaySettings.vacationDayRateTenge for why these three are tenge, not
-  // euros multiplied by the month's rate. Vacation pay uses `paidVacationDays`, not `vacationDays`
-  // — see the MonthlyDays doc comment for why the two differ.
-  const vacationPay = settings.vacationDayRateTenge * days.paidVacationDays;
-  const trainingPay = settings.trainingDayRateTenge * days.trainingDays;
-  const medicalExamPay = settings.medicalExamDayRateTenge * days.medicalExamDays;
+  // Converted, like every other line except transport and the advance — see
+  // PaySettings.vacationDayRateEur. Vacation pay uses `paidVacationDays`, not `vacationDays` —
+  // see the MonthlyDays doc comment for why the two differ.
+  const vacationPay = settings.vacationDayRateEur * eurToKztRate * days.paidVacationDays;
+  const trainingPay = settings.trainingDayRateEur * eurToKztRate * days.trainingDays;
+  const medicalExamPay = settings.medicalExamDayRateEur * eurToKztRate * days.medicalExamDays;
 
   const regularGross =
     salary +

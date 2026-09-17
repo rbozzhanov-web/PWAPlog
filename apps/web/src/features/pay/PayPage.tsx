@@ -12,7 +12,7 @@ interface PayPageProps { db: PilotLogbookDb }
 const labels: Array<[keyof PaySettings, string, string]> = [
   ['monthlySalaryEur', 'Salary / month', 'EUR'], ['hourlyRateEur', 'Flight-hour rate', 'EUR'],
   ['nightAllowanceEur', 'Night allowance', 'EUR'], ['productivityAllowanceEur', 'Productivity', 'EUR'],
-  ['vacationDayRateTenge', 'Vacation / day', 'KZT'], ['trainingDayRateTenge', 'Training / day', 'KZT'], ['medicalExamDayRateTenge', 'Medical / day', 'KZT'],
+  ['vacationDayRateEur', 'Vacation / day', 'EUR'], ['trainingDayRateEur', 'Training / day', 'EUR'], ['medicalExamDayRateEur', 'Medical / day', 'EUR'],
   ['transportAllowance', 'Transport', 'KZT'], ['corporatePensionRate', 'CorpPP rate', '%'],
   ['advance', 'Advance', 'KZT'], ['alimonyRate', 'Alimony rate', '%'],
 ];
@@ -25,6 +25,32 @@ const labels: Array<[keyof PaySettings, string, string]> = [
  * 0.25 simply shows as 25 now.
  */
 const percentFields = new Set<keyof PaySettings>(['corporatePensionRate', 'alimonyRate']);
+
+/** The tenge-denominated names these three carried before they were understood as euro terms. */
+const RENAMED_DAY_RATES = [
+  ['vacationDayRateTenge', 'vacationDayRateEur'],
+  ['trainingDayRateTenge', 'trainingDayRateEur'],
+  ['medicalExamDayRateTenge', 'medicalExamDayRateEur'],
+] as const;
+
+/**
+ * Brings a stored settings record up to date.
+ *
+ * The three per-day rates moved from tenge to euros. Carrying the old numbers across would read a
+ * figure like 250 000 as euros and multiply it by the month's rate — they did not merely change
+ * units, they meant something else. So the old keys are dropped and the fields left empty, which
+ * shows as blank on screen and asks for the one set of figures only a payslip can supply.
+ */
+function migrateSettings(stored: PaySettings): PaySettings {
+  const migrated = { ...stored } as PaySettings & Record<string, number | undefined>;
+  for (const [oldKey, newKey] of RENAMED_DAY_RATES) {
+    if (migrated[oldKey] !== undefined) {
+      delete migrated[oldKey];
+      migrated[newKey] = 0;
+    }
+  }
+  return migrated;
+}
 
 /** Scales a stored fraction for display, trimming the float noise 0.07 × 100 leaves behind. */
 function toPercent(value: number): number {
@@ -72,7 +98,7 @@ export function PayPage({ db }: PayPageProps) {
   }, []);
   useEffect(() => {
     let live = true;
-    void db.settings.get('pay-settings').then((stored) => { if (live && stored) setSettings(stored); });
+    void db.settings.get('pay-settings').then((stored) => { if (live && stored) setSettings(migrateSettings(stored)); });
     return () => { live = false; };
   }, [db]);
   // The two month-specific fields follow the month being calculated, so switching source shows

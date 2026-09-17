@@ -199,3 +199,54 @@ describe('PayPage percentage rates', () => {
     await waitFor(() => expect(fieldFor('Salary / month')).toHaveValue('6000'));
   });
 });
+
+/**
+ * The three per-day rates moved from tenge to euros. A stored 250 000 meant a quarter of a million
+ * tenge; read as euros and multiplied by the month's rate it would be 128 million. The number did
+ * not change units, it changed meaning — so it has to go rather than be carried across.
+ */
+describe('PayPage day-rate migration', () => {
+  const fieldFor = (label: string) =>
+    screen.getByText(label).closest('label')!.querySelector('input')!;
+
+  async function openSettings() {
+    rosterForSeptember();
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
+    render(<PayPage db={db} />);
+    return screen.findByText('Vacation / day');
+  }
+
+  it('empties a rate stored under the old tenge name rather than reading it as euros', async () => {
+    await db.settings.put({
+      id: 'pay-settings',
+      ...EMPTY_PAY_SETTINGS,
+      monthlySalaryEur: 6000,
+      vacationDayRateTenge: 250_042.3,
+      trainingDayRateTenge: 160_114.59,
+      medicalExamDayRateTenge: 250_042.3,
+    } as never);
+    await openSettings();
+
+    await waitFor(() => expect(fieldFor('Salary / month')).toHaveValue('6000'));
+    for (const label of ['Vacation / day', 'Training / day', 'Medical / day']) {
+      expect(fieldFor(label)).toHaveValue('');
+      expect(screen.getByText(label).closest('label')).toHaveTextContent('EUR');
+    }
+  });
+
+  it('leaves a record already in euros alone', async () => {
+    await db.settings.put({ id: 'pay-settings', ...EMPTY_PAY_SETTINGS, vacationDayRateEur: 480 });
+    await openSettings();
+
+    await waitFor(() => expect(fieldFor('Vacation / day')).toHaveValue('480'));
+  });
+
+  it('keeps transport and the advance in tenge', async () => {
+    await db.settings.put({ id: 'pay-settings', ...EMPTY_PAY_SETTINGS, transportAllowance: 25_000, advance: 400_000 });
+    await openSettings();
+
+    await waitFor(() => expect(fieldFor('Transport')).toHaveValue('25000'));
+    expect(screen.getByText('Transport').closest('label')).toHaveTextContent('KZT');
+    expect(screen.getByText('Advance').closest('label')).toHaveTextContent('KZT');
+  });
+});

@@ -280,24 +280,37 @@ describe('calculatePayPeriod — routing that does not involve currency', () => 
   });
 });
 
-describe('calculatePayPeriod — the three per-day accruals are tenge, untouched by the FX rate', () => {
+describe('calculatePayPeriod — the three per-day accruals are euro terms, converted like salary', () => {
   const withRates = {
     ...SETTINGS,
-    vacationDayRateTenge: 250_042.3,
-    trainingDayRateTenge: 160_114.59,
-    medicalExamDayRateTenge: 250_042.3,
+    vacationDayRateEur: 480,
+    trainingDayRateEur: 310,
+    medicalExamDayRateEur: 480,
   };
 
-  it('multiplies each day-rate by that month’s day count, with no currency conversion at all', () => {
+  it('multiplies each day-rate by that month’s day count and by the month’s rate', () => {
     const days = { '2026-01': { vacationDays: 6, paidVacationDays: 6, trainingDays: 1, medicalExamDays: 1 } };
 
-    // A dramatic rate is deliberate: if the code multiplied by eurToKztRate anywhere in this
-    // path, these figures would come out enormous rather than matching the real payslip numbers.
-    const result = calculatePayPeriod([], '2026-01', withRates, { '2026-01': 999 }, days);
+    const result = calculatePayPeriod([], '2026-01', withRates, { '2026-01': 500 }, days);
 
-    expect(result.earnings.vacationPay).toBeCloseTo(250_042.3 * 6, 6);
-    expect(result.earnings.trainingPay).toBeCloseTo(160_114.59, 6);
-    expect(result.earnings.medicalExamPay).toBeCloseTo(250_042.3, 6);
+    expect(result.earnings.vacationPay).toBeCloseTo(480 * 500 * 6, 6);
+    expect(result.earnings.trainingPay).toBeCloseTo(310 * 500, 6);
+    expect(result.earnings.medicalExamPay).toBeCloseTo(480 * 500, 6);
+  });
+
+  /**
+   * These were held as tenge on the reading that they were «средний дневной заработок», a rolling
+   * average already converted. The evidence was three payslips drifting 160 114,59 → 162 221,38 →
+   * 164 159,09 ₸/day — but a fixed euro amount converted at three different monthly rates drifts
+   * the same way, which is what they turned out to be.
+   */
+  it('moves with the rate, which is what made the old reading look right', () => {
+    const days = { '2026-01': { vacationDays: 0, paidVacationDays: 0, trainingDays: 1, medicalExamDays: 0 } };
+
+    const atLowRate = calculatePayPeriod([], '2026-01', withRates, { '2026-01': 500 }, days);
+    const atHighRate = calculatePayPeriod([], '2026-01', withRates, { '2026-01': 506.5 }, days);
+
+    expect(atHighRate.earnings.trainingPay / atLowRate.earnings.trainingPay).toBeCloseTo(1.013, 3);
   });
 
   it('defaults to zero days, and zero pay, for a month with no entry at all', () => {
@@ -399,7 +412,7 @@ describe('calculatePayPeriod — the three per-day accruals are tenge, untouched
 
     // January has 31 days. 6 vacation days are paid through vacationPay, not salary — so those
     // same 6 days must come back out of the accrued salary, or the pilot is paid for them twice.
-    const vacationPay = 250_042.3 * 6;
+    const vacationPay = withPension.vacationDayRateEur * RATE * 6;
     const salaryLostToVacation = withPension.monthlySalaryEur * RATE * (6 / 31);
     expect(withDays.earnings.salary).toBeCloseTo(withoutDays.earnings.salary - salaryLostToVacation, 6);
 
