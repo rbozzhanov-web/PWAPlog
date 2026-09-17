@@ -85,10 +85,10 @@ function leg(date: string, flightNumber: string, origin: string, destination: st
   return { date, flightNumber, origin, destination, departure, arrival, arrivalDate, deadhead: false, actualTimes: false };
 }
 
-function dutyRoster(report: string, ...flights: AimsFlight[]): AimsRoster {
+function dutyRoster(report: string, release: string | undefined, ...flights: AimsFlight[]): AimsRoster {
   return {
     period: { start: '2026-09-01', end: '2026-10-31' },
-    duties: [{ date: flights[0].date, report, flights }],
+    duties: [{ date: flights[0].date, report, release, flights }],
     hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-01T00:00:00.000Z',
   };
 }
@@ -99,7 +99,7 @@ describe('HomePage hero', () => {
   it('shows the whole day the pilot flies, not just the leg in front of them', () => {
     vi.setSystemTime(BEFORE_THE_DUTY);
     saveAimsRoster(dutyRoster(
-      '2026-09-25T18:25',
+      '2026-09-25T18:25', '2026-09-26T00:35',
       leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25'),
       leg('2026-09-25', 'KC856', 'NQZ', 'ALA', '22:25', '00:05', '2026-09-26'),
     ));
@@ -113,10 +113,10 @@ describe('HomePage hero', () => {
       .toEqual(['KC855', 'KC856']);
   });
 
-  it('spans the day with its times: report, first off-blocks, last on-blocks', () => {
+  it('spans the day with its times: report, first off-blocks, release', () => {
     vi.setSystemTime(BEFORE_THE_DUTY);
     saveAimsRoster(dutyRoster(
-      '2026-09-25T18:25',
+      '2026-09-25T18:25', '2026-09-26T00:35',
       leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25'),
       leg('2026-09-25', 'KC856', 'NQZ', 'ALA', '22:25', '00:05', '2026-09-26'),
     ));
@@ -124,15 +124,30 @@ describe('HomePage hero', () => {
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     const times = [...document.querySelectorAll('.home-time-grid > div')].map((cell) => cell.textContent);
-    // 00:05 is the second leg's arrival — the first leg's 21:25 would only describe half the day.
-    expect(times).toEqual(['Report18:25L', 'Departure19:40L', 'Landing00:05L']);
+    // 19:40 is the first leg's off-blocks; the second leg's would only describe half the day. The
+    // last column is the duty's release, not the 00:05 the aeroplane arrives — the pilot is not
+    // free for another half hour.
+    expect(times).toEqual(['Report18:25L', 'Departure19:40L', 'Release00:35L']);
     // The clock carries an L rather than a LOCAL caption under every column.
     expect(screen.queryByText('LOCAL')).toBeNull();
   });
 
+  it('falls back to the last on-blocks when AIMS gave the duty no release', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    saveAimsRoster(dutyRoster(
+      '2026-09-25T18:25', undefined,
+      leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25'),
+      leg('2026-09-25', 'KC856', 'NQZ', 'ALA', '22:25', '00:05', '2026-09-26'),
+    ));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Release00:05L');
+  });
+
   it('reads a single-sector day as a plain pair', () => {
     vi.setSystemTime(BEFORE_THE_DUTY);
-    saveAimsRoster(dutyRoster('2026-09-25T10:40', leg('2026-09-25', 'KC921', 'NQZ', 'FRA', '12:17', '16:54')));
+    saveAimsRoster(dutyRoster('2026-09-25T10:40', '2026-09-25T17:24', leg('2026-09-25', 'KC921', 'NQZ', 'FRA', '12:17', '16:54')));
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
@@ -145,7 +160,7 @@ describe('HomePage hero', () => {
 
   it('puts the destination and its weather on one line', () => {
     vi.setSystemTime(BEFORE_THE_DUTY);
-    saveAimsRoster(dutyRoster('2026-09-25T18:25', leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25')));
+    saveAimsRoster(dutyRoster('2026-09-25T18:25', '2026-09-25T21:55', leg('2026-09-25', 'KC855', 'ALA', 'NQZ', '19:40', '21:25')));
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 

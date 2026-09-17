@@ -35,13 +35,12 @@ export function HomePage() {
   const weatherSummary = arrivalWeather.weather ? weatherIcon(arrivalWeather.weather.weatherCode, arrivalWeather.weather.isDay) : undefined;
   // The hero is one duty day, so the route is the whole chain the pilot flies that day —
   // ALA-NQZ-ALA, not just the leg in front of them — and the three times below it span the same
-  // day: report, first off-blocks, last on-blocks.
+  // day, end to end: report, first off-blocks, release.
   const dayRoute = useMemo(() => {
     const legs = nextDuty?.flights ?? [];
     return legs.length ? { origin: legs[0].origin, legs } : undefined;
   }, [nextDuty]);
   const dayDeparture = dayRoute?.legs[0];
-  const dayArrival = dayRoute?.legs.at(-1);
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
   const today = formatLocalDateHeader(new Date(now));
@@ -73,7 +72,7 @@ export function HomePage() {
           <div className="home-time-grid">
             <div><span>Report</span><strong>{reportClock(nextDuty)}<i>L</i></strong></div>
             <div><span>Departure</span><strong>{(dayDeparture ?? nextFlight).departure}<i>L</i></strong></div>
-            <div><span>Landing</span><strong>{(dayArrival ?? nextFlight).arrival}<i>L</i></strong></div>
+            <div><span>Release</span><strong>{releaseClock(nextDuty)}<i>L</i></strong></div>
           </div>
         </> : <><h2>{roster ? 'Ready for your next sector.' : 'Bring in your AIMS roster.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
         <div className="home-hero__actions">
@@ -112,6 +111,17 @@ function nextLayoverHours(roster: AimsRoster | undefined, flight: { destination:
 function crewInitials(name: string) { return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2); }
 function countdownClock(value: number) { const seconds = Math.max(0, Math.floor(value / 1000)); return `${Math.floor(seconds / 86_400)}d ${String(Math.floor(seconds / 3_600) % 24).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
 function dutyReportBoundary(duty: AimsDuty) { return duty.report ?? duty.start ?? `${duty.date}T${duty.flights[0]?.departure ?? '00:00'}`; }
-function dutyEndTimestamp(duty: AimsDuty) { const last = duty.flights.at(-1); const fallback = last ? `${last.arrivalDate ?? last.date}T${last.arrival}:00` : dutyReportBoundary(duty); return Date.parse(duty.end ?? fallback); }
+/**
+ * When the pilot is actually free — AIMS' debriefing time, which is what the roster's own release
+ * column shows. The last leg's on-blocks is only a fallback for a duty AIMS gave no boundary for:
+ * it is the wrong figure to plan an evening around, being half an hour or so early.
+ */
+function dutyReleaseBoundary(duty: AimsDuty) {
+  const last = duty.flights.at(-1);
+  const onBlocks = last ? `${last.arrivalDate ?? last.date}T${last.arrival}:00` : dutyReportBoundary(duty);
+  return duty.release ?? duty.end ?? onBlocks;
+}
+function dutyEndTimestamp(duty: AimsDuty) { return Date.parse(dutyReleaseBoundary(duty)); }
 function reportClock(duty?: AimsDuty) { return duty ? dutyReportBoundary(duty).slice(11, 16) : '—'; }
+function releaseClock(duty?: AimsDuty) { return duty ? dutyReleaseBoundary(duty).slice(11, 16) : '—'; }
 function airportName(code: string) { return ({ ALA: 'ALMATY', NQZ: 'ASTANA', FRA: 'FRANKFURT', ICN: 'SEOUL', AYT: 'ANTALYA' } as Record<string, string>)[code] ?? code; }
