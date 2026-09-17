@@ -3144,3 +3144,18 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .primary-tab-header__titles {
   pointer-events: none;
 }
+
+/*
+ * Where a fetched rate came from, and which day it is for — the thing a payslip check turns on.
+ * Two classes deep, because `.pay-setup > p` above styles the green "saved" confirmation and would
+ * otherwise win on colour, weight and alignment.
+ */
+.pay-setup > .pay-setup__note {
+  grid-column: 1 / -1;
+  margin: -.2rem 0 .1rem;
+  color: var(--muted);
+  font-size: var(--caption-size);
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+}

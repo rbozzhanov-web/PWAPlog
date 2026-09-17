@@ -1,8 +1,9 @@
-import { EMPTY_PAY_SETTINGS, calculatePayPeriod, lookupNormMinutes, parseCrewSchedule, summarisePayHours, type MonthlyDays, type PaySector, type PaySettings, type ParsedCrewSchedule } from '@pilot-logbook/core';
+import { EMPTY_PAY_SETTINGS, calculatePayPeriod, lastDayOfMonthDdMmYyyy, lookupNormMinutes, parseCrewSchedule, summarisePayHours, type MonthlyDays, type PaySector, type PaySettings, type ParsedCrewSchedule } from '@pilot-logbook/core';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { PilotLogbookDb } from '../../db/database';
 import { listFlightEntries } from '../../db/repositories/flightEntries';
+import { fetchNbrkEurRate } from '../../platform/nbrkRate';
 import { loadAimsRoster } from '../roster/aims';
 import { buildPayInputs, sourcesByMonth, withFormValues } from './payInputs';
 import { parseTaxableYtd } from './ytdOverride';
@@ -31,6 +32,8 @@ export function PayPage({ db }: PayPageProps) {
   const [loggedSectors, setLoggedSectors] = useState<PaySector[]>([]);
   const [activePdfMonth, setActivePdfMonth] = useState<string>();
   const [pdfError, setPdfError] = useState<string>();
+  const [rateSource, setRateSource] = useState<'stored' | 'fetching' | 'nbrk' | 'unavailable'>('stored');
+  const [rateFor, setRateFor] = useState<{ fdate: string; provisional: boolean }>();
 
   const activePdf = pdfSchedules.find((schedule) => schedule.month === activePdfMonth);
   const payMonth = activePdf?.month ?? month;
@@ -65,10 +68,26 @@ export function PayPage({ db }: PayPageProps) {
     void Promise.all([
       payMonth ? db.exchangeRates.get(payMonth) : undefined,
       payMonth ? db.taxableYtdOverrides.get(payMonth) : undefined,
-    ]).then(([fx, ytd]) => {
+    ]).then(async ([fx, ytd]) => {
       if (!live) return;
-      setRate(fx?.rate ?? 0);
       setTaxableYtd(ytd?.taxableIncome);
+      if (fx?.rate) { setRate(fx.rate); setRateSource('stored'); return; }
+
+      // Nothing saved for this month, so ask the National Bank rather than making the pilot look
+      // it up. It is the rate the contract converts at, and it is a fact, not a preference — but
+      // the field stays editable, and a failure just leaves it empty to be typed.
+      setRate(0);
+      if (!payMonth) { setRateSource('stored'); return; }
+      setRateSource('fetching');
+      try {
+        const fetched = await fetchNbrkEurRate(payMonth);
+        if (!live) return;
+        setRate(fetched.rate);
+        setRateFor({ fdate: fetched.fdate, provisional: fetched.provisional });
+        setRateSource('nbrk');
+      } catch {
+        if (live) setRateSource('unavailable');
+      }
     });
     return () => { live = false; };
   }, [db, payMonth]);
@@ -119,7 +138,9 @@ export function PayPage({ db }: PayPageProps) {
       {pdfError ? <p className="roster-import-error">{pdfError}</p> : null}
     </section>
     {!payMonth ? <section className="roster-empty-card"><span aria-hidden="true">₸</span><h2>Import a source for Pay</h2><p>Use the current AIMS Web Archive or a historical AIMS Personal Crew Schedule PDF.</p></section> : <>
-      <section className="pay-setup"><label>EUR / KZT for {payMonth}<span>RATE</span><input inputMode="decimal" value={rate || ''} placeholder="Rate" onChange={(event) => setRate(Number(event.target.value) || 0)} /></label><label>Taxable YTD before {payMonth}<span>KZT</span><input inputMode="decimal" value={taxableYtd ?? ''} placeholder="From payslip" onChange={(event) => setTaxableYtd(parseTaxableYtd(event.target.value))} /></label>{labels.map(([key, label, unit]) => <label key={key}>{label}<span>{unit}</span><input inputMode="decimal" value={settings[key] || ''} onChange={(event) => setValue(key, event.target.value)} /></label>)}<button type="button" onClick={() => void save()}>Save local pay settings</button>{saved ? <p>Saved only on this device.</p> : null}</section>
+      <section className="pay-setup"><label>EUR / KZT for {payMonth}<span>{rateSource === 'fetching' ? 'LOADING' : rateSource === 'nbrk' ? 'NBRK' : rateSource === 'unavailable' ? 'ENTER' : 'RATE'}</span><input inputMode="decimal" value={rate || ''} placeholder={rateSource === 'fetching' ? 'Asking the National Bank…' : 'Rate'} onChange={(event) => { setRate(Number(event.target.value) || 0); setRateSource('stored'); }} /></label>{rateSource === 'nbrk' && rateFor ? <p className="pay-setup__note">{rateFor.provisional
+        ? `Provisional: the National Bank's rate for ${rateFor.fdate}, standing in until ${lastDayOfMonthDdMmYyyy(payMonth ?? '')} — the day this month actually converts at. Pay will move.`
+        : `Official National Bank rate for ${rateFor.fdate}, the day this month converts at.`} Type over it to use your own.</p> : null}{rateSource === 'unavailable' ? <p className="pay-setup__note">Could not reach the National Bank. Enter the EUR/KZT rate for the month's last day.</p> : null}<label>Taxable YTD before {payMonth}<span>KZT</span><input inputMode="decimal" value={taxableYtd ?? ''} placeholder="From payslip" onChange={(event) => setTaxableYtd(parseTaxableYtd(event.target.value))} /></label>{labels.map(([key, label, unit]) => <label key={key}>{label}<span>{unit}</span><input inputMode="decimal" value={settings[key] || ''} onChange={(event) => setValue(key, event.target.value)} /></label>)}<button type="button" onClick={() => void save()}>Save local pay settings</button>{saved ? <p>Saved only on this device.</p> : null}</section>
       {result ? <><section className="pay-result"><p>{payMonth} · {formatHours(result.hours.totalMinutes)} paid norm time</p><h2>{money(result.payroll.netPay)} ₸</h2><span>Estimated take-home</span><div><p>Gross <strong>{money(result.earnings.total)} ₸</strong></p><p>Salary <strong>{money(result.earnings.salary)} ₸</strong></p><p>Flight pay <strong>{money(result.earnings.flightPay)} ₸</strong></p><p>Night allowance <strong>{money(result.earnings.nightAllowance)} ₸</strong></p><p>Productivity <strong>{money(result.earnings.productivityAllowance)} ₸</strong></p><p>Transport <strong>{money(result.earnings.transportAllowance)} ₸</strong></p><p>Tax & deductions <strong>{money(result.payroll.totalDeductions)} ₸</strong></p>{payDays.vacationDays || payDays.trainingDays || payDays.medicalExamDays ? <p>Paid days <strong>VAC {payDays.paidVacationDays} · TRN {payDays.trainingDays} · MED {payDays.medicalExamDays}</strong></p> : null}</div></section><section className="pay-audit"><header><p>PAYSLIP CHECK</p><h2>Calculation detail</h2><span>Source: {activePdf ? `AIMS PDF ${activePdf.month}` : 'current AIMS Web Archive'}</span></header><div className="pay-audit__totals"><p>Norm sectors <strong>{hours.sectorsOnNorm}</strong></p><p>Actual-time sectors <strong>{hours.sectorsOnActual}</strong></p><p>EUR / KZT <strong>{result.eurToKztRateUsed}</strong></p></div><AuditGroup title="Earnings" rows={[["Salary", result.earnings.salary], ["Flight pay", result.earnings.flightPay], ["Night allowance", result.earnings.nightAllowance], ["Productivity", result.earnings.productivityAllowance], ["Transport", result.earnings.transportAllowance], ["Vacation / training / MED", result.earnings.vacationPay + result.earnings.trainingPay + result.earnings.medicalExamPay], ["Indirect income (CorpPP)", result.earnings.indirectIncome]]} /><AuditGroup title="Deductions" rows={[["OPV", result.payroll.opv], ["OSMS", result.payroll.vosms], ["IPN", result.payroll.ipn], ["CorpPP employee", result.payroll.voluntaryPension], ["Alimony", result.payroll.alimony], ["Advance & indirect income", result.payroll.otherDeductions]]} /><div className="pay-audit__sectors"><p>Sector norms</p>{sectors.map((sector, index) => { const norm = lookupNormMinutes(sector.departureAirport, sector.arrivalAirport); const minutes = norm ?? sector.totalTimeMinutes; return <div key={`${sector.date}-${sector.departureAirport}-${sector.arrivalAirport}-${index}`}><span>{sector.date.slice(8)} · {sector.departureAirport} → {sector.arrivalAirport}</span><strong>{formatHours(minutes)} <small>{norm === undefined ? 'actual' : 'norm'}</small></strong></div>; })}</div>{hours.unlistedSectors.length ? <p className="pay-audit__warning">No published norm: {hours.unlistedSectors.join(', ')}. The calculation uses actual time, so check the source PDF.</p> : null}{result.ytdOverrideMonth ? <p className="pay-audit__note">IPN uses the taxable YTD value saved before {result.ytdOverrideMonth}.</p> : null}{result.fxFallbackMonths.length ? <p className="pay-audit__warning">No EUR/KZT rate saved for {result.fxFallbackMonths.join(', ')}. IPN is banded on the year to date, so those months were replayed on a borrowed rate — save each month's rate to firm this up.</p> : null}{monthsWithoutSource.length ? <p className="pay-audit__warning">No roster, PDF or logbook entries for {monthsWithoutSource.join(', ')}, so the year-to-date behind this month is incomplete. Enter your taxable YTD from a payslip to pin it.</p> : null}</section></> : <p className="pay-hint">Enter the EUR/KZT rate and your stored terms to calculate this roster.</p>}
     </>}
   </main>;

@@ -90,3 +90,65 @@ describe('PayPage year-to-date inputs', () => {
     expect(warning).not.toHaveTextContent('2026-08');
   });
 });
+
+const EUR_FEED = `<?xml version="1.0" encoding="utf-8"?><rates>
+  <item><fullname>Euro</fullname><title>EUR</title><description>541.36</description><quant>1</quant></item>
+</rates>`;
+
+/**
+ * The rate a pilot would otherwise look up by hand. It is a fact rather than a preference — the
+ * National Bank's figure for the month's last calendar day, which is what the euro contract
+ * converts at — so the screen fetches it, and only when nothing is saved for that month.
+ */
+describe('PayPage exchange rate', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('asks the National Bank for the month-end rate once the month has closed', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(2026, 9, 5)); // 5 October — September is settled
+    rosterForSeptember();
+    const request = vi.fn(async () => new Response(EUR_FEED, { status: 200 }));
+    vi.stubGlobal('fetch', request);
+
+    render(<PayPage db={db} />);
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Rate')).toHaveValue('541.36'));
+    // Through this app's own proxy: the bank's feed carries no CORS header.
+    expect(request).toHaveBeenCalledWith('/api/nbrk-rate?fdate=30.09.2026');
+    expect(await screen.findByText(/Official National Bank rate for 30\.09\.2026/)).toBeVisible();
+  });
+
+  it('marks the rate provisional while the month is still being flown', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(2026, 8, 17)); // mid-September: no month-end rate exists yet
+    rosterForSeptember();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(EUR_FEED, { status: 200 })));
+
+    render(<PayPage db={db} />);
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Rate')).toHaveValue('541.36'));
+    expect(await screen.findByText(/Provisional.*17\.09\.2026.*30\.09\.2026/)).toBeVisible();
+  });
+
+  it('leaves a saved rate alone rather than overwriting it', async () => {
+    rosterForSeptember();
+    await db.exchangeRates.put({ month: '2026-09', rate: 530, source: 'manual', updatedAt: '2026-09-01T00:00:00.000Z' });
+    const request = vi.fn();
+    vi.stubGlobal('fetch', request);
+
+    render(<PayPage db={db} />);
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Rate')).toHaveValue('530'));
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('falls back to typing it when the bank cannot be reached', async () => {
+    rosterForSeptember();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('down', { status: 502 })));
+
+    render(<PayPage db={db} />);
+
+    expect(await screen.findByText(/Could not reach the National Bank/)).toBeVisible();
+    expect(screen.getByPlaceholderText('Rate')).toHaveValue('');
+  });
+});

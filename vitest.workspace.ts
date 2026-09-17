@@ -10,6 +10,14 @@ export default defineWorkspace([
     }
   },
   {
+    test: {
+      name: 'functions',
+      environment: 'node',
+      globals: true,
+      include: ['functions/**/*.test.ts']
+    }
+  },
+  {
     extends: './apps/web/vite.config.ts',
     test: {
       name: 'web',
