@@ -27,7 +27,10 @@ export function ImportAimsPage() {
     if (handled.current) return;
     handled.current = true;
     const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const encoded = fragment.get('r');
+    // `r` is the usual gzipped payload; `j` is the plain one the script falls back to where the
+    // browser cannot compress — a longer link, but the roster still arrives.
+    const encoded = fragment.get('r') ?? fragment.get('j');
+    const compressed = fragment.get('r') !== null;
     // The script reports its own failures here rather than putting a dialogue box on the airline's
     // site — and a Shortcut has nowhere to show one at all.
     const reported = fragment.get('e');
@@ -41,7 +44,7 @@ export function ImportAimsPage() {
       return;
     }
     let live = true;
-    void rosterFromHandoff(encoded).then(
+    void rosterFromHandoff(encoded, compressed).then(
       (roster) => {
         if (!live) return;
         saveAimsRoster(roster);

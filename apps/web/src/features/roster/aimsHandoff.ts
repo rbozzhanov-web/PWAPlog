@@ -66,11 +66,13 @@ export async function encodeHandoff(handoff: AimsHandoff): Promise<string> {
   return toBase64Url(await through(streamOf(json).pipeThrough(new CompressionStream('gzip'))));
 }
 
-export async function decodeHandoff(encoded: string): Promise<AimsHandoff> {
+export async function decodeHandoff(encoded: string, compressed = true): Promise<AimsHandoff> {
   let text: string;
   try {
     const bytes = fromBase64Url(encoded);
-    text = new TextDecoder().decode(await through(streamOf(bytes).pipeThrough(new DecompressionStream('gzip'))));
+    text = compressed
+      ? new TextDecoder().decode(await through(streamOf(bytes).pipeThrough(new DecompressionStream('gzip'))))
+      : new TextDecoder().decode(bytes);
   } catch {
     throw new Error('This roster link is damaged. Run the shortcut again from the AIMS page.');
   }
@@ -83,67 +85,71 @@ export async function decodeHandoff(encoded: string): Promise<AimsHandoff> {
   return typed;
 }
 
-export async function rosterFromHandoff(encoded: string): Promise<AimsRoster> {
-  const { result, events, periodStart, periodEnd } = await decodeHandoff(encoded);
+export async function rosterFromHandoff(encoded: string, compressed = true): Promise<AimsRoster> {
+  const { result, events, periodStart, periodEnd } = await decodeHandoff(encoded, compressed);
   return buildAimsRoster({ result, events, periodStart, periodEnd });
 }
 
 /**
  * The script the pilot runs on the AIMS Crew Schedule page.
  *
- * Kept as source text rather than a real function so it can be shown, copied into a bookmark, or
- * pasted into a Shortcut. It reads only what the saved archive already exposes, uses the session
- * the pilot is already logged into, and names no URL but this app's own.
+ * Written defensively rather than tidily, because of where it has to survive. Shortcuts' "Run
+ * JavaScript on Web Page" reports one thing when anything at all goes wrong — "a valid URL is
+ * required" — and shows nothing about why, so a script that throws, hangs, or misses its callback
+ * leaves the pilot with no way to tell which. Three rules follow from that:
  *
- * The two delivery routes need different endings, which is the whole reason this is split: a
- * bookmarklet navigates the tab itself, while Shortcuts' "Run JavaScript on Web Page" action
- * refuses any script that does not hand its answer back through `completion(result)` — it passes
- * that result to the next action rather than letting the page move underneath it.
+ *  - `completion` is called exactly once, on every path, always with a URL this app can open. A
+ *    failure becomes `#e=<reason>`, which the import page renders, so the reason reaches a screen
+ *    rather than dying in a context nobody can inspect.
+ *  - A watchdog fires if nothing else has, so the action can never simply hang.
+ *  - No async function wraps the whole thing and no `await` is used. The work is asynchronous, but
+ *    keeping the outer scope plain means an unhandled rejection cannot swallow the callback.
  *
- * Either way the body ends with a URL, including when it fails: an error comes back as `#e=` so
- * the pilot gets a readable message on a page of ours rather than a dialogue box on the airline's
- * site, or, in the Shortcut's case, an action that quietly does nothing.
+ * Compression is what makes the link short enough to open at all — 9 KB against 67 KB. When it is
+ * unavailable the script falls back to sending the schedule uncompressed rather than failing: a
+ * long URL that works beats a clean error.
  */
-function handoffBody(appOrigin: string): string {
-  return `const app = '${appOrigin}${HANDOFF_PATH}';
-  let url;
+function handoffScript(appOrigin: string, deliver: (urlExpression: string) => string): string {
+  return `(function () {
+  var app = '${appOrigin}${HANDOFF_PATH}';
+  var sent = false;
+  function done(u) { if (sent) return; sent = true; try { ${deliver('u')} } catch (e) {} }
+  function fail(m) { done(app + '#e=' + encodeURIComponent(String(m && m.message ? m.message : m).slice(0, 300))); }
+  function b64url(bin) { return btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, ''); }
+  function binary(bytes) { var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return s; }
+  setTimeout(function () { fail('Timed out reading the roster. Let the AIMS page finish loading, then run this again.'); }, 10000);
   try {
-    if (!window.initialResult) throw new Error('Open your AIMS Crew Schedule and let it finish loading, then run this again.');
-    const payload = {
+    if (!window.initialResult) return fail('Open your AIMS Crew Schedule and let it finish loading, then run this again.');
+    var payload = {
       v: ${HANDOFF_VERSION},
       result: window.initialResult,
       events: window.Events,
       periodStart: localStorage.PeriodStart,
       periodEnd: localStorage.PeriodEnd,
     };
-    const bytes = new TextEncoder().encode(JSON.stringify(payload));
-    const src = new ReadableStream({ start(c) { c.enqueue(bytes); c.close(); } });
-    const buf = new Uint8Array(await new Response(src.pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
-    let bin = '';
-    for (const b of buf) bin += String.fromCharCode(b);
-    url = app + '#r=' + btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
-  } catch (e) {
-    url = app + '#e=' + encodeURIComponent(e && e.message ? e.message : String(e));
-  }`;
+    var json = JSON.stringify(payload);
+    var bytes = new TextEncoder().encode(json);
+    var plain = function () { return app + '#j=' + b64url(binary(bytes)); };
+    if (typeof CompressionStream === 'undefined' || typeof ReadableStream === 'undefined') return done(plain());
+    var src = new ReadableStream({ start: function (c) { c.enqueue(bytes); c.close(); } });
+    new Response(src.pipeThrough(new CompressionStream('gzip'))).arrayBuffer().then(function (ab) {
+      done(app + '#r=' + b64url(binary(new Uint8Array(ab))));
+    }).catch(function () { done(plain()); });
+  } catch (e) { fail(e); }
+})()`;
 }
 
 /**
- * For Shortcuts' "Run JavaScript on Web Page". Follow it with an "Open URLs" action — this hands
- * back the link, it deliberately does not navigate.
+ * For Shortcuts' "Run JavaScript on Web Page". Follow it with a URL action and then Open URLs —
+ * this hands back the link, it deliberately does not navigate.
  */
 export function aimsShortcutScript(appOrigin: string): string {
-  return `(async () => {
-  ${handoffBody(appOrigin)}
-  completion(url);
-})()`;
+  return handoffScript(appOrigin, (url) => `completion(${url});`);
 }
 
 /** For a Safari bookmark, where the script moves the tab itself. */
 export function aimsHandoffScript(appOrigin: string): string {
-  return `(async () => {
-  ${handoffBody(appOrigin)}
-  location.href = url;
-})()`;
+  return handoffScript(appOrigin, (url) => `location.href = ${url};`);
 }
 
 /** The same script folded into a `javascript:` URL for use as a Safari bookmark. */

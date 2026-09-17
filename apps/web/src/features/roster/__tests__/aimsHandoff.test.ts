@@ -52,48 +52,91 @@ describe('the AIMS handoff payload', () => {
   });
 });
 
+/**
+ * These run the script rather than reading it. Shortcuts reports one thing however the script
+ * fails — "a valid URL is required" — and shows nothing about why, so what matters is not that the
+ * source looks right but that every path really does end in a URL this app can open.
+ */
 describe('the script the pilot runs on the AIMS page', () => {
-  const shortcut = aimsShortcutScript('https://pwaplog.pages.dev');
-  const bookmarklet = aimsHandoffScript('https://pwaplog.pages.dev');
+  const ORIGIN = 'https://pwaplog.pages.dev';
+  const shortcut = aimsShortcutScript(ORIGIN);
+  const bookmarklet = aimsHandoffScript(ORIGIN);
+
+  /** Drives the script the way Shortcuts' "Run JavaScript on Web Page" action does. */
+  function runShortcut(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('the script never called completion()')), 5000);
+      new Function('completion', `return ${shortcut}`)((url: string) => { clearTimeout(timer); resolve(url); });
+    });
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.PeriodStart = '2026-09-01';
+    localStorage.PeriodEnd = '2026-09-30';
+    (window as unknown as { initialResult?: unknown }).initialResult = schedule;
+  });
+  afterEach(() => {
+    delete (window as unknown as { initialResult?: unknown }).initialResult;
+    vi.unstubAllGlobals();
+  });
+
+  it('hands back a link the app can open, and the roster survives it', async () => {
+    const url = await runShortcut();
+
+    expect(url.startsWith(`${ORIGIN}/import/aims#r=`)).toBe(true);
+    const roster = await rosterFromHandoff(url.split('#r=')[1]);
+    expect(roster.duties[0].flights[0]).toMatchObject({ flightNumber: 'KC921', origin: 'NQZ', destination: 'FRA' });
+  });
+
+  it('sends the schedule uncompressed rather than failing when it cannot compress', async () => {
+    // A long link that works beats a clean error.
+    vi.stubGlobal('CompressionStream', undefined);
+
+    const url = await runShortcut();
+
+    expect(url.startsWith(`${ORIGIN}/import/aims#j=`)).toBe(true);
+    const roster = await rosterFromHandoff(url.split('#j=')[1], false);
+    expect(roster.duties[0].flights[0]).toMatchObject({ flightNumber: 'KC921' });
+  });
+
+  it('comes back with the reason when the page has no schedule on it yet', async () => {
+    delete (window as unknown as { initialResult?: unknown }).initialResult;
+
+    const url = await runShortcut();
+
+    expect(url.startsWith(`${ORIGIN}/import/aims#e=`)).toBe(true);
+    expect(decodeURIComponent(url.split('#e=')[1])).toMatch(/let it finish loading/);
+  });
+
+  it('calls completion exactly once, so a late watchdog cannot overwrite a good link', async () => {
+    const seen: string[] = [];
+    new Function('completion', `return ${shortcut}`)((url: string) => seen.push(url));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toContain('#r=');
+  });
 
   it('reads only what the page already exposes, and names no URL but this app', () => {
     for (const script of [shortcut, bookmarklet]) {
       expect(script).toContain('window.initialResult');
       expect(script).toContain('localStorage.PeriodStart');
       // No credentials, no tokens, no third party.
-      expect(script.match(/https?:\/\/[^'"]+/g)).toEqual(['https://pwaplog.pages.dev/import/aims']);
+      expect(script.match(/https?:\/\/[^'"]+/g)).toEqual([`${ORIGIN}/import/aims`]);
     }
   });
 
-  /**
-   * Shortcuts rejects the action outright — "After execution the script must call the
-   * completion(result) function" — if it just navigates, because it passes the result to the next
-   * action rather than letting the page move underneath it.
-   */
-  it('hands its answer back through completion() for Shortcuts, and navigates for a bookmark', () => {
-    expect(shortcut).toContain('completion(url)');
+  it('delivers its answer the way each route needs', () => {
+    // Shortcuts rejects a script that navigates; a Safari bookmark has nothing to hand back to.
+    expect(shortcut).toContain('completion(u)');
     expect(shortcut).not.toContain('location.href');
-    expect(bookmarklet).toContain('location.href = url');
+    expect(bookmarklet).toContain('location.href = u');
     expect(bookmarklet).not.toContain('completion(');
   });
 
-  it('is valid JavaScript, whichever ending it has', () => {
-    // `completion` and `await` only exist where these actually run, so compile rather than execute.
-    for (const script of [shortcut, bookmarklet]) {
-      expect(() => new Function('completion', `return ${script}`)).not.toThrow();
-    }
-  });
-
-  it('comes back with a readable URL even when it fails', () => {
-    // Both endings take a URL: a failure reports itself on a page of ours rather than through a
-    // dialogue box on the airline's site, which a Shortcut could not show at all.
-    for (const script of [shortcut, bookmarklet]) {
-      expect(script).toContain("url = app + '#e=' + encodeURIComponent(");
-    }
-  });
-
   it('folds into a bookmarklet Safari will accept', () => {
-    const folded = aimsBookmarklet('https://pwaplog.pages.dev');
+    const folded = aimsBookmarklet(ORIGIN);
     expect(folded.startsWith('javascript:')).toBe(true);
     expect(folded).not.toMatch(/\n/);
     expect(decodeURIComponent(folded.slice('javascript:'.length))).toContain('initialResult');
