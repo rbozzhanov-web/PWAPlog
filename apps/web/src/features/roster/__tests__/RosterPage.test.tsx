@@ -20,7 +20,7 @@ describe('RosterPage AIMS import flow', () => {
       'href',
       'https://aims.airastana.com/eCrew/CrewSchedule',
     );
-    expect(screen.getByLabelText('Choose saved AIMS Web Archive')).toBeInTheDocument();
+    expect(screen.getByLabelText('Choose saved AIMS Web Archive or Crew Schedule PDF')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog', { name: 'Import from AIMS' })).toBeNull();
@@ -41,6 +41,38 @@ describe('RosterPage AIMS import flow', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Replace AIMS' }));
 
     expect(screen.getByRole('dialog', { name: 'Import from AIMS' })).toBeVisible();
+  });
+
+  // The whole point of taking two file types: whichever one the pilot has this time is folded
+  // into the roster already stored rather than replacing it, so importing next month does not
+  // take this month off the screen — and the days the two files share are listed once.
+  it('folds a new import into the roster already stored', async () => {
+    saveAimsRoster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      coverage: { start: '2026-09-01', end: '2026-09-30' },
+      source: 'pdf',
+      duties: [{
+        date: '2026-09-04', report: '2026-09-04T05:10',
+        flights: [{ flightNumber: 'KC855', date: '2026-09-04', origin: 'ALA', destination: 'NQZ', departure: '06:10', arrival: '08:05', deadhead: false, actualTimes: false }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {},
+      importedAt: '2026-09-01T00:00:00.000Z',
+    });
+    const october = `<script>localStorage['PeriodStart']='2026-10-01';localStorage['PeriodEnd']='2026-10-31';var initialResult={};var Events=[{"start":"2026-10-02T19:10:00","end":"2026-10-03T06:05:00","report":"19:10","debrief":"06:05","type":"Flight","details":"187 - ALA (2040) - CAN (0535\u207a\u00b9)"}];</script>CrewSchedule`;
+    const bytes = new TextEncoder().encode(october);
+
+    render(<MemoryRouter><RosterPage /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace AIMS' }));
+    fireEvent.change(screen.getByLabelText('Choose saved AIMS Web Archive or Crew Schedule PDF'), {
+      target: { files: [{
+        name: 'october.webarchive',
+        slice: (from: number, to: number) => ({ arrayBuffer: async () => bytes.slice(from, to).buffer }),
+        arrayBuffer: async () => bytes.buffer,
+      } as unknown as File] },
+    });
+
+    await screen.findByText('KC187');
+    expect(screen.getByText('KC855')).toBeInTheDocument();
   });
 
   // The sector opens in place rather than on a route of its own, so this asserts both halves:
@@ -224,8 +256,10 @@ describe('sheets belong to the Roster tab', () => {
     const { rerender } = render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Add AIMS' }));
     const never = new Promise<ArrayBuffer>(() => {});
-    fireEvent.change(screen.getByLabelText('Choose saved AIMS Web Archive'), {
-      target: { files: [{ name: 'x.webarchive', arrayBuffer: () => never } as unknown as File] },
+    fireEvent.change(screen.getByLabelText('Choose saved AIMS Web Archive or Crew Schedule PDF'), {
+      // The importer sniffs the first bytes to tell a PDF from an archive, then reads the whole
+      // file — this one never finishes being read.
+      target: { files: [{ name: 'x.webarchive', slice: () => ({ arrayBuffer: async () => new ArrayBuffer(0) }), arrayBuffer: () => never } as unknown as File] },
     });
     await screen.findByText('Reading schedule…');
 

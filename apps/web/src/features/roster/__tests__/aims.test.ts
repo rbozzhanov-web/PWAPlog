@@ -65,6 +65,31 @@ describe('parseAimsArchive', () => {
     expect(deadheaded).toMatchObject({ flightNumber: 'KC622', deadhead: true });
   });
 
+  // A long sector carries a third pilot, whose rank AIMS prints as "3P". Filed as cabin crew they
+  // showed up under the flight attendants on the crew list, which is the wrong door.
+  it('files a third pilot on the flight deck', async () => {
+    const initialResult = {
+      SchedulerEvents: [{
+        id: '1234on2026-09-12T17:30:00_x',
+        start: '2026-09-12T17:30:00', end: '2026-09-13T08:54:00',
+        report: '17:30', debrief: '08:54', type: 'Flight',
+        details: '922  - FRA  (1830) - NQZ  (0435\u207a\u00b9) ',
+      }],
+      elementList: [{ id: 'members', data: [
+        { value: '12/09/2026 922 FRA - NQZ', data: [
+          { value2: 'SELF NAME', value3: 1234, value4: 'CP' },
+          { value2: 'RELIEF PILOT', value3: 5112, value4: '3P' },
+          { value2: 'CABIN LEAD', value3: 8726, value4: 'PU' },
+        ] },
+      ] }],
+    };
+    const archive = `<script>localStorage['PeriodStart']='2026-09-01';localStorage['PeriodEnd']='2026-09-30';var initialResult = ${JSON.stringify(initialResult)};</script>CrewSchedule`;
+    const roster = await parseAimsArchive(archiveFile(archive));
+    expect(roster.duties[0].flights[0].crew?.map((member) => [member.position, member.role])).toEqual([
+      ['CP', 'Flight deck'], ['3P', 'Flight deck'], ['PU', 'Cabin'],
+    ]);
+  });
+
   /**
    * The real bug this guards: AIMS prints "A" against a time only where it differs from the
    * schedule, so a sector that pushed back exactly on time shows a bare departure and no "Flight

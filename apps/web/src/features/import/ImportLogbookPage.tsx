@@ -26,11 +26,13 @@ function isPdf(file: File): boolean {
   return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 }
 
-/** The live AIMS roster is the authoritative source for whatever period it covers, so a
- *  historical PDF report is only for filling in the months around it — never for duplicating
- *  the same flights the roster already accounts for. */
+/** The live AIMS roster is the authoritative source for whatever it covers, so a historical PDF
+ *  report is only for filling in the months around it — never for duplicating the same flights the
+ *  roster already accounts for. That is everything merged into it, not just the period on the last
+ *  file imported: a roster built from a Web Archive and a PDF accounts for both their months. */
 function coveredByRoster(date: string | undefined, roster: AimsRoster): boolean {
-  return date !== undefined && date >= roster.period.start && date <= roster.period.end;
+  const covered = roster.coverage ?? roster.period;
+  return date !== undefined && date >= covered.start && date <= covered.end;
 }
 
 export function ImportLogbookPage({ db }: ImportLogbookPageProps) {

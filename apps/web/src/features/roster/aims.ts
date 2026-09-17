@@ -4,7 +4,25 @@ export type AimsDuty = { date: string; start?: string; end?: string; report?: st
 export type AimsHotel = { station: string; name?: string; address?: string; phone?: string; locator?: string };
 export type AimsAbsence = { code: 'SICK' | 'UFF' | 'VAC' | 'CHLD'; date: string };
 export type AimsActivity = { date: string; code: string; title?: string; type: string; location?: string; start?: string; end?: string };
-export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; absences: AimsAbsence[]; activities: AimsActivity[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
+export type AimsRoster = {
+  /** What the import this roster last took in was about — the period printed on it. */
+  period: { start: string; end: string };
+  /**
+   * Every day the stored roster can answer for, across the imports merged into it.
+   *
+   * It is wider than `period` whenever a PDF and a Web Archive cover different months. Absent on
+   * rosters stored before imports were merged, where the one import is the whole roster.
+   */
+  coverage?: { start: string; end: string };
+  /** Which kind of file the latest import read. Absent on rosters stored before the PDF importer. */
+  source?: 'webarchive' | 'pdf';
+  duties: AimsDuty[];
+  hotels: AimsHotel[];
+  absences: AimsAbsence[];
+  activities: AimsActivity[];
+  totals: { blockMinutes?: number; nightMinutes?: number };
+  importedAt: string;
+};
 
 type RecordValue = Record<string, unknown>;
 const storageKey = 'pwaplog.aims-roster.v1';
@@ -14,6 +32,16 @@ export function loadAimsRoster(): AimsRoster | undefined {
   try { const value = localStorage.getItem(storageKey); return value ? JSON.parse(value) as AimsRoster : undefined; } catch { return undefined; }
 }
 export function saveAimsRoster(roster: AimsRoster) { localStorage.setItem(storageKey, JSON.stringify(roster)); }
+
+/**
+ * Which side of the flight deck door a rank sits on.
+ *
+ * Shared with the PDF importer so one colleague is filed the same way whichever file they arrive
+ * in. "3P" is the third pilot on a long sector — flight deck, not cabin.
+ */
+export function crewRole(rank: string): AimsCrewMember['role'] {
+  return ['CP', 'FO', 'LI', '3P'].includes(rank.trim().toUpperCase()) ? 'Flight deck' : 'Cabin';
+}
 
 /** Parses an AIMS Crew Schedule saved locally as HTML or Safari Web Archive. No network/session data is used. */
 export async function parseAimsArchive(file: File): Promise<AimsRoster> {
@@ -58,7 +86,8 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     if (value !== undefined && label.includes('night')) summary.nightMinutes = value;
     return summary;
   }, {}) : {};
-  return { period: { start: periodStart, end: periodEnd }, duties, hotels: hotels(findElement(result.elementList, 'hotels')), absences, activities, totals, importedAt: new Date().toISOString() };
+  const period = { start: periodStart, end: periodEnd };
+  return { period, coverage: period, source: 'webarchive', duties, hotels: hotels(findElement(result.elementList, 'hotels')), absences, activities, totals, importedAt: new Date().toISOString() };
 }
 
 function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {
@@ -129,7 +158,7 @@ function attachCrew(duties: AimsDuty[], members: RecordValue | undefined, self: 
     const [, day, month, year, number, origin, destination] = key;
     const crew = group.data.flatMap((item): AimsCrewMember[] => {
       if (!record(item)) return []; const name = text(item.value2).trim(); const position = text(item.value4).trim(); if (!name || !position) return [];
-      const rank = position.split('-')[0]?.trim().toUpperCase(); return [{ id: scalar(item.value3) || undefined, name, position, role: rank === 'CP' || rank === 'FO' || rank === 'LI' ? 'Flight deck' : 'Cabin', deadhead: /\bDHC\b/i.test(position) || undefined }];
+      const rank = position.split('-')[0]?.trim().toUpperCase(); return [{ id: scalar(item.value3) || undefined, name, position, role: crewRole(rank), deadhead: /\bDHC\b/i.test(position) || undefined }];
     });
     if (!crew.length) continue;
     const date = `${year}-${month}-${day}`; const normalizedNumber = number.replace(/^KC/i, '');

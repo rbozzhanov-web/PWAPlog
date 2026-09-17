@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   loadAimsRoster,
-  parseAimsArchive,
   saveAimsRoster,
   type AimsActivity,
   type AimsDuty,
@@ -11,6 +10,7 @@ import {
   type AimsHotel,
   type AimsRoster,
 } from './aims';
+import { mergeAimsRoster, parseAimsFile } from './importRoster';
 import { id } from './FlightDetailPage';
 import { localDateKey } from '../../platform/localDate';
 import { HOME_BASE, stationsByDay, useRosterWeather, weatherIcon, type ForecastDay } from '../weather/weatherService';
@@ -116,18 +116,23 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
       window.cancelAnimationFrame(focusAnimation.current ?? 0);
     };
   }, [isActive, roster]);
+  /**
+   * Takes either file AIMS gives out and folds it into the one stored roster — see
+   * importRoster.ts. Merging against what is already stored rather than the roster held in state
+   * matters: Home and Pay write to the same key, so the stored copy is the one that is current.
+   */
   const importArchive = async (file?: File) => {
     if (!file) return;
     setImporting(true);
     setError(undefined);
     try {
-      const next = await parseAimsArchive(file);
+      const next = mergeAimsRoster(loadAimsRoster(), await parseAimsFile(file));
       saveAimsRoster(next);
       setRoster(next);
       window.dispatchEvent(new Event('aims-roster-updated'));
       setImportFlowOpen(false);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not import this AIMS archive.');
+      setError(reason instanceof Error ? reason.message : 'Could not import this AIMS file.');
     } finally {
       setImporting(false);
     }
@@ -238,15 +243,15 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
         <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog">
           <div className="aims-import-sheet__handle" aria-hidden="true" />
           <h2 id="aims-import-title">Import from AIMS</h2>
-          <p>Open Crew Schedule, then Share → Options → Web Archive → Save to Files. Return to eScrew and choose that Web Archive.</p>
-          <p className="aims-import-sheet__note">Web Archive only captures the period currently open in AIMS. For a completed month, use the “Personal Crew Schedule Report” PDF importer in Pay.</p>
+          <p>Open Crew Schedule, then Share → Options → Web Archive → Save to Files. Or save the “Personal Crew Schedule Report” PDF AIMS publishes for the month. Either one works here.</p>
+          <p className="aims-import-sheet__note">A Web Archive holds the period currently open in AIMS; the PDF holds the month it was published for. Importing one keeps the other's months — the days they share are taken from whichever you imported last.</p>
           <a className="aims-import-sheet__primary" href="https://aims.airastana.com/eCrew/CrewSchedule" rel="noopener noreferrer" target="_blank">Open AIMS Crew Schedule</a>
           <label className={`aims-import-sheet__file${importing ? ' is-disabled' : ''}`}>
-            {importing ? 'Reading schedule…' : 'Import Web Archive'}
+            {importing ? 'Reading schedule…' : 'Import Web Archive or PDF'}
             <input
-              aria-label="Choose saved AIMS Web Archive"
+              aria-label="Choose saved AIMS Web Archive or Crew Schedule PDF"
               type="file"
-              accept=".webarchive,text/html,application/octet-stream"
+              accept=".webarchive,.pdf,application/pdf,text/html,application/octet-stream"
               disabled={importing}
               onChange={(event) => {
                 const input = event.currentTarget;
