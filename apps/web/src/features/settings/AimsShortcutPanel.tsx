@@ -51,9 +51,13 @@ export function AimsShortcutPanel() {
             <li><em>Copy to Clipboard</em> — give it the <em>JavaScript Result</em>.</li>
           </ol>
           <span>
-            Then turn on <em>Show in Share Sheet</em> in the shortcut's settings and let it accept
-            web pages. From AIMS: Share → your shortcut → come back to eScrew → Roster →{' '}
-            <em>Replace AIMS</em> → <em>Paste roster from AIMS</em>.
+            That is the whole shortcut — there is no action to reopen this app, because a home
+            screen web app is not something Shortcuts can open. Then in its settings turn on{' '}
+            <em>Show in Share Sheet</em> and accept Safari web pages.
+          </span>
+          <span>
+            To use it: on your AIMS schedule, Share → your shortcut, then switch back here and
+            press <em>Paste</em> on the Roster tab.
           </span>
           <span>
             If you use eScrew in Safari rather than from the home screen, there is no wall and no
