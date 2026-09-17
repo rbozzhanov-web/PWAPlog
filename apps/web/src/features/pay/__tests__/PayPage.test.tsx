@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
-import { NEW_ENTRY_DEFAULTS, type FlightLogEntry } from '@pilot-logbook/core';
-import { render, screen, waitFor } from '@testing-library/react';
+import { EMPTY_PAY_SETTINGS, NEW_ENTRY_DEFAULTS, type FlightLogEntry } from '@pilot-logbook/core';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { createPilotLogbookDb, type PilotLogbookDb } from '../../../db/database';
 import { PayPage } from '../PayPage';
@@ -150,5 +150,52 @@ describe('PayPage exchange rate', () => {
 
     expect(await screen.findByText(/Could not reach the National Bank/)).toBeVisible();
     expect(screen.getByPlaceholderText('Rate')).toHaveValue('');
+  });
+});
+
+/**
+ * A contract states these as percentages, so the field does too. Core works in fractions
+ * throughout and that is what the database holds, so a settings record saved before this needs no
+ * migration — the same 0.25 simply reads as 25.
+ */
+describe('PayPage percentage rates', () => {
+  async function openSettings() {
+    rosterForSeptember();
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
+    render(<PayPage db={db} />);
+    return screen.findByText('Alimony rate');
+  }
+
+  const fieldFor = (label: string) =>
+    screen.getByText(label).closest('label')!.querySelector('input')!;
+
+  it('shows a stored fraction as a percentage', async () => {
+    await db.settings.put({ id: 'pay-settings', ...EMPTY_PAY_SETTINGS, alimonyRate: 0.25, corporatePensionRate: 0.07 });
+    await openSettings();
+
+    // 0.07 × 100 is 7.000000000000001 in binary floating point; the field must not say that.
+    await waitFor(() => expect(fieldFor('Alimony rate')).toHaveValue('25'));
+    expect(fieldFor('CorpPP rate')).toHaveValue('7');
+    expect(screen.getByText('Alimony rate').closest('label')).toHaveTextContent('%');
+  });
+
+  it('stores what is typed as a fraction, which is what core works in', async () => {
+    await openSettings();
+
+    fireEvent.change(fieldFor('Alimony rate'), { target: { value: '25' } });
+    fireEvent.change(fieldFor('CorpPP rate'), { target: { value: '7.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save local pay settings' }));
+
+    await waitFor(async () => {
+      const stored = await db.settings.get('pay-settings');
+      expect(stored).toMatchObject({ alimonyRate: 0.25, corporatePensionRate: 0.075 });
+    });
+  });
+
+  it('leaves the money fields alone', async () => {
+    await db.settings.put({ id: 'pay-settings', ...EMPTY_PAY_SETTINGS, monthlySalaryEur: 6000 });
+    await openSettings();
+
+    await waitFor(() => expect(fieldFor('Salary / month')).toHaveValue('6000'));
   });
 });
