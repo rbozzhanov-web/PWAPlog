@@ -41,11 +41,20 @@ export function AimsShortcutPanel() {
         <li>
           <strong>On iPhone — a Shortcut</strong>
           <span>
-            Shortcuts → new shortcut → add <em>Run JavaScript on Web Page</em> and paste the script
-            below. Then add a second action, <em>Open URLs</em>, and give it the result of the
-            first — the script hands back a link rather than following it, which is what Shortcuts
-            requires. Finally, in the shortcut's settings turn on <em>Show in Share Sheet</em> and
-            accept web pages. Then from AIMS: Share → your shortcut.
+            Three actions, in this order. The middle one matters: the script hands back a link as
+            plain text, and <em>Open URLs</em> will not accept text — without it you get
+            <em> “a valid URL is required”</em>.
+          </span>
+          <ol className="settings-substeps">
+            <li><em>Run JavaScript on Web Page</em> — paste the script below into it.</li>
+            <li><em>URL</em> — put the <em>JavaScript Result</em> variable inside it, and nothing else.</li>
+            <li><em>Open URLs</em> — give it the <em>URL</em> from the step above.</li>
+          </ol>
+          <span>
+            Then in the shortcut's settings turn on <em>Show in Share Sheet</em> and let it accept
+            web pages. From AIMS: Share → your shortcut. (If your Shortcuts has no{' '}
+            <em>URL</em> action, a <em>Text</em> action holding the same variable does the same
+            job.)
           </span>
           <button onClick={() => void copy('script')} type="button">
             {copied === 'script' ? 'Copied' : 'Copy the script'}

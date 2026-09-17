@@ -3149,18 +3149,20 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   counter-reset: aims-step;
 }
 
-.settings-steps li {
+/* Direct children only: the nested recipe below is a list of sentences, and inheriting this grid
+   broke every emphasised action name onto a line of its own. */
+.settings-steps > li {
   display: grid;
   gap: .35rem;
   justify-items: start;
 }
 
-.settings-steps strong {
+.settings-steps > li > strong {
   color: var(--text);
   font-size: var(--body-size);
 }
 
-.settings-steps span {
+.settings-steps > li > span {
   color: var(--muted);
   font-size: var(--caption-size);
   line-height: 1.5;
@@ -3215,5 +3217,33 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
 .import-aims-page .roster-empty-card a {
   color: var(--accent);
   font-size: var(--caption-size);
+  font-weight: 600;
+}
+
+/* The Shortcut recipe is three actions in order, so its steps nest inside the step that explains
+   them rather than flattening into the outer list. */
+.settings-substeps {
+  display: grid;
+  gap: .3rem;
+  margin: .1rem 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: var(--caption-size);
+  line-height: 1.5;
+}
+
+.settings-substeps li {
+  display: list-item;
+  padding-left: .15rem;
+}
+
+.settings-substeps li::marker {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.settings-substeps em {
+  color: var(--text);
+  font-style: normal;
   font-weight: 600;
 }
