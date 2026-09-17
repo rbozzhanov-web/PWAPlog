@@ -11,7 +11,6 @@ import {
   type AimsHotel,
   type AimsRoster,
 } from './aims';
-import { rosterFromHandoffText } from './aimsHandoff';
 import { id } from './FlightDetailPage';
 import { localDateKey } from '../../platform/localDate';
 import { HOME_BASE, stationsByDay, useRosterWeather, weatherIcon, type ForecastDay } from '../weather/weatherService';
@@ -25,8 +24,6 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
   const [roster, setRoster] = useState<AimsRoster>();
   const [error, setError] = useState<string>();
   const [importing, setImporting] = useState(false);
-  const [pasteOpen, setPasteOpen] = useState(false);
-  const [pasted, setPasted] = useState('');
   const [importFlowOpen, setImportFlowOpen] = useState(false);
   const [openFlight, setOpenFlight] = useState<{ duty: AimsDuty; flight: AimsFlight }>();
   const todayElement = useRef<HTMLDivElement>(null);
@@ -41,12 +38,6 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     window.addEventListener('open-aims-import', openImportFlow);
     return () => window.removeEventListener('open-aims-import', openImportFlow);
   }, [openImportFlow]);
-  // Both roster actions live in the app's fixed header, which sits above this page's own.
-  useEffect(() => {
-    const paste = () => { void pasteFromClipboard(); };
-    window.addEventListener('paste-aims-roster', paste);
-    return () => window.removeEventListener('paste-aims-roster', paste);
-  });
   useEffect(() => {
     if (!importFlowOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -119,49 +110,17 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     setImporting(true);
     setError(undefined);
     try {
-      applyRoster(await parseAimsArchive(file));
+      const next = await parseAimsArchive(file);
+      saveAimsRoster(next);
+      setRoster(next);
+      window.dispatchEvent(new Event('aims-roster-updated'));
+      setImportFlowOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not import this AIMS archive.');
     } finally {
       setImporting(false);
     }
   };
-  const applyRoster = (next: AimsRoster) => {
-    saveAimsRoster(next);
-    setRoster(next);
-    window.dispatchEvent(new Event('aims-roster-updated'));
-    setImportFlowOpen(false);
-    setPasteOpen(false);
-    setPasted('');
-  };
-
-  const importPastedRoster = async (text: string) => {
-    setImporting(true);
-    setError(undefined);
-    try {
-      applyRoster(await rosterFromHandoffText(text));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not read that roster link.');
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  /**
-   * Reading the clipboard needs a gesture and iOS asks before allowing it, so a refusal is normal
-   * rather than exceptional — the box below is the way through when that happens.
-   */
-  const pasteFromClipboard = async () => {
-    setError(undefined);
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text.trim()) { await importPastedRoster(text); return; }
-    } catch {
-      // Denied, unavailable, or empty: fall through to the box.
-    }
-    setPasteOpen(true);
-  };
-
   const closeImportFlow = () => {
     if (!importing) setImportFlowOpen(false);
   };
@@ -177,26 +136,10 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
           {importing ? 'Reading…' : roster ? 'Replace AIMS' : 'Add AIMS'}
         </button>
       </header>
-      {pasteOpen && !importFlowOpen ? <label className="roster-paste-box">
-        Paste what the AIMS shortcut copied
-        <textarea
-          aria-label="Paste the roster link from AIMS"
-          disabled={importing}
-          onChange={(event) => setPasted(event.target.value)}
-          placeholder="Long-press here and choose Paste"
-          rows={3}
-          value={pasted}
-        />
-        <div>
-          <button disabled={importing || !pasted.trim()} onClick={() => void importPastedRoster(pasted)} type="button">Import it</button>
-          <button className="roster-paste-box__cancel" disabled={importing} onClick={() => { setPasteOpen(false); setPasted(''); setError(undefined); }} type="button">Cancel</button>
-        </div>
-      </label> : null}
-      {error && !importFlowOpen ? <p className="roster-import-error" role="alert">{error}</p> : null}
       {!roster ? <section className="roster-empty-card roster-empty-card--compact">
         <span aria-hidden="true">✈</span>
         <h2>Bring in your AIMS roster</h2>
-        <p>Set up the one-tap shortcut in Settings, then Share it from AIMS and press Paste above. Or save the Crew Schedule as a Web Archive and use Add AIMS.</p>
+        <p>In AIMS, open Crew Schedule, wait for it to load, save it as a Web Archive, then use Add AIMS above.</p>
       </section> : null}
       {roster ? <section aria-label="Crew schedule" className="roster-timeline">
         {rosterDays.map((day) => {
@@ -284,24 +227,9 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
         <section aria-labelledby="aims-import-title" aria-modal="true" className="aims-import-sheet" role="dialog">
           <div className="aims-import-sheet__handle" aria-hidden="true" />
           <h2 id="aims-import-title">Import from AIMS</h2>
-          <p>With the shortcut set up in Settings: open Crew Schedule, Share → your shortcut, then come back here and paste. Without it: Share → Options → Web Archive → Save to Files, and choose that file below.</p>
+          <p>Open Crew Schedule, then Share → Options → Web Archive → Save to Files. Return to eScrew and choose that Web Archive.</p>
           <p className="aims-import-sheet__note">Web Archive only captures the period currently open in AIMS. For a completed month, use the “Personal Crew Schedule Report” PDF importer in Pay.</p>
           <a className="aims-import-sheet__primary" href="https://aims.airastana.com/eCrew/CrewSchedule" rel="noopener noreferrer" target="_blank">Open AIMS Crew Schedule</a>
-          <button className="aims-import-sheet__paste" disabled={importing} onClick={() => void pasteFromClipboard()} type="button">
-            {importing ? 'Reading schedule…' : 'Paste roster from AIMS'}
-          </button>
-          {pasteOpen ? <label className="aims-import-sheet__pastebox">
-            Paste what the shortcut copied
-            <textarea
-              aria-label="Paste the roster link from AIMS"
-              disabled={importing}
-              onChange={(event) => setPasted(event.target.value)}
-              placeholder="Long-press here and choose Paste"
-              rows={3}
-              value={pasted}
-            />
-            <button disabled={importing || !pasted.trim()} onClick={() => void importPastedRoster(pasted)} type="button">Import it</button>
-          </label> : null}
           <label className={`aims-import-sheet__file${importing ? ' is-disabled' : ''}`}>
             {importing ? 'Reading schedule…' : 'Import Web Archive'}
             <input

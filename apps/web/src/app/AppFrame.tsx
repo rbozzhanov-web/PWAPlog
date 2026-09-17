@@ -236,19 +236,9 @@ export function AppFrame({ db }: AppFrameProps) {
         <div aria-hidden="true" className="primary-tab-header__titles">
           {items.map((item, index) => <span className={visualIndex === index ? 'is-visible' : ''} key={item.to}>{item.title}</span>)}
         </div>
-        {visualIndex === 1 ? <div className="primary-tab-header__actions">
-          {/*
-            Always offered rather than only when there is something to paste: iOS will not let a
-            page look at the clipboard without a tap, so the app cannot know in advance. A button
-            reliably in the same place beats a banner that guesses.
-          */}
-          <button className="primary-tab-header__paste" onClick={() => window.dispatchEvent(new Event('paste-aims-roster'))} title="Paste a roster copied by the AIMS shortcut" type="button">
-            <span aria-hidden="true">⧉</span>Paste
-          </button>
-          <button className="primary-tab-header__aims" onClick={() => window.dispatchEvent(new Event('open-aims-import'))} type="button">
-            <span aria-hidden="true">{hasAimsRoster ? '↻' : '+'}</span>{hasAimsRoster ? 'Replace AIMS' : 'Add AIMS'}
-          </button>
-        </div> : null}
+        {visualIndex === 1 ? <button className="primary-tab-header__aims" onClick={() => window.dispatchEvent(new Event('open-aims-import'))} type="button">
+          <span aria-hidden="true">{hasAimsRoster ? '↻' : '+'}</span>{hasAimsRoster ? 'Replace AIMS' : 'Add AIMS'}
+        </button> : null}
       </header> : null}
       <div className="app-frame__content">
         {isPrimaryRoute ? <div className="primary-tab-pager" onScroll={handlePagerScroll} ref={pagerRef}>

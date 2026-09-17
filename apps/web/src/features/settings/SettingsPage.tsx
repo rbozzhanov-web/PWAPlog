@@ -1,5 +1,4 @@
 import type { PilotLogbookDb } from '../../db/database';
-import { AimsShortcutPanel } from './AimsShortcutPanel';
 import { BackupExportPanel } from './BackupExportPanel';
 import { BackupImportPanel } from './BackupImportPanel';
 
@@ -47,7 +46,6 @@ export function SettingsPage({ db, theme, onThemeChange }: SettingsPageProps) {
             ))}
           </div>
         </section>
-        <AimsShortcutPanel />
         <BackupImportPanel db={db} />
         <BackupExportPanel db={db} />
       </div>
