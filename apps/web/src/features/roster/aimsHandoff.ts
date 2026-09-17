@@ -93,27 +93,22 @@ export async function rosterFromHandoff(encoded: string, compressed = true): Pro
 /**
  * The script the pilot runs on the AIMS Crew Schedule page.
  *
- * Written defensively rather than tidily, because of where it has to survive. Shortcuts' "Run
- * JavaScript on Web Page" reports one thing when anything at all goes wrong — "a valid URL is
- * required" — and shows nothing about why, so a script that throws, hangs, or misses its callback
- * leaves the pilot with no way to tell which. Three rules follow from that:
+ * Entirely synchronous, which is the whole design. Shortcuts' "Run JavaScript on Web Page" does
+ * not wait for asynchronous work: an earlier version gzipped the payload in a promise, and the
+ * action finished before the callback ever ran — reporting only "a valid URL is required", with an
+ * empty result, and later doing nothing at all when the script tried to navigate from inside that
+ * same callback. Both symptoms were one cause. Nothing here returns a promise, so there is no turn
+ * of the event loop to be cut off at.
  *
- *  - `completion` is called exactly once, on every path, always with a URL this app can open. A
- *    failure becomes `#e=<reason>`, which the import page renders, so the reason reaches a screen
- *    rather than dying in a context nobody can inspect.
- *  - A watchdog fires if nothing else has, so the action can never simply hang.
- *  - No async function wraps the whole thing and no `await` is used. The work is asynchronous, but
- *    keeping the outer scope plain means an unhandled rejection cannot swallow the callback.
+ * That rules out CompressionStream, so the schedule goes as plain base64url — around 54 KB of URL
+ * rather than 9 KB. Long, but it arrives, and it is what the payload is pruned for below: the
+ * elements the roster parser never reads are dropped, along with the per-row styling AIMS ships
+ * with the crew list.
  *
- * It also delivers both ways at once — it navigates *and* it calls `completion` — which is what
- * lets one script serve a Safari bookmark and a Shortcut alike. The Shortcut needs the callback or
- * it refuses to run at all; navigating means it does not also need an "Open URLs" action, and
- * Shortcuts will not pass a variable into one of those without complaining that it wants a literal
- * URL. Setting `location.href` only schedules the navigation, so the callback still fires first.
- *
- * Compression is what makes the link short enough to open at all — 9 KB against 67 KB. When it is
- * unavailable the script falls back to sending the schedule uncompressed rather than failing: a
- * long URL that works beats a clean error.
+ * It delivers both ways at once — it navigates *and* it calls `completion` — so one script serves
+ * a Safari bookmark and a Shortcut alike, and so that either mechanism failing still leaves the
+ * other. Setting `location.href` only schedules the navigation, so the callback still fires first,
+ * and the call is guarded because a bookmark has nothing to hand back to.
  */
 export function aimsHandoffScript(appOrigin: string): string {
   return `(function () {
@@ -122,30 +117,36 @@ export function aimsHandoffScript(appOrigin: string): string {
   function done(u) {
     if (sent) return;
     sent = true;
-    try { location.href = u; } catch (e) {}
     try { if (typeof completion === 'function') completion(u); } catch (e) {}
+    try { location.href = u; } catch (e) {}
   }
   function fail(m) { done(app + '#e=' + encodeURIComponent(String(m && m.message ? m.message : m).slice(0, 300))); }
-  function b64url(bin) { return btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, ''); }
-  function binary(bytes) { var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return s; }
-  setTimeout(function () { fail('Timed out reading the roster. Let the AIMS page finish loading, then run this again.'); }, 10000);
+  function lean(v) {
+    if (Array.isArray(v)) return v.map(lean);
+    if (v && typeof v === 'object') {
+      var o = {};
+      for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k) && k !== '$css' && k !== 'css') o[k] = lean(v[k]);
+      return o;
+    }
+    return v;
+  }
   try {
-    if (!window.initialResult) return fail('Open your AIMS Crew Schedule and let it finish loading, then run this again.');
+    var r = window.initialResult;
+    if (!r) return fail('Open your AIMS Crew Schedule and let it finish loading, then run this again.');
+    var keep = [];
+    var list = r.elementList || [];
+    for (var i = 0; i < list.length; i++) if (['totals', 'hours', 'members', 'hotels'].indexOf(list[i] && list[i].id) >= 0) keep.push(list[i]);
     var payload = {
       v: ${HANDOFF_VERSION},
-      result: window.initialResult,
+      result: lean({ SchedulerEvents: r.SchedulerEvents, elementList: keep }),
       events: window.Events,
       periodStart: localStorage.PeriodStart,
       periodEnd: localStorage.PeriodEnd,
     };
-    var json = JSON.stringify(payload);
-    var bytes = new TextEncoder().encode(json);
-    var plain = function () { return app + '#j=' + b64url(binary(bytes)); };
-    if (typeof CompressionStream === 'undefined' || typeof ReadableStream === 'undefined') return done(plain());
-    var src = new ReadableStream({ start: function (c) { c.enqueue(bytes); c.close(); } });
-    new Response(src.pipeThrough(new CompressionStream('gzip'))).arrayBuffer().then(function (ab) {
-      done(app + '#r=' + b64url(binary(new Uint8Array(ab))));
-    }).catch(function () { done(plain()); });
+    var bytes = new TextEncoder().encode(JSON.stringify(payload));
+    var bin = '';
+    for (var j = 0; j < bytes.length; j += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(j, j + 8192));
+    done(app + '#j=' + btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, ''));
   } catch (e) { fail(e); }
 })()`;
 }
