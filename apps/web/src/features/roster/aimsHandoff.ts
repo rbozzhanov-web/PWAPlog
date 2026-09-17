@@ -92,14 +92,23 @@ export async function rosterFromHandoff(encoded: string): Promise<AimsRoster> {
  * The script the pilot runs on the AIMS Crew Schedule page.
  *
  * Kept as source text rather than a real function so it can be shown, copied into a bookmark, or
- * pasted into a Shortcut's "Run JavaScript on Web Page" action. It reads only what the saved
- * archive already exposes, uses the session the pilot is already logged into, and sends nothing
- * anywhere except this app's own origin.
+ * pasted into a Shortcut. It reads only what the saved archive already exposes, uses the session
+ * the pilot is already logged into, and names no URL but this app's own.
+ *
+ * The two delivery routes need different endings, which is the whole reason this is split: a
+ * bookmarklet navigates the tab itself, while Shortcuts' "Run JavaScript on Web Page" action
+ * refuses any script that does not hand its answer back through `completion(result)` — it passes
+ * that result to the next action rather than letting the page move underneath it.
+ *
+ * Either way the body ends with a URL, including when it fails: an error comes back as `#e=` so
+ * the pilot gets a readable message on a page of ours rather than a dialogue box on the airline's
+ * site, or, in the Shortcut's case, an action that quietly does nothing.
  */
-export function aimsHandoffScript(appOrigin: string): string {
-  return `(async () => {
+function handoffBody(appOrigin: string): string {
+  return `const app = '${appOrigin}${HANDOFF_PATH}';
+  let url;
   try {
-    if (!window.initialResult) { alert('Open your AIMS Crew Schedule and let it finish loading, then run this again.'); return; }
+    if (!window.initialResult) throw new Error('Open your AIMS Crew Schedule and let it finish loading, then run this again.');
     const payload = {
       v: ${HANDOFF_VERSION},
       result: window.initialResult,
@@ -112,11 +121,28 @@ export function aimsHandoffScript(appOrigin: string): string {
     const buf = new Uint8Array(await new Response(src.pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
     let bin = '';
     for (const b of buf) bin += String.fromCharCode(b);
-    const tag = btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
-    location.href = '${appOrigin}${HANDOFF_PATH}#r=' + tag;
+    url = app + '#r=' + btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
   } catch (e) {
-    alert('Could not read the roster: ' + e.message);
-  }
+    url = app + '#e=' + encodeURIComponent(e && e.message ? e.message : String(e));
+  }`;
+}
+
+/**
+ * For Shortcuts' "Run JavaScript on Web Page". Follow it with an "Open URLs" action — this hands
+ * back the link, it deliberately does not navigate.
+ */
+export function aimsShortcutScript(appOrigin: string): string {
+  return `(async () => {
+  ${handoffBody(appOrigin)}
+  completion(url);
+})()`;
+}
+
+/** For a Safari bookmark, where the script moves the tab itself. */
+export function aimsHandoffScript(appOrigin: string): string {
+  return `(async () => {
+  ${handoffBody(appOrigin)}
+  location.href = url;
 })()`;
 }
 

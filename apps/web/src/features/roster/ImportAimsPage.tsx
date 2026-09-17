@@ -26,8 +26,16 @@ export function ImportAimsPage() {
   useEffect(() => {
     if (handled.current) return;
     handled.current = true;
-    const encoded = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('r');
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const encoded = fragment.get('r');
+    // The script reports its own failures here rather than putting a dialogue box on the airline's
+    // site — and a Shortcut has nowhere to show one at all.
+    const reported = fragment.get('e');
     window.history.replaceState(null, '', window.location.pathname);
+    if (reported) {
+      setState({ status: 'failed', message: reported });
+      return;
+    }
     if (!encoded) {
       setState({ status: 'failed', message: 'This link carried no roster. Run the shortcut from your AIMS Crew Schedule page.' });
       return;

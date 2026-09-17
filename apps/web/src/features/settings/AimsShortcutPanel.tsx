@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { aimsBookmarklet, aimsHandoffScript } from '../roster/aimsHandoff';
+import { aimsBookmarklet, aimsShortcutScript } from '../roster/aimsHandoff';
 
 /**
  * Installing the one-tap roster handoff.
@@ -13,7 +13,7 @@ export function AimsShortcutPanel() {
   const [copied, setCopied] = useState<'script' | 'bookmarklet'>();
 
   const copy = async (what: 'script' | 'bookmarklet') => {
-    const text = what === 'script' ? aimsHandoffScript(origin) : aimsBookmarklet(origin);
+    const text = what === 'script' ? aimsShortcutScript(origin) : aimsBookmarklet(origin);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(what);
@@ -41,9 +41,11 @@ export function AimsShortcutPanel() {
         <li>
           <strong>On iPhone — a Shortcut</strong>
           <span>
-            Shortcuts → new shortcut → add <em>Run JavaScript on Web Page</em> → paste the script
-            below → in its settings turn on <em>Show in Share Sheet</em> and accept web pages. Then
-            from AIMS: Share → your shortcut.
+            Shortcuts → new shortcut → add <em>Run JavaScript on Web Page</em> and paste the script
+            below. Then add a second action, <em>Open URLs</em>, and give it the result of the
+            first — the script hands back a link rather than following it, which is what Shortcuts
+            requires. Finally, in the shortcut's settings turn on <em>Show in Share Sheet</em> and
+            accept web pages. Then from AIMS: Share → your shortcut.
           </span>
           <button onClick={() => void copy('script')} type="button">
             {copied === 'script' ? 'Copied' : 'Copy the script'}
@@ -63,7 +65,7 @@ export function AimsShortcutPanel() {
 
       <details className="settings-disclosure">
         <summary>See exactly what it runs</summary>
-        <textarea readOnly rows={12} spellCheck={false} value={aimsHandoffScript(origin)} aria-label="Handoff script source" />
+        <textarea readOnly rows={14} spellCheck={false} value={aimsShortcutScript(origin)} aria-label="Handoff script source" />
       </details>
     </section>
   );

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseAimsArchive } from '../aims';
-import { decodeHandoff, encodeHandoff, aimsBookmarklet, aimsHandoffScript, rosterFromHandoff, HANDOFF_VERSION } from '../aimsHandoff';
+import { decodeHandoff, encodeHandoff, aimsBookmarklet, aimsHandoffScript, aimsShortcutScript, rosterFromHandoff, HANDOFF_VERSION } from '../aimsHandoff';
 
 const schedule = {
   SchedulerEvents: [
@@ -53,20 +53,49 @@ describe('the AIMS handoff payload', () => {
 });
 
 describe('the script the pilot runs on the AIMS page', () => {
-  const script = aimsHandoffScript('https://pwaplog.pages.dev');
+  const shortcut = aimsShortcutScript('https://pwaplog.pages.dev');
+  const bookmarklet = aimsHandoffScript('https://pwaplog.pages.dev');
 
-  it('reads only what the page already exposes, and sends it only to this app', () => {
-    expect(script).toContain('window.initialResult');
-    expect(script).toContain('localStorage.PeriodStart');
-    expect(script).toContain("location.href = 'https://pwaplog.pages.dev/import/aims#r='");
-    // No credentials, no tokens, no third party: the only URL in it is this app's own.
-    expect(script.match(/https?:\/\/[^'"]+/g)).toEqual(['https://pwaplog.pages.dev/import/aims#r=']);
+  it('reads only what the page already exposes, and names no URL but this app', () => {
+    for (const script of [shortcut, bookmarklet]) {
+      expect(script).toContain('window.initialResult');
+      expect(script).toContain('localStorage.PeriodStart');
+      // No credentials, no tokens, no third party.
+      expect(script.match(/https?:\/\/[^'"]+/g)).toEqual(['https://pwaplog.pages.dev/import/aims']);
+    }
+  });
+
+  /**
+   * Shortcuts rejects the action outright — "After execution the script must call the
+   * completion(result) function" — if it just navigates, because it passes the result to the next
+   * action rather than letting the page move underneath it.
+   */
+  it('hands its answer back through completion() for Shortcuts, and navigates for a bookmark', () => {
+    expect(shortcut).toContain('completion(url)');
+    expect(shortcut).not.toContain('location.href');
+    expect(bookmarklet).toContain('location.href = url');
+    expect(bookmarklet).not.toContain('completion(');
+  });
+
+  it('is valid JavaScript, whichever ending it has', () => {
+    // `completion` and `await` only exist where these actually run, so compile rather than execute.
+    for (const script of [shortcut, bookmarklet]) {
+      expect(() => new Function('completion', `return ${script}`)).not.toThrow();
+    }
+  });
+
+  it('comes back with a readable URL even when it fails', () => {
+    // Both endings take a URL: a failure reports itself on a page of ours rather than through a
+    // dialogue box on the airline's site, which a Shortcut could not show at all.
+    for (const script of [shortcut, bookmarklet]) {
+      expect(script).toContain("url = app + '#e=' + encodeURIComponent(");
+    }
   });
 
   it('folds into a bookmarklet Safari will accept', () => {
-    const bookmarklet = aimsBookmarklet('https://pwaplog.pages.dev');
-    expect(bookmarklet.startsWith('javascript:')).toBe(true);
-    expect(bookmarklet).not.toMatch(/\n/);
-    expect(decodeURIComponent(bookmarklet.slice('javascript:'.length))).toContain('initialResult');
+    const folded = aimsBookmarklet('https://pwaplog.pages.dev');
+    expect(folded.startsWith('javascript:')).toBe(true);
+    expect(folded).not.toMatch(/\n/);
+    expect(decodeURIComponent(folded.slice('javascript:'.length))).toContain('initialResult');
   });
 });
