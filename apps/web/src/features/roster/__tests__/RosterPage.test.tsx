@@ -200,3 +200,37 @@ describe('RosterPage AIMS import flow', () => {
     vi.unstubAllGlobals();
   });
 });
+
+/**
+ * The actual bug report: after opening AIMS in the in-app browser from this sheet, the app came
+ * back on Home with the sheet still floating over it — the reset changed tab without telling the
+ * sheet, which belongs to this one.
+ */
+describe('sheets belong to the Roster tab', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('closes the import sheet when the tab is no longer the active one', async () => {
+    const { rerender } = render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Add AIMS' }));
+    expect(screen.getByRole('dialog', { name: 'Import from AIMS' })).toBeVisible();
+
+    rerender(<MemoryRouter><RosterPage isActive={false} /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Import from AIMS' })).toBeNull());
+  });
+
+  it('keeps it open while a file is still being read', async () => {
+    // Closing mid-import would take the progress and the error message with it.
+    const { rerender } = render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Add AIMS' }));
+    const never = new Promise<ArrayBuffer>(() => {});
+    fireEvent.change(screen.getByLabelText('Choose saved AIMS Web Archive'), {
+      target: { files: [{ name: 'x.webarchive', arrayBuffer: () => never } as unknown as File] },
+    });
+    await screen.findByText('Reading schedule…');
+
+    rerender(<MemoryRouter><RosterPage isActive={false} /></MemoryRouter>);
+
+    expect(screen.getByRole('dialog', { name: 'Import from AIMS' })).toBeVisible();
+  });
+});

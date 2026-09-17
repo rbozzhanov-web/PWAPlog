@@ -38,6 +38,17 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
     window.addEventListener('open-aims-import', openImportFlow);
     return () => window.removeEventListener('open-aims-import', openImportFlow);
   }, [openImportFlow]);
+  /**
+   * A sheet belongs to this tab. Leaving it — by swiping, or because the app reset itself to Home
+   * while backgrounded — has to take the sheet with it, or it floats over whatever is on screen
+   * now: the import dialogue was left sitting over Home after a trip to the in-app browser.
+   * An import already reading a file is left alone to finish.
+   */
+  useEffect(() => {
+    if (isActive || importing) return;
+    setImportFlowOpen(false);
+    setOpenFlight(undefined);
+  }, [isActive, importing]);
   useEffect(() => {
     if (!importFlowOpen) return;
     const previousOverflow = document.body.style.overflow;

@@ -71,6 +71,30 @@ test('resets to Home when the app is backgrounded from another primary tab', asy
   await waitFor(() => expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page'));
 });
 
+/**
+ * The actual bug report: after a trip to the in-app browser the app came back stranded between
+ * Home and Roster, showing half of each. The pager carries `scroll-behavior: smooth`, so the
+ * reset-to-Home assignment started a slide that iOS killed when it suspended the app, leaving it
+ * wherever it had got to. The reset has to place the pager outright, and "instant" is the only
+ * value that does — "auto" defers to the stylesheet, which is the smooth scroll being escaped.
+ */
+test('places the pager on Home outright when backgrounded, with no scroll left running', async () => {
+  render(<MemoryRouter><App /></MemoryRouter>);
+  const pager = document.querySelector<HTMLElement>('.primary-tab-pager');
+  Object.defineProperty(pager!, 'clientWidth', { configurable: true, value: 400 });
+  const scrollTo = vi.fn();
+  Object.defineProperty(pager!, 'scrollTo', { configurable: true, value: scrollTo });
+  pager!.scrollLeft = 400;
+  fireEvent.scroll(pager!);
+  await waitFor(() => expect(screen.getByRole('link', { name: 'Roster' })).toHaveAttribute('aria-current', 'page'));
+  scrollTo.mockClear();
+
+  backgroundApp();
+
+  await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ left: 0, behavior: 'instant' }));
+  expect(scrollTo).not.toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }));
+});
+
 test('leaves a dedicated task route alone when the app is backgrounded', async () => {
   render(<MemoryRouter initialEntries={['/logbook/new']}><App /></MemoryRouter>);
   expect(await screen.findByRole('heading', { name: 'New flight' })).toBeVisible();

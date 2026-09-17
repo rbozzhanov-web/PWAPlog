@@ -152,7 +152,12 @@ export function AppFrame({ db }: AppFrameProps) {
     nearestIndex.current = routeIndex;
     lastProgress.current = routeIndex;
     preparedPage.current = undefined;
-    pager.scrollLeft = routeIndex * pager.clientWidth;
+    // Placed, not animated. The pager carries `scroll-behavior: smooth`, so assigning scrollLeft
+    // starts a ~300ms slide — and iOS kills that mid-flight when it backgrounds the app, which is
+    // what stranded the pager between two pages after a trip to the in-app browser. It has to be
+    // "instant" rather than "auto": auto means defer to the stylesheet, which is exactly the
+    // smooth scroll being escaped. Swipes and taps still animate; they go through selectTab.
+    scrollElement(pager, { left: routeIndex * pager.clientWidth, behavior: 'instant' });
     setVisualIndex(routeIndex);
     displayProgress(routeIndex);
   }, [displayProgress, fallbackIndex, isPrimaryRoute, routeIndex]);
