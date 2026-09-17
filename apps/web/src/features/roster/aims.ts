@@ -6,7 +6,7 @@ export type AimsAbsence = { code: 'SICK' | 'UFF' | 'VAC' | 'CHLD'; date: string 
 export type AimsActivity = { date: string; code: string; title?: string; type: string; location?: string; start?: string; end?: string };
 export type AimsRoster = { period: { start: string; end: string }; duties: AimsDuty[]; hotels: AimsHotel[]; absences: AimsAbsence[]; activities: AimsActivity[]; totals: { blockMinutes?: number; nightMinutes?: number }; importedAt: string };
 
-type RecordValue = Record<string, unknown>;
+export type RecordValue = Record<string, unknown>;
 const storageKey = 'pwaplog.aims-roster.v1';
 const sectorPattern = /\b(?:KC\s*)?(\d{1,5})\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)/g;
 
@@ -20,11 +20,36 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
   const source = await file.arrayBuffer();
   const html = decodeArchive(source);
   if (!/\/eCrew\/CrewSchedule|CrewSchedule/i.test(html) || !/initialResult/.test(html)) throw new Error('Unsupported AIMS file. Save the fully loaded Crew Schedule as a Web Archive, then import it here.');
-  const result = assignedJson(html);
-  const periodStart = readLocalStorage(html, 'PeriodStart');
-  const periodEnd = readLocalStorage(html, 'PeriodEnd');
+  return buildAimsRoster({
+    result: assignedJson(html),
+    events: assignedArray(html, /var\s+Events\s*=/),
+    periodStart: readLocalStorage(html, 'PeriodStart'),
+    periodEnd: readLocalStorage(html, 'PeriodEnd'),
+  });
+}
+
+/** What the roster builder needs, however it was obtained — a saved archive or the live page. */
+export interface AimsSource {
+  /** The page's own `initialResult` object. */
+  result: RecordValue;
+  /** The page's `Events`, used only when `initialResult` carries no `SchedulerEvents`. */
+  events?: unknown[];
+  /** `localStorage.PeriodStart` / `PeriodEnd` on the Crew Schedule page. */
+  periodStart?: string;
+  periodEnd?: string;
+}
+
+/**
+ * Turns AIMS' own schedule payload into a roster.
+ *
+ * Split out from `parseAimsArchive` so the saved Web Archive and the live Crew Schedule page share
+ * one implementation: the archive route digs the payload out of saved HTML, the handoff route gets
+ * handed the same objects directly by a script running on the page. Everything downstream of that
+ * — sectors, crew, hotels, totals — must not care which it was.
+ */
+export function buildAimsRoster({ result, events: pageEvents, periodStart, periodEnd }: AimsSource): AimsRoster {
   if (!validDate(periodStart) || !validDate(periodEnd)) throw new Error('Could not read the roster period from this AIMS archive.');
-  const events = Array.isArray(result.SchedulerEvents) ? result.SchedulerEvents : assignedArray(html, /var\s+Events\s*=/);
+  const events = Array.isArray(result.SchedulerEvents) ? result.SchedulerEvents : (pageEvents ?? []);
   const duties: AimsDuty[] = [];
   const absences: AimsAbsence[] = [];
   const activities: AimsActivity[] = [];
