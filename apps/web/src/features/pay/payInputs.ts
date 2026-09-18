@@ -11,10 +11,9 @@ import { EMPTY_MONTHLY_DAYS, type MonthlyDays, type PaySector } from '@pilot-log
  * saw a year of almost no earnings, kept the target month pinned to the bottom ИПН band, and
  * understated the tax. The rates were in the database the whole time, one row per month.
  *
- * So this gathers a source for every month it can. Per month the ladder is: an imported Crew
- * Schedule PDF first (it is the document pay is actually computed from), then the currently loaded
- * AIMS roster, then the logbook. A month with no source at all contributes nothing, which is the
- * honest answer and the same thing that happened before.
+ * So this gathers a source for every month it can. Per month the ladder is the AIMS roster first —
+ * it is the document pay is computed from, and it now holds every month imported into it — then
+ * the logbook. A month with no source at all contributes nothing, which is the honest answer.
  */
 
 export interface MonthSource {
@@ -33,18 +32,18 @@ export interface PayInputs {
 /**
  * Picks one source per month from the ladder and flattens them.
  *
- * `ladder` is most-preferred first; `override` wins outright for its own month, which is how the
- * pilot's explicit "use the PDF" / "use the current AIMS roster" choice on screen is honoured for
- * the month being calculated without changing how earlier months resolve.
+ * `ladder` is most-preferred first. It used to take an override as well, for the month the screen
+ * was on: Pay had a second importer of its own, and the pilot had to say which reading of a month
+ * to believe. There is one source now, so the month on screen resolves the same way every other
+ * month does.
  */
-export function buildPayInputs(ladder: MonthSource[][], override?: MonthSource): PayInputs {
+export function buildPayInputs(ladder: MonthSource[][]): PayInputs {
   const chosen = new Map<string, MonthSource>();
   for (const tier of ladder) {
     for (const source of tier) {
       if (!chosen.has(source.month)) chosen.set(source.month, source);
     }
   }
-  if (override) chosen.set(override.month, override);
 
   const months = [...chosen.keys()].sort();
   const monthlyDays: Record<string, MonthlyDays> = {};

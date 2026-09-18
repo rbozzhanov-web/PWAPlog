@@ -67,9 +67,6 @@ body {
 .roster-empty-card h2 { margin: 1rem 0 0.35rem; letter-spacing: -0.04em; }
 .roster-empty-card p { max-width: 22rem; margin: 0; line-height: 1.45; }
 .roster-empty-card a { margin-top: 1.2rem; color: var(--accent); font-size: var(--body-size); font-weight: 600; text-decoration: none; }
-.roster-import-action { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; margin-top: 1.2rem; border-radius: 0.95rem; padding: 0 1rem; background: var(--accent); box-shadow: 0 0.6rem 1.3rem var(--accent-soft); color: var(--surface-solid); cursor: pointer; font-size: var(--body-size); font-weight: 600; }
-.roster-import-action input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.roster-import-error { margin: 0.8rem 0 0; color: var(--danger) !important; font-size: var(--caption-size); }
 .pay-page { width: min(100%, 42rem); box-sizing: border-box; margin: auto; padding: max(1.25rem, env(safe-area-inset-top)) 1rem 2rem; }
 .pay-setup { display: grid; border: 1px solid var(--surface); background: var(--surface); box-shadow: 0 .7rem 1.6rem var(--accent-soft); backdrop-filter: blur(1rem); }
 .pay-setup label { display: grid; align-items: center; font-weight: 600; }
@@ -85,7 +82,7 @@ body {
 .pay-result > div p { display: flex; justify-content: space-between; margin: 0; color: var(--muted); font-size: var(--caption-size); }
 .pay-result > div strong { color: var(--text); }
 .pay-hint { margin: 1rem 0; color: var(--muted); text-align: center; }
-.pay-pdf-check { text-align: center; }.pay-pdf-check .roster-import-action { margin-top: 0; }.pay-pdf-check p { margin: .7rem 0 0; color: var(--muted); font-size: var(--caption-size); line-height: 1.4; }.pay-source-list { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-top: .75rem; }.pay-source-list button { border: 1px solid var(--accent-soft); border-radius: 999px; padding: .42rem .7rem; cursor: pointer; font-size: var(--caption-size); font-weight: 600; }.pay-source-list button.is-active { border-color: transparent; }.pay-source-list button:disabled { cursor: not-allowed; opacity: .45; }
+.pay-source-list { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-top: .75rem; }.pay-source-list button { border: 1px solid var(--accent-soft); border-radius: 999px; padding: .42rem .7rem; cursor: pointer; font-size: var(--caption-size); font-weight: 600; }.pay-source-list button.is-active { border-color: transparent; }.pay-source-list button:disabled { cursor: not-allowed; opacity: .45; }
 .flight-detail-page { width: min(100%, 42rem); box-sizing: border-box; margin: auto; padding: max(1.25rem, env(safe-area-inset-top)) 1rem 2rem; }
 .flight-detail-header { display: flex; justify-content: space-between; }
 .flight-detail-header a { color: var(--accent); font-size: var(--caption-size); font-weight: 600; text-decoration: none; }.flight-detail-header span { color: var(--muted); font-weight: 600; }
@@ -123,7 +120,7 @@ body {
 .home-hero__eyebrow { color: var(--muted); font-size: var(--caption-size); letter-spacing: .12em; }
 .home-hero h2 { max-width: none; margin: .42rem 0 .3rem; color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; line-height: 1.03; }
 .home-hero > p:not(.home-hero__eyebrow) { color: var(--muted); font-size: var(--body-size); }
-.home-hero__actions a, .roster-import-action { min-height: 2.35rem; border-radius: .8rem; background: var(--accent); box-shadow: 0 .45rem .9rem var(--accent-soft); font-size: var(--caption-size); }
+.home-hero__actions a { min-height: 2.35rem; border-radius: .8rem; background: var(--accent); box-shadow: 0 .45rem .9rem var(--accent-soft); font-size: var(--caption-size); }
 .home-hero__actions a + a { border: 1px solid var(--line); background: var(--surface-solid); color: var(--text); }
 .home-stats { gap: .55rem; margin-top: .55rem; }
 .home-stats > div { gap: .26rem; border-radius: .95rem; padding: .75rem; }
@@ -135,7 +132,7 @@ body {
 .suite-page-header { padding: .35rem .15rem 1rem; }.suite-page-header h1, .flight-detail-page h1 { color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; }.suite-page-header span { color: var(--muted); font-size: var(--caption-size); }
 .roster-empty-card { min-height: 12rem; border-radius: 1.1rem; padding: 1rem; }.roster-empty-card > span { width: 2.5rem; height: 2.5rem; background: var(--accent-soft); color: var(--accent); }.roster-empty-card h2 { color: var(--text); font-size: var(--header-size); }.roster-empty-card p { color: var(--muted); font-size: var(--caption-size); }
 .flight-detail-tabs { border: 1px solid var(--line); border-radius: .9rem; padding: .18rem; background: var(--bg); }.flight-detail-tabs button { min-height: 2.1rem; border-radius: .7rem; color: var(--muted); font-size: var(--caption-size); }.flight-detail-tabs button[aria-selected="true"] { background: var(--accent); box-shadow: 0 .25rem .6rem var(--accent-soft); color: var(--surface-solid); }
-.roster-today-label { margin-left: .45rem; border-radius: 999px; padding: .14rem .38rem; background: var(--accent); color: var(--surface-solid); font-size: var(--caption-size); letter-spacing: .08em; }.pay-pdf-check p, .pay-hint { color: var(--muted); }.pay-source-list button { border-color: var(--line); background: var(--surface-solid); color: var(--muted); }.pay-source-list button.is-active { background: var(--accent); color: var(--surface-solid); }.pay-setup { border-radius: 1rem; }.pay-setup label { color: var(--text); font-size: var(--caption-size); }.pay-setup label > span { color: var(--muted); }.pay-setup input { border-color: var(--line); border-radius: .65rem; background: var(--bg); }.pay-setup button { border-radius: .75rem; background: var(--accent); }.pay-result { border-radius: 1rem; padding: 1rem; background: var(--surface-solid); }.pay-result > p, .pay-result > span, .pay-result > div p { color: var(--muted); }.pay-result h2, .pay-result > div strong { color: var(--text); }.pay-result h2 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--title-size); }
+.roster-today-label { margin-left: .45rem; border-radius: 999px; padding: .14rem .38rem; background: var(--accent); color: var(--surface-solid); font-size: var(--caption-size); letter-spacing: .08em; }.pay-hint { color: var(--muted); }.pay-source-list button { border-color: var(--line); background: var(--surface-solid); color: var(--muted); }.pay-source-list button.is-active { background: var(--accent); color: var(--surface-solid); }.pay-setup { border-radius: 1rem; }.pay-setup label { color: var(--text); font-size: var(--caption-size); }.pay-setup label > span { color: var(--muted); }.pay-setup input { border-color: var(--line); border-radius: .65rem; background: var(--bg); }.pay-setup button { border-radius: .75rem; background: var(--accent); }.pay-result { border-radius: 1rem; padding: 1rem; background: var(--surface-solid); }.pay-result > p, .pay-result > span, .pay-result > div p { color: var(--muted); }.pay-result h2, .pay-result > div strong { color: var(--text); }.pay-result h2 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--title-size); }
 .flight-detail-header { margin-bottom: .75rem; }.flight-detail-header a, .flight-detail-header span { color: var(--text); }.flight-detail__date { color: var(--muted); }.flight-detail-hero, .flight-detail-card { margin-top: .7rem; border-radius: 1rem; padding: .85rem; }.flight-detail-hero strong, .flight-times strong, .flight-aircraft { color: var(--text); }.flight-detail-hero i { color: var(--highlight); }.flight-detail-hero p, .flight-detail-card > p, .flight-detail-empty, .flight-times span, .flight-weather__current small, .flight-weather__forecast span, .flight-weather__current em, .flight-duty-times span { color: var(--muted); }.flight-crew-row { border-color: var(--line); }.flight-crew-row b { background: var(--accent-soft); color: var(--accent); }
 .pay-audit { display: grid; gap: .85rem; margin-top: .7rem; border: 1px solid var(--line); border-radius: 1rem; padding: .9rem; background: var(--surface-solid); box-shadow: 0 .35rem 1.2rem var(--line); }.pay-audit header { display: grid; gap: .18rem; }.pay-audit header p, .pay-audit__group > p, .pay-audit__sectors > p { margin: 0; color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }.pay-audit h2 { margin: 0; color: var(--text); font-size: var(--header-size); letter-spacing: -.04em; }.pay-audit header > span { color: var(--muted); font-size: var(--caption-size); }.pay-audit__totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; }.pay-audit__totals p { display: grid; gap: .2rem; margin: 0; border-radius: .65rem; padding: .45rem; background: var(--bg); color: var(--muted); font-size: var(--caption-size); }.pay-audit__totals strong { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); }.pay-audit__group { display: grid; gap: .36rem; border-top: 1px solid var(--line); padding-top: .8rem; }.pay-audit__group div, .pay-audit__sectors div { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; color: var(--muted); font-size: var(--caption-size); }.pay-audit__group strong, .pay-audit__sectors strong { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--caption-size); white-space: nowrap; }.pay-audit__sectors { display: grid; gap: .4rem; border-top: 1px solid var(--line); padding-top: .8rem; }.pay-audit__sectors small { color: var(--muted); font-family: inherit; font-size: var(--caption-size); }.pay-audit__warning, .pay-audit__note { margin: 0; border-radius: .65rem; padding: .6rem; font-size: var(--caption-size); line-height: 1.4; }.pay-audit__warning { background: var(--highlight-soft); color: var(--highlight); }.pay-audit__note { background: var(--accent-soft); color: var(--muted); }
 .home-route { display: flex; align-items: flex-start; justify-content: space-between; gap: .4rem; margin: .7rem 0 .45rem; }.home-route__stop { display: grid; gap: .08rem; text-align: center; }.home-route__stop:first-child { text-align: left; }.home-route__stop:last-child { text-align: right; }.home-route strong { color: var(--text); font-size: var(--title-size); letter-spacing: -.06em; }.home-route small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .08em; }.home-route b { display:inline-block; color: var(--highlight); font-size: var(--header-size); transform: rotate(45deg); }.home-time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin-top: .9rem; }.home-time-grid > div { display: grid; gap: .12rem; min-width: 0; justify-items: center; text-align: center; border: 1px solid var(--line); border-radius: .7rem; padding: .5rem; background: var(--bg); }.home-time-grid span, .home-time-grid small { color: var(--muted); font-size: var(--caption-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }.home-time-grid strong i { margin-left: .1rem; color: var(--muted); font-size: var(--caption-size); font-style: normal; font-weight: 600; vertical-align: baseline; }.home-time-grid strong { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }.home-time-grid small { font-size: var(--caption-size); }
@@ -1680,12 +1677,6 @@ html {
   white-space: nowrap;
 }
 
-.roster-page > .roster-import-error {
-  margin: 0 0 .7rem;
-  border-radius: .8rem;
-  padding: .7rem .8rem;
-  background: var(--danger-soft);
-}
 
 .roster-empty-card--compact {
   min-height: 9rem;
@@ -1852,8 +1843,9 @@ body,
   height: 0;
 }
 
+
 /* Pay mobile form: stable columns, no clipping on narrow iPhones. */
-.pay-pdf-check {
+.pay-source-list {
   margin-top: 0;
   margin-bottom: .75rem;
 }
@@ -2831,20 +2823,6 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   color: var(--text);
   font-family: inherit;
   font-size: var(--body-size);
-}
-
-/* ---- pay: the import action stands on its own ------------------------------ */
-/* A single button does not need a card behind it: the card read as an empty panel with a button
-   floating in it, which is what the surface tier is for — grouping related content, not framing
-   one control. */
-.pay-pdf-check {
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 /* The rate row was missing its unit cell, so its input landed in the narrow middle column that

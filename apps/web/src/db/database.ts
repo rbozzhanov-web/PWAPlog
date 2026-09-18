@@ -2,7 +2,6 @@ import type { Aircraft, FlightLogEntry } from '@pilot-logbook/core';
 import Dexie, { type Table } from 'dexie';
 
 import type {
-  CrewScheduleRecord,
   ExchangeRateRecord,
   MetadataRecord,
   MonthlyPayDaysRecord,
@@ -16,7 +15,6 @@ export class PilotLogbookDb extends Dexie {
   flightEntries!: Table<FlightLogEntry, string>;
   aircraft!: Table<Aircraft, string>;
   settings!: Table<SettingsRecord, string>;
-  crewSchedules!: Table<CrewScheduleRecord, string>;
   exchangeRates!: Table<ExchangeRateRecord, string>;
   taxableYtdOverrides!: Table<TaxableYtdOverrideRecord, string>;
   monthlyPayDays!: Table<MonthlyPayDaysRecord, string>;
@@ -35,6 +33,13 @@ export class PilotLogbookDb extends Dexie {
       monthlyPayDays: 'month',
       metadata: 'key',
     });
+
+    /**
+     * Pay's own Crew Schedule PDF importer is gone: the Roster tab reads that same report, and Pay
+     * now derives its day counts and sectors from the roster. This drops the table it kept its
+     * parsed months in, which nothing reads any more.
+     */
+    this.version(2).stores({ crewSchedules: null });
 
     this.on('populate', () =>
       this.metadata.add({

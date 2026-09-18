@@ -1,4 +1,4 @@
-import { EMPTY_PAY_SETTINGS, calculatePayPeriod, lastDayOfMonthDdMmYyyy, lookupNormMinutes, parseCrewSchedule, summarisePayHours, type MonthlyDays, type PaySector, type PaySettings, type ParsedCrewSchedule } from '@pilot-logbook/core';
+import { EMPTY_PAY_SETTINGS, calculatePayPeriod, lastDayOfMonthDdMmYyyy, lookupNormMinutes, summarisePayHours, type PaySector, type PaySettings } from '@pilot-logbook/core';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { PilotLogbookDb } from '../../db/database';
@@ -6,6 +6,7 @@ import { listFlightEntries } from '../../db/repositories/flightEntries';
 import { fetchNbrkEurRate } from '../../platform/nbrkRate';
 import { loadAimsRoster } from '../roster/aims';
 import { buildPayInputs, sourcesByMonth, withFormValues } from './payInputs';
+import { payDaysForMonth, payMonthsFromRoster } from './rosterPayDays';
 import { parseTaxableYtd } from './ytdOverride';
 
 interface PayPageProps { db: PilotLogbookDb }
@@ -60,31 +61,33 @@ const money = (value: number) => new Intl.NumberFormat('ru-KZ', { maximumFractio
 
 export function PayPage({ db }: PayPageProps) {
   const [roster, setRoster] = useState(() => loadAimsRoster());
-  const month = roster?.period.start.slice(0, 7);
+  // Every month the roster can answer for, and the one the screen is on. The roster is imported
+  // per period, so the month the pilot has just brought in is the one they want to see; the rest
+  // stay one tap away, and all of them feed the year replay below either way.
+  const rosterMonths = useMemo(() => payMonthsFromRoster(roster), [roster]);
+  const latestMonth = roster?.period.start.slice(0, 7);
+  const [chosenMonth, setChosenMonth] = useState<string>();
   const [settings, setSettings] = useState<PaySettings>(EMPTY_PAY_SETTINGS);
   const [rate, setRate] = useState(0);
   // undefined means 'not entered'. Zero is a real claim about the year — see ytdOverride.ts.
   const [taxableYtd, setTaxableYtd] = useState<number>();
   const [saved, setSaved] = useState(false);
-  const [pdfSchedules, setPdfSchedules] = useState<ParsedCrewSchedule[]>([]);
   const [storedRates, setStoredRates] = useState<Record<string, number>>({});
   const [storedYtd, setStoredYtd] = useState<Record<string, number>>({});
   const [loggedSectors, setLoggedSectors] = useState<PaySector[]>([]);
-  const [activePdfMonth, setActivePdfMonth] = useState<string>();
-  const [pdfError, setPdfError] = useState<string>();
   const [rateSource, setRateSource] = useState<'stored' | 'fetching' | 'nbrk' | 'unavailable'>('stored');
   const [rateFor, setRateFor] = useState<{ fdate: string; provisional: boolean }>();
 
-  const activePdf = pdfSchedules.find((schedule) => schedule.month === activePdfMonth);
-  const payMonth = activePdf?.month ?? month;
+  const months = rosterMonths.map((source) => source.month);
+  const payMonth = (chosenMonth && months.includes(chosenMonth) ? chosenMonth : undefined)
+    ?? (latestMonth && months.includes(latestMonth) ? latestMonth : months[0]);
   // ИПН bands on the cumulative year, so the replay needs every month it can get — not just the
   // one on screen. All of this is already in the database, one row per month.
   useEffect(() => {
     let live = true;
-    void Promise.all([db.crewSchedules.toArray(), db.exchangeRates.toArray(), db.taxableYtdOverrides.toArray(), listFlightEntries(db)])
-      .then(([schedules, rates, overrides, entries]) => {
+    void Promise.all([db.exchangeRates.toArray(), db.taxableYtdOverrides.toArray(), listFlightEntries(db)])
+      .then(([rates, overrides, entries]) => {
         if (!live) return;
-        setPdfSchedules(schedules);
         setStoredRates(Object.fromEntries(rates.map((row) => [row.month, row.rate])));
         setStoredYtd(Object.fromEntries(overrides.map((row) => [row.month, row.taxableIncome])));
         setLoggedSectors(entries.map((entry) => ({ date: entry.date, departureAirport: entry.departureAirport, arrivalAirport: entry.arrivalAirport, totalTimeMinutes: entry.totalTimeMinutes })));
@@ -131,25 +134,12 @@ export function PayPage({ db }: PayPageProps) {
     });
     return () => { live = false; };
   }, [db, payMonth]);
-  const aimsSectors = useMemo(() => roster?.duties.flatMap((duty) => duty.flights).filter((flight) => !flight.deadhead).map((flight) => ({ date: flight.date, departureAirport: flight.origin, arrivalAirport: flight.destination, totalTimeMinutes: 0 })) ?? [], [roster]);
-  const days: MonthlyDays = useMemo(() => {
-    const vacation = roster?.absences.filter((item) => item.code === 'VAC' && item.date.startsWith(month ?? '')).map((item) => item.date) ?? [];
-    const paidVacationDays = vacation.filter((date) => new Date(`${date}T00:00:00Z`).getUTCDay() !== 0).length;
-    const activities = roster?.activities?.filter((item) => item.date.startsWith(month ?? '')) ?? [];
-    const medicalExamDays = activities.filter((item) => /^MED(?:\d|A)/.test(item.code)).length;
-    const trainingDays = activities.filter((item) => /^(GRTC|TRN|SIM|LPC|OPC)/.test(item.code)).length;
-    return { vacationDays: vacation.length, paidVacationDays, trainingDays, medicalExamDays };
-  }, [roster, month]);
-  const payDays = activePdf?.days ?? days;
-  const inputs = useMemo(() => buildPayInputs(
-    [
-      pdfSchedules.map((schedule) => ({ month: schedule.month, sectors: schedule.sectors, days: schedule.days })),
-      month ? [{ month, sectors: aimsSectors, days }] : [],
-      sourcesByMonth(loggedSectors),
-    ],
-    payMonth ? { month: payMonth, sectors: activePdf?.sectors ?? aimsSectors, days: payDays } : undefined,
-  ), [pdfSchedules, aimsSectors, month, days, loggedSectors, payMonth, activePdf, payDays]);
-  const sectors = activePdf?.sectors ?? aimsSectors;
+  const days = useMemo(() => payDaysForMonth(roster, payMonth ?? ''), [roster, payMonth]);
+  const sectors = useMemo(() => rosterMonths.find((source) => source.month === payMonth)?.sectors ?? [], [rosterMonths, payMonth]);
+  const inputs = useMemo(
+    () => buildPayInputs([rosterMonths, sourcesByMonth(loggedSectors)]),
+    [rosterMonths, loggedSectors],
+  );
   const rates = useMemo(() => withFormValues(storedRates, payMonth, rate > 0 ? rate : undefined), [storedRates, payMonth, rate]);
   const ytdOverrides = useMemo(() => withFormValues(storedYtd, payMonth, taxableYtd), [storedYtd, payMonth, taxableYtd]);
   const result = payMonth && rate > 0 ? calculatePayPeriod(inputs.sectors, payMonth, settings, rates, inputs.monthlyDays, undefined, ytdOverrides) : undefined;
@@ -167,24 +157,16 @@ export function PayPage({ db }: PayPageProps) {
     const entered = Number(value) || 0;
     return { ...current, [key]: percentFields.has(key) ? entered / 100 : entered };
   });
-  const importSchedulePdf = async (file?: File) => { if (!file) return; setPdfError(undefined); try { // Imported here rather than at module scope: pdf.js and its worker are ~850 KB, and a pilot
-      // who never imports a PDF should not pay for them on every launch of the Pay tab.
-      const { extractPdfText } = await import('../../platform/pdf/extractText');
-      const parsed = parseCrewSchedule(await extractPdfText(file)); await db.crewSchedules.put({ ...parsed, importedAt: new Date().toISOString() }); setPdfSchedules((current) => [...current.filter((item) => item.month !== parsed.month), parsed]); setActivePdfMonth(parsed.month); } catch (reason) { setPdfError(reason instanceof Error ? reason.message : 'Could not read this Crew Schedule PDF.'); } };
-
   return <main className="pay-page">
     <header className="suite-page-header"><div className="tab-header__identity"><p>CREW PAY</p><h1>Pay</h1></div></header>
-    <section className="pay-pdf-check">
-      <label className="roster-import-action">Import Crew Schedule PDF<input type="file" accept="application/pdf" onChange={(event) => void importSchedulePdf(event.target.files?.[0])} /></label>
-      {pdfSchedules.length ? <div className="pay-source-list"><button type="button" className={!activePdf ? 'is-active' : ''} onClick={() => setActivePdfMonth(undefined)} disabled={!month}>Current AIMS {month ?? 'unavailable'}</button>{pdfSchedules.map((schedule) => <button type="button" className={activePdfMonth === schedule.month ? 'is-active' : ''} onClick={() => setActivePdfMonth(schedule.month)} key={schedule.month}>PDF {schedule.month}</button>)}</div> : null}
-      {activePdf ? <p>PDF {activePdf.month}: {activePdf.sectors.length} operating sectors · {formatHours(summarisePayHours(activePdf.sectors).totalMinutes)} CrewPay norms. Saved locally as the Pay source for this month.</p> : null}
-      {pdfError ? <p className="roster-import-error">{pdfError}</p> : null}
-    </section>
-    {!payMonth ? <section className="roster-empty-card"><span aria-hidden="true">₸</span><h2>Import a source for Pay</h2><p>Use the current AIMS Web Archive or a historical AIMS Personal Crew Schedule PDF.</p></section> : <>
+    {months.length > 1 ? <section className="pay-source-list" aria-label="Month to calculate">
+      {months.map((key) => <button className={key === payMonth ? 'is-active' : ''} key={key} onClick={() => setChosenMonth(key)} type="button">{key}</button>)}
+    </section> : null}
+    {!payMonth ? <section className="roster-empty-card"><span aria-hidden="true">₸</span><h2>Import a roster first</h2><p>Pay reads the roster on the Roster tab — a saved AIMS Web Archive or the Personal Crew Schedule Report PDF. Import the month you want to check and it appears here.</p></section> : <>
       <section className="pay-setup"><label>EUR / KZT for {payMonth}<span>{rateSource === 'fetching' ? 'LOADING' : rateSource === 'nbrk' ? 'NBRK' : rateSource === 'unavailable' ? 'ENTER' : 'RATE'}</span><input inputMode="decimal" value={rate || ''} placeholder={rateSource === 'fetching' ? 'Asking the National Bank…' : 'Rate'} onChange={(event) => { setRate(Number(event.target.value) || 0); setRateSource('stored'); }} /></label>{rateSource === 'nbrk' && rateFor ? <p className="pay-setup__note">{rateFor.provisional
         ? `Provisional: the National Bank's rate for ${rateFor.fdate}, standing in until ${lastDayOfMonthDdMmYyyy(payMonth ?? '')} — the day this month actually converts at. Pay will move.`
         : `Official National Bank rate for ${rateFor.fdate}, the day this month converts at.`} Type over it to use your own.</p> : null}{rateSource === 'unavailable' ? <p className="pay-setup__note">Could not reach the National Bank. Enter the EUR/KZT rate for the month's last day.</p> : null}<label>Taxable YTD before {payMonth}<span>KZT</span><input inputMode="decimal" value={taxableYtd ?? ''} placeholder="From payslip" onChange={(event) => setTaxableYtd(parseTaxableYtd(event.target.value))} /></label>{labels.map(([key, label, unit]) => <label key={key}>{label}<span>{unit}</span><input inputMode="decimal" value={(percentFields.has(key) ? toPercent(settings[key]) : settings[key]) || ''} onChange={(event) => setValue(key, event.target.value)} /></label>)}<button type="button" onClick={() => void save()}>Save local pay settings</button>{saved ? <p>Saved only on this device.</p> : null}</section>
-      {result ? <><section className="pay-result"><p>{payMonth} · {formatHours(result.hours.totalMinutes)} paid norm time</p><h2>{money(result.payroll.netPay)} ₸</h2><span>Estimated take-home</span><div><p>Gross <strong>{money(result.earnings.total)} ₸</strong></p><p>Salary <strong>{money(result.earnings.salary)} ₸</strong></p><p>Flight pay <strong>{money(result.earnings.flightPay)} ₸</strong></p><p>Night allowance <strong>{money(result.earnings.nightAllowance)} ₸</strong></p><p>Productivity <strong>{money(result.earnings.productivityAllowance)} ₸</strong></p><p>Transport <strong>{money(result.earnings.transportAllowance)} ₸</strong></p><p>Tax & deductions <strong>{money(result.payroll.totalDeductions)} ₸</strong></p>{payDays.vacationDays || payDays.trainingDays || payDays.medicalExamDays ? <p>Paid days <strong>VAC {payDays.paidVacationDays} · TRN {payDays.trainingDays} · MED {payDays.medicalExamDays}</strong></p> : null}</div></section><section className="pay-audit"><header><p>PAYSLIP CHECK</p><h2>Calculation detail</h2><span>Source: {activePdf ? `AIMS PDF ${activePdf.month}` : roster?.source === 'pdf' ? 'imported AIMS roster (PDF)' : 'current AIMS Web Archive'}</span></header><div className="pay-audit__totals"><p>Norm sectors <strong>{hours.sectorsOnNorm}</strong></p><p>Actual-time sectors <strong>{hours.sectorsOnActual}</strong></p><p>EUR / KZT <strong>{result.eurToKztRateUsed}</strong></p></div><AuditGroup title="Earnings" rows={[["Salary", result.earnings.salary], ["Flight pay", result.earnings.flightPay], ["Night allowance", result.earnings.nightAllowance], ["Productivity", result.earnings.productivityAllowance], ["Transport", result.earnings.transportAllowance], ["Vacation / training / MED", result.earnings.vacationPay + result.earnings.trainingPay + result.earnings.medicalExamPay], ["Indirect income (CorpPP)", result.earnings.indirectIncome]]} /><AuditGroup title="Deductions" rows={[["OPV", result.payroll.opv], ["OSMS", result.payroll.vosms], ["IPN", result.payroll.ipn], ["CorpPP employee", result.payroll.voluntaryPension], ["Alimony", result.payroll.alimony], ["Advance & indirect income", result.payroll.otherDeductions]]} /><div className="pay-audit__sectors"><p>Sector norms</p>{sectors.map((sector, index) => { const norm = lookupNormMinutes(sector.departureAirport, sector.arrivalAirport); const minutes = norm ?? sector.totalTimeMinutes; return <div key={`${sector.date}-${sector.departureAirport}-${sector.arrivalAirport}-${index}`}><span>{sector.date.slice(8)} · {sector.departureAirport} → {sector.arrivalAirport}</span><strong>{formatHours(minutes)} <small>{norm === undefined ? 'actual' : 'norm'}</small></strong></div>; })}</div>{hours.unlistedSectors.length ? <p className="pay-audit__warning">No published norm: {hours.unlistedSectors.join(', ')}. The calculation uses actual time, so check the source PDF.</p> : null}{result.ytdOverrideMonth ? <p className="pay-audit__note">IPN uses the taxable YTD value saved before {result.ytdOverrideMonth}.</p> : null}{result.fxFallbackMonths.length ? <p className="pay-audit__warning">No EUR/KZT rate saved for {result.fxFallbackMonths.join(', ')}. IPN is banded on the year to date, so those months were replayed on a borrowed rate — save each month's rate to firm this up.</p> : null}{monthsWithoutSource.length ? <p className="pay-audit__warning">No roster, PDF or logbook entries for {monthsWithoutSource.join(', ')}, so the year-to-date behind this month is incomplete. Enter your taxable YTD from a payslip to pin it.</p> : null}</section></> : <p className="pay-hint">Enter the EUR/KZT rate and your stored terms to calculate this roster.</p>}
+      {result ? <><section className="pay-result"><p>{payMonth} · {formatHours(result.hours.totalMinutes)} paid norm time</p><h2>{money(result.payroll.netPay)} ₸</h2><span>Estimated take-home</span><div><p>Gross <strong>{money(result.earnings.total)} ₸</strong></p><p>Salary <strong>{money(result.earnings.salary)} ₸</strong></p><p>Flight pay <strong>{money(result.earnings.flightPay)} ₸</strong></p><p>Night allowance <strong>{money(result.earnings.nightAllowance)} ₸</strong></p><p>Productivity <strong>{money(result.earnings.productivityAllowance)} ₸</strong></p><p>Transport <strong>{money(result.earnings.transportAllowance)} ₸</strong></p><p>Tax & deductions <strong>{money(result.payroll.totalDeductions)} ₸</strong></p>{days.vacationDays || days.trainingDays || days.medicalExamDays ? <p>Paid days <strong>VAC {days.paidVacationDays} · TRN {days.trainingDays} · MED {days.medicalExamDays}</strong></p> : null}</div></section><section className="pay-audit"><header><p>PAYSLIP CHECK</p><h2>Calculation detail</h2><span>Source: AIMS roster{roster?.source ? roster.source === 'pdf' ? ' · Crew Schedule PDF' : ' · Web Archive' : ''}</span></header><div className="pay-audit__totals"><p>Norm sectors <strong>{hours.sectorsOnNorm}</strong></p><p>Actual-time sectors <strong>{hours.sectorsOnActual}</strong></p><p>EUR / KZT <strong>{result.eurToKztRateUsed}</strong></p></div><AuditGroup title="Earnings" rows={[["Salary", result.earnings.salary], ["Flight pay", result.earnings.flightPay], ["Night allowance", result.earnings.nightAllowance], ["Productivity", result.earnings.productivityAllowance], ["Transport", result.earnings.transportAllowance], ["Vacation / training / MED", result.earnings.vacationPay + result.earnings.trainingPay + result.earnings.medicalExamPay], ["Indirect income (CorpPP)", result.earnings.indirectIncome]]} /><AuditGroup title="Deductions" rows={[["OPV", result.payroll.opv], ["OSMS", result.payroll.vosms], ["IPN", result.payroll.ipn], ["CorpPP employee", result.payroll.voluntaryPension], ["Alimony", result.payroll.alimony], ["Advance & indirect income", result.payroll.otherDeductions]]} /><div className="pay-audit__sectors"><p>Sector norms</p>{sectors.map((sector, index) => { const norm = lookupNormMinutes(sector.departureAirport, sector.arrivalAirport); const minutes = norm ?? sector.totalTimeMinutes; return <div key={`${sector.date}-${sector.departureAirport}-${sector.arrivalAirport}-${index}`}><span>{sector.date.slice(8)} · {sector.departureAirport} → {sector.arrivalAirport}</span><strong>{formatHours(minutes)} <small>{norm === undefined ? 'actual' : 'norm'}</small></strong></div>; })}</div>{hours.unlistedSectors.length ? <p className="pay-audit__warning">No published norm: {hours.unlistedSectors.join(', ')}. The calculation uses actual time, so check it against the payslip.</p> : null}{result.ytdOverrideMonth ? <p className="pay-audit__note">IPN uses the taxable YTD value saved before {result.ytdOverrideMonth}.</p> : null}{result.fxFallbackMonths.length ? <p className="pay-audit__warning">No EUR/KZT rate saved for {result.fxFallbackMonths.join(', ')}. IPN is banded on the year to date, so those months were replayed on a borrowed rate — save each month's rate to firm this up.</p> : null}{monthsWithoutSource.length ? <p className="pay-audit__warning">No roster or logbook entries for {monthsWithoutSource.join(', ')}, so the year-to-date behind this month is incomplete. Enter your taxable YTD from a payslip to pin it.</p> : null}</section></> : <p className="pay-hint">Enter the EUR/KZT rate and your stored terms to calculate this roster.</p>}
     </>}
   </main>;
 }

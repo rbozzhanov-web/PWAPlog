@@ -1,15 +1,10 @@
 import type {
   MonthlyDays,
-  ParsedCrewSchedule,
   PaySettings,
 } from '@pilot-logbook/core';
 
 export interface SettingsRecord extends PaySettings {
   id: 'pay-settings';
-}
-
-export interface CrewScheduleRecord extends ParsedCrewSchedule {
-  importedAt: string;
 }
 
 export interface ExchangeRateRecord {

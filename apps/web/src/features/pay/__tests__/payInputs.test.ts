@@ -20,28 +20,13 @@ describe('buildPayInputs', () => {
     expect(inputs.monthlyDays['2026-07']).toEqual(days(2));
   });
 
-  it('takes the first tier that has a month, so a PDF beats the roster and the roster beats the logbook', () => {
+  it('takes the first tier that has a month, so the roster beats the logbook', () => {
     const inputs = buildPayInputs([
-      [{ month: '2026-09', sectors: [sector('2026-09-01', 'PDF', 'PDF')] }],
       [{ month: '2026-09', sectors: [sector('2026-09-01', 'AIM', 'AIM')] }],
       sourcesByMonth([sector('2026-09-01', 'LOG', 'LOG')]),
     ]);
 
-    expect(inputs.sectors).toEqual([expect.objectContaining({ departureAirport: 'PDF' })]);
-  });
-
-  it("lets the pilot's explicit choice win for the month being calculated", () => {
-    const inputs = buildPayInputs(
-      [[
-        { month: '2026-09', sectors: [sector('2026-09-01', 'PDF', 'PDF')] },
-        { month: '2026-08', sectors: [sector('2026-08-01', 'PDF', 'PDF')] },
-      ]],
-      { month: '2026-09', sectors: [sector('2026-09-01', 'AIM', 'AIM')], days: days(1) },
-    );
-
-    // The override replaces September only — August still resolves through the ladder.
-    expect(inputs.sectors.map((item) => item.departureAirport)).toEqual(['PDF', 'AIM']);
-    expect(inputs.monthlyDays['2026-09']).toEqual(days(1));
+    expect(inputs.sectors).toEqual([expect.objectContaining({ departureAirport: 'AIM' })]);
   });
 
   it('gives a month with no day figures an empty set rather than dropping it', () => {

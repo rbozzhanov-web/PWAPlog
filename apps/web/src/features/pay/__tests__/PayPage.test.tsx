@@ -47,7 +47,7 @@ describe('PayPage year-to-date inputs', () => {
         month: `2026-${String(index + 1).padStart(2, '0')}`, rate: RATE, source: 'manual' as const, updatedAt: '2026-09-01T00:00:00.000Z',
       })),
     );
-    // A month with no roster and no PDF still has the logbook to price it.
+    // A month the roster does not reach still has the logbook to price it.
     await db.flightEntries.bulkPut(
       Array.from({ length: 8 }, (_, index) => logged(`2026-${String(index + 1).padStart(2, '0')}-04`, 'ALA', 'NQZ')),
     );
@@ -57,7 +57,7 @@ describe('PayPage year-to-date inputs', () => {
     await waitFor(() => expect(screen.getByText(/EUR \/ KZT/)).toBeVisible());
     // Every month of the year was priced from a rate of its own.
     await waitFor(() => expect(screen.queryByText(/No EUR\/KZT rate saved for/)).toBeNull());
-    await waitFor(() => expect(screen.queryByText(/No roster, PDF or logbook entries for/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/No roster or logbook entries for/)).toBeNull());
   });
 
   it('warns when a month of the year had no rate, instead of quietly borrowing one', async () => {
@@ -84,7 +84,7 @@ describe('PayPage year-to-date inputs', () => {
 
     render(<PayPage db={db} />);
 
-    const warning = await screen.findByText(/No roster, PDF or logbook entries for/);
+    const warning = await screen.findByText(/No roster or logbook entries for/);
     expect(warning).toHaveTextContent('2026-01');
     expect(warning).toHaveTextContent('2026-07');
     expect(warning).not.toHaveTextContent('2026-08');

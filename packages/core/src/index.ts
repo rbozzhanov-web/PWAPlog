@@ -36,7 +36,6 @@ export {
   type PayTimeSource,
   type SectorPayTime,
 } from './crew-pay/normLookup';
-export { parseCrewSchedule, type ParsedCrewSchedule } from './crew-pay/scheduleParser';
 export {
   EMPTY_MONTHLY_DAYS,
   EMPTY_PAY_SETTINGS,
