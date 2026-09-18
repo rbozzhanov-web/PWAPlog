@@ -102,6 +102,42 @@ describe('parseAimsArchive', () => {
     expect(deadheaded).toMatchObject({ flightNumber: 'KC622', deadhead: true });
   });
 
+  /**
+   * The real bug this guards: AIMS gives a debrief as a bare clock, and hanging it on the duty's
+   * start date puts the release before the report for every duty that ends after midnight. Nothing
+   * showed it — the Roster and the hero both print the time and drop the date — until the hero
+   * subtracted the two for a duty length and got a negative number, which it renders as a dash.
+   */
+  it('files a debrief after midnight on the day the duty actually ends', async () => {
+    const initialResult = {
+      SchedulerEvents: [{
+        id: '1234on2026-09-25T18:25:00_x',
+        start: '2026-09-25T18:25:00', end: '2026-09-26T00:35:00',
+        report: '18:25', debrief: '00:35', type: 'Flight', IsDeadhead: false,
+        details: '855  - ALA  (1940) - NQZ  (2125) \r\n856  - NQZ  (2225) - ALA  (0005\u207a\u00b9) ',
+      }],
+    };
+    const archive = `<script>localStorage['PeriodStart']='2026-09-01';localStorage['PeriodEnd']='2026-09-30';var initialResult = ${JSON.stringify(initialResult)};</script>CrewSchedule`;
+    const roster = await parseAimsArchive(archiveFile(archive));
+
+    expect(roster.duties[0].report).toBe('2026-09-25T18:25');
+    expect(roster.duties[0].release).toBe('2026-09-26T00:35');
+  });
+
+  it('leaves a same-day debrief on the day it was given', async () => {
+    const initialResult = {
+      SchedulerEvents: [{
+        id: '1234on2026-09-04T10:40:00_x',
+        start: '2026-09-04T10:40:00', end: '2026-09-04T17:24:00',
+        report: '10:40', debrief: '17:24', type: 'Flight', IsDeadhead: false,
+        details: '921  - NQZ  (1217) - FRA  (1654) ',
+      }],
+    };
+    const archive = `<script>localStorage['PeriodStart']='2026-09-01';localStorage['PeriodEnd']='2026-09-30';var initialResult = ${JSON.stringify(initialResult)};</script>CrewSchedule`;
+
+    expect((await parseAimsArchive(archiveFile(archive))).duties[0].release).toBe('2026-09-04T17:24');
+  });
+
   // A long sector carries a third pilot, whose rank AIMS prints as "3P". Filed as cabin crew they
   // showed up under the flight attendants on the crew list, which is the wrong door.
   it('files a third pilot on the flight deck', async () => {

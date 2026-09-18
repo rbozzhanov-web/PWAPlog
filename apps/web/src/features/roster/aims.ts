@@ -96,7 +96,7 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
     if (!dutyDate) continue;
     const absence = absenceCode(event); if (absence) absences.push({ code: absence, date: dutyDate });
     const flights = sectors(event, dutyDate);
-    if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report), dutyDate), release: boundary(text(event.debrief), dutyDate), flights });
+    if (flights.length) duties.push({ date: flights[0].date, start: boundary(text(event.start)), end: boundary(text(event.end)), report: boundary(text(event.report), dutyDate), release: releaseBoundary(text(event.debrief), flights, dutyDate), flights });
     else {
       const code = eventCode(event);
       if (code) activities.push({
@@ -122,6 +122,30 @@ export async function parseAimsArchive(file: File): Promise<AimsRoster> {
   }, {}) : {};
   const period = { start: periodStart, end: periodEnd };
   return { period, coverage: period, source: 'webarchive', duties, hotels: hotels(findElement(result.elementList, 'hotels')), absences, activities, totals, importedAt: new Date().toISOString() };
+}
+
+/**
+ * When the pilot is released, for a debrief AIMS gives as a bare clock.
+ *
+ * The clock has to be hung on a date, and the duty's start date is the wrong one for every duty
+ * that ends after midnight: a 00:35 debrief on a duty that reported at 18:25 the evening before
+ * came out eighteen hours *before* the report. Nothing on screen showed it, because every reader
+ * of the release printed the time and dropped the date — until one of them subtracted the two and
+ * got a negative duty. It also cut such a duty off Home a day early, `dutyEndTimestamp` being the
+ * test for whether a duty is still ahead of the pilot.
+ *
+ * So the clock hangs on the day the last sector lands, and rolls forward if it still reads earlier
+ * than that landing: release comes after on-blocks.
+ */
+function releaseBoundary(value: string, flights: AimsFlight[], dutyDate: string) {
+  const dated = boundary(value);
+  if (dated) return dated;
+  if (!/^\d{2}:\d{2}/.test(value)) return undefined;
+  const clock = value.slice(0, 5);
+  const last = flights.at(-1);
+  if (!last) return `${dutyDate}T${clock}`;
+  const landed = last.arrivalDate ?? last.date;
+  return clock >= last.arrival ? `${landed}T${clock}` : `${addDays(landed, 1)}T${clock}`;
 }
 
 function sectors(event: RecordValue, dutyDate: string): AimsFlight[] {

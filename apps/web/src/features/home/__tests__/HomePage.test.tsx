@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { HomePage } from '../HomePage';
-import { saveAimsRoster } from '../../roster/aims';
+import { parseAimsArchive, saveAimsRoster } from '../../roster/aims';
 import type { AimsFlight, AimsRoster } from '../../roster/aims';
 
 /**
@@ -177,6 +177,31 @@ describe('HomePage hero', () => {
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     expect(document.querySelectorAll('.home-time-grid > div')[3]?.textContent).toBe('Duty—');
+  });
+
+  /**
+   * End to end, through the parser the roster actually arrives from. AIMS gives the debrief as a
+   * bare clock, and hanging it on the duty's start date put a 00:35 release eighteen hours before
+   * its 18:25 report. The card printed both times and looked right; the duty length was the first
+   * thing to subtract them, and showed a dash.
+   */
+  it('measures a duty that ends after midnight, as the Web Archive delivers it', async () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    const initialResult = {
+      SchedulerEvents: [{
+        id: '1234on2026-09-25T18:25:00_x',
+        start: '2026-09-25T18:25:00', end: '2026-09-26T00:35:00',
+        report: '18:25', debrief: '00:35', type: 'Flight', IsDeadhead: false,
+        details: '855  - ALA  (1940) - NQZ  (2125) \r\n856  - NQZ  (2225) - ALA  (0005\u207a\u00b9) ',
+      }],
+    };
+    const archive = `<script>localStorage['PeriodStart']='2026-09-01';localStorage['PeriodEnd']='2026-09-30';var initialResult = ${JSON.stringify(initialResult)};</script>CrewSchedule`;
+    saveAimsRoster(await parseAimsArchive({ arrayBuffer: async () => new TextEncoder().encode(archive).buffer } as File));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    const times = [...document.querySelectorAll('.home-time-grid > div')].map((cell) => cell.textContent);
+    expect(times).toEqual(['Report18:25L', 'Dep19:40L', 'Rel00:35L', 'Duty6:10']);
   });
 
   it('reads a single-sector day as a plain pair', () => {
