@@ -127,8 +127,9 @@ describe('HomePage hero', () => {
     // 19:40 is the first leg's off-blocks; the second leg's would only describe half the day. The
     // last column is the duty's release, not the 00:05 the aeroplane arrives — the pilot is not
     // free for another half hour.
-    expect(times).toEqual(['Report18:25L', 'Departure19:40L', 'Release00:35L']);
-    // The clock carries an L rather than a LOCAL caption under every column.
+    expect(times).toEqual(['Report18:25L', 'Dep19:40L', 'Rel00:35L', 'Duty6:10']);
+    // The clock carries an L rather than a LOCAL caption under every column. The duty length has
+    // none: it is elapsed time, and belongs to no station's clock.
     expect(screen.queryByText('LOCAL')).toBeNull();
   });
 
@@ -142,7 +143,40 @@ describe('HomePage hero', () => {
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Release00:05L');
+    expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Rel00:05L');
+  });
+
+  it('names the day the duty starts, and the weekday with it', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    // Reports at 22:35 on the 26th for a departure at 00:05 on the 27th. The date on the card is
+    // the day the pilot has to be at the airport, which is the report's — the sector's would send
+    // them a day late.
+    saveAimsRoster(dutyRoster('2026-10-26T22:35', '2026-10-27T10:25', leg('2026-10-27', 'KC909', 'ALA', 'ICN', '00:05', '09:55')));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    expect(screen.getByText('26 OCT · MON')).toBeVisible();
+  });
+
+  it('measures the duty as elapsed time, not as one clock minus another', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    // Report in Almaty, release in Seoul, four zones east. Subtracting the printed clocks gives
+    // 11:50 and counts those four hours as duty the pilot never worked.
+    saveAimsRoster(dutyRoster('2026-10-26T22:35', '2026-10-27T10:25', leg('2026-10-27', 'KC909', 'ALA', 'ICN', '00:05', '09:55')));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    expect(document.querySelectorAll('.home-time-grid > div')[3]?.textContent).toBe('Duty7:50');
+  });
+
+  it('says nothing about the duty length when it cannot place a station', () => {
+    vi.setSystemTime(BEFORE_THE_DUTY);
+    // A guessed offset would be a figure a pilot might plan rest around, so a dash is the answer.
+    saveAimsRoster(dutyRoster('2026-09-25T10:40', '2026-09-25T17:24', leg('2026-09-25', 'KC921', 'NQZ', 'ZZZ', '12:17', '16:54')));
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    expect(document.querySelectorAll('.home-time-grid > div')[3]?.textContent).toBe('Duty—');
   });
 
   it('reads a single-sector day as a plain pair', () => {

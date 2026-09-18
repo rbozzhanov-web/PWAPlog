@@ -1,3 +1,4 @@
+import { stationLocalToUtc } from '@pilot-logbook/core';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -42,6 +43,7 @@ export function HomePage() {
   }, [nextDuty]);
   const dayDeparture = dayRoute?.legs[0];
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
+  const dutyLength = useMemo(() => dutyClock(nextDuty), [nextDuty]);
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
   const today = formatLocalDateHeader(new Date(now));
 
@@ -53,10 +55,16 @@ export function HomePage() {
       </header>
 
       <section className="home-hero home-hero--escrew">
-        <p className="home-hero__eyebrow">{nextFlight ? 'NEXT DUTY' : 'PILOT LOGBOOK'}</p>
+        <div className="home-hero__lead">
+          <p className="home-hero__eyebrow">{nextFlight ? 'NEXT DUTY' : 'PILOT LOGBOOK'}</p>
+          {/* The day the duty starts, which is the day the pilot has to be at the airport — so it
+              is the report's date, not the first sector's. They differ whenever a duty reports
+              late one evening for a departure after midnight. */}
+          {nextFlight && reportBoundary ? <p className="home-hero__when">{dutyDayLabel(reportBoundary.slice(0, 10))}</p> : null}
+        </div>
         {nextFlight ? <>
           <div className={'home-route' + ((dayRoute?.legs.length ?? 0) > 1 ? ' home-route--chain' : '') + ((dayRoute?.legs.length ?? 0) > 2 ? ' home-route--dense' : '')}>
-            <span className="home-route__stop"><strong>{dayRoute?.origin ?? nextFlight.origin}</strong><small>{airportName(dayRoute?.origin ?? nextFlight.origin)}</small></span>
+            <span className="home-route__stop"><strong>{dayRoute?.origin ?? nextFlight.origin}</strong>{cityName(dayRoute?.origin ?? nextFlight.origin)}</span>
             {(dayRoute?.legs ?? [nextFlight]).map((leg, index) => (
               <Fragment key={`${leg.flightNumber}-${leg.date}-${index}`}>
                 <span className="home-route__flight">
@@ -64,15 +72,18 @@ export function HomePage() {
                   <strong>{leg.flightNumber}</strong>
                   {leg.aircraftType && (dayRoute?.legs.length ?? 1) === 1 ? <small>{leg.aircraftType}</small> : null}
                 </span>
-                <span className="home-route__stop"><strong>{leg.destination}</strong><small>{airportName(leg.destination)}</small></span>
+                <span className="home-route__stop"><strong>{leg.destination}</strong>{cityName(leg.destination)}</span>
               </Fragment>
             ))}
           </div>
           <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock(nextDuty)}</strong></div>
+          {/* Three clocks and a length. The clocks carry "L" because each is read at its own
+              station; the duty is elapsed time and belongs to no station, so it carries none. */}
           <div className="home-time-grid">
             <div><span>Report</span><strong>{reportClock(nextDuty)}<i>L</i></strong></div>
-            <div><span>Departure</span><strong>{(dayDeparture ?? nextFlight).departure}<i>L</i></strong></div>
-            <div><span>Release</span><strong>{releaseClock(nextDuty)}<i>L</i></strong></div>
+            <div><span>Dep</span><strong>{(dayDeparture ?? nextFlight).departure}<i>L</i></strong></div>
+            <div><span>Rel</span><strong>{releaseClock(nextDuty)}<i>L</i></strong></div>
+            <div><span>Duty</span><strong>{dutyLength ?? '—'}</strong></div>
           </div>
         </> : <><h2>{roster ? 'Ready for your next sector.' : 'Bring in your AIMS roster.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
         <div className="home-hero__actions">
@@ -124,4 +135,35 @@ function dutyReleaseBoundary(duty: AimsDuty) {
 function dutyEndTimestamp(duty: AimsDuty) { return Date.parse(dutyReleaseBoundary(duty)); }
 function reportClock(duty?: AimsDuty) { return duty ? dutyReportBoundary(duty).slice(11, 16) : '—'; }
 function releaseClock(duty?: AimsDuty) { return duty ? dutyReleaseBoundary(duty).slice(11, 16) : '—'; }
-function airportName(code: string) { return ({ ALA: 'ALMATY', NQZ: 'ASTANA', FRA: 'FRANKFURT', ICN: 'SEOUL', AYT: 'ANTALYA' } as Record<string, string>)[code] ?? code; }
+/**
+ * How long the duty runs, report to release, as real elapsed time.
+ *
+ * Both boundaries are printed on the clock of the station they happen at, so subtracting one from
+ * the other is only right for a duty that ends where it began. Reporting at 22:35 in Almaty and
+ * being released at 10:25 in Seoul reads as 11:50 that way and is 7:50 — the four hours between
+ * the two zones, counted as duty the pilot never worked.
+ *
+ * Undefined when either station is unknown, which the card shows as a dash: no figure is better
+ * than a wrong one for a number a pilot might plan rest around.
+ */
+function dutyClock(duty?: AimsDuty) {
+  if (!duty?.flights.length) return undefined;
+  const report = dutyReportBoundary(duty);
+  const release = dutyReleaseBoundary(duty);
+  const from = stationLocalToUtc(report.slice(0, 10), report.slice(11, 16), duty.flights[0].origin);
+  const to = stationLocalToUtc(release.slice(0, 10), release.slice(11, 16), duty.flights.at(-1)!.destination);
+  if (!from || !to) return undefined;
+  const minutes = Math.round((to.getTime() - from.getTime()) / 60_000);
+  return minutes > 0 ? `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}` : undefined;
+}
+/** "02 OCT · FRI", the same way the Roster timeline writes a day. */
+function dutyDayLabel(date: string) {
+  const value = new Date(`${date}T00:00:00Z`);
+  const part = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('en', { ...options, timeZone: 'UTC' }).format(value).toUpperCase();
+  return `${String(value.getUTCDate()).padStart(2, '0')} ${part({ month: 'short' })} · ${part({ weekday: 'short' })}`;
+}
+/** The city under the code, where naming it adds something — "CAN" over "CAN" said nothing. */
+function cityName(code: string) {
+  const name = ({ ALA: 'ALMATY', NQZ: 'ASTANA', FRA: 'FRANKFURT', ICN: 'SEOUL', AYT: 'ANTALYA', DXB: 'DUBAI', CAN: 'GUANGZHOU' } as Record<string, string>)[code];
+  return name ? <small>{name}</small> : null;
+}
