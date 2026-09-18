@@ -29,7 +29,7 @@ const storageKey = 'pwaplog.aims-roster.v1';
 const sectorPattern = /\b(?:KC\s*)?(\d{1,5})\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)/g;
 
 export function loadAimsRoster(): AimsRoster | undefined {
-  try { const value = localStorage.getItem(storageKey); return value ? dedupeRoster(JSON.parse(value) as AimsRoster) : undefined; } catch { return undefined; }
+  try { const value = localStorage.getItem(storageKey); return value ? healRoster(JSON.parse(value) as AimsRoster) : undefined; } catch { return undefined; }
 }
 
 /** What makes two entries the same real sector, whichever file each of them arrived in. */
@@ -38,14 +38,43 @@ export function flightIdentity(flight: AimsFlight) {
 }
 
 /**
- * Drops anything the roster is holding twice.
+ * Repairs what a stored roster cannot repair by itself.
  *
- * The merge is meant to make this impossible, and a bug in it once did not: an archive whose
- * coverage stopped short of the days it actually carried added its reading of them beside the one
- * already stored, and the Roster listed those days twice while Pay charged for them twice. This
- * runs on every load as well as on every merge, so a roster that already has the damage heals
- * itself rather than waiting for the next import to overwrite it.
+ * A roster is parsed once and then lives in local storage for months. Fixing a parser therefore
+ * fixes nothing already imported, and a pilot is not going to re-import last month because the
+ * release date was a day out. So the same repairs run on every load, and a roster carrying either
+ * of the two faults found so far heals the next time the app opens.
  */
+export function healRoster(roster: AimsRoster): AimsRoster {
+  const deduped = dedupeRoster(roster);
+  return { ...deduped, duties: deduped.duties.map(repairDuty) };
+}
+
+/**
+ * Puts a release back on the day it happens.
+ *
+ * AIMS gives a debrief as a bare clock and the parser used to hang it on the day the duty started,
+ * which is a day early for every duty ending after midnight: a 00:35 release on a duty reporting
+ * at 18:25 the evening before landed eighteen hours before its own report. Nothing printed the
+ * date, so it went unseen until the hero subtracted the two for a duty length.
+ *
+ * A release is after the report and after the last sector is on blocks. One of those being false
+ * means the date is a day short, never that the duty ran backwards.
+ */
+function repairDuty(duty: AimsDuty): AimsDuty {
+  const release = duty.release;
+  if (!release) return duty;
+  const last = duty.flights.at(-1);
+  const landed = last ? `${last.arrivalDate ?? last.date}T${last.arrival}` : undefined;
+  const after = [dutyStartBoundary(duty), landed].filter(Boolean).sort().at(-1);
+  if (!after || release >= after) return duty;
+  return { ...duty, release: `${addDays(release.slice(0, 10), 1)}${release.slice(10)}` };
+}
+function dutyStartBoundary(duty: AimsDuty) {
+  return duty.report ?? duty.start;
+}
+
+/** Drops anything the roster is holding twice — see `healRoster` for why this runs on load. */
 export function dedupeRoster(roster: AimsRoster): AimsRoster {
   const flights = new Set<string>();
   const duties = roster.duties.filter((duty) => {

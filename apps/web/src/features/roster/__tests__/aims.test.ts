@@ -31,6 +31,43 @@ describe('loadAimsRoster', () => {
     expect(roster?.activities).toHaveLength(1);
   });
 
+  /**
+   * The repair that mattered more than the parser fix. A roster is parsed once and then lives in
+   * local storage for months, so fixing the parser fixed nothing already imported — the stored
+   * duty still had its release a day early, and the card still showed a dash. A pilot is not going
+   * to re-import last month over a date they cannot see.
+   */
+  it('puts a release that was filed a day early back on the day it happens', () => {
+    localStorage.setItem('pwaplog.aims-roster.v1', JSON.stringify({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      duties: [{
+        date: '2026-09-25',
+        report: '2026-09-25T18:25',
+        release: '2026-09-25T00:35', // eighteen hours before its own report
+        flights: [
+          { flightNumber: 'KC855', date: '2026-09-25', origin: 'ALA', destination: 'NQZ', departure: '19:40', arrival: '21:25', deadhead: false, actualTimes: false },
+          { flightNumber: 'KC856', date: '2026-09-25', origin: 'NQZ', destination: 'ALA', departure: '22:25', arrival: '00:05', arrivalDate: '2026-09-26', deadhead: false, actualTimes: false },
+        ],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-17T00:00:00.000Z',
+    }));
+
+    expect(loadAimsRoster()?.duties[0].release).toBe('2026-09-26T00:35');
+  });
+
+  it('leaves a release that is already right where it is', () => {
+    localStorage.setItem('pwaplog.aims-roster.v1', JSON.stringify({
+      period: { start: '2026-10-01', end: '2026-10-31' },
+      duties: [{
+        date: '2026-10-02', report: '2026-10-02T19:10', release: '2026-10-03T06:05',
+        flights: [{ flightNumber: 'KC187', date: '2026-10-02', origin: 'ALA', destination: 'CAN', departure: '20:40', arrival: '05:35', arrivalDate: '2026-10-03', deadhead: false, actualTimes: false }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-18T00:00:00.000Z',
+    }));
+
+    expect(loadAimsRoster()?.duties[0].release).toBe('2026-10-03T06:05');
+  });
+
   it('keeps two real sectors that share a day', () => {
     const leg = (flightNumber: string, origin: string, destination: string) =>
       ({ flightNumber, date: '2026-10-17', origin, destination, departure: '08:50', arrival: '12:55', deadhead: false, actualTimes: false });

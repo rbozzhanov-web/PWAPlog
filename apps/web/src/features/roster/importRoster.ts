@@ -1,4 +1,4 @@
-import { dedupeRoster, flightIdentity, parseAimsArchive, type AimsDuty, type AimsHotel, type AimsRoster } from './aims';
+import { flightIdentity, healRoster, parseAimsArchive, type AimsDuty, type AimsHotel, type AimsRoster } from './aims';
 
 /**
  * One way in for a roster, whichever file the pilot has to hand.
@@ -56,7 +56,7 @@ export function mergeAimsRoster(existing: AimsRoster | undefined, incoming: Aims
   // the PDF, whose report prints no hotel section — keeps the ones already known rather than
   // clearing them.
   merged.hotels = mergeHotels(existing.hotels ?? [], incoming.hotels ?? []);
-  return dedupeRoster(merged);
+  return healRoster(merged);
 }
 
 /**
