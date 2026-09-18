@@ -72,6 +72,40 @@ describe('mergeAimsRoster', () => {
     expect(merged.duties.some((item) => item.date === '2026-09-04')).toBe(true);
   });
 
+  it('replaces a day an import carries beyond the period printed on it', () => {
+    // The bug this is here for, seen on a real roster: the Pay screen listed 02 ALA-CAN and 04
+    // CAN-ALA twice while the 17th and everything after it appeared once. A Web Archive saved
+    // while AIMS showed September declares September, but the page it saved carried the first
+    // days of October too. Coverage clamped to the declared period ended on the 30th, so those
+    // two October days were not the archive's to replace — and both its reading of them and the
+    // October PDF's survived into the roster, and into the month's pay.
+    const earlyOctober = roster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      source: 'webarchive',
+      duties: [duty('2026-09-04', 'KC855', 'ALA', 'NQZ'), duty('2026-10-02', 'KC187', 'ALA', 'CAN')],
+    });
+    const merged = mergeAimsRoster(october, earlyOctober);
+
+    expect(merged.duties.filter((item) => item.date === '2026-10-02')).toHaveLength(1);
+    expect(merged.duties.map((item) => item.date)).toEqual(['2026-09-04', '2026-10-02', '2026-10-17']);
+    expect(merged.coverage).toEqual({ start: '2026-09-04', end: '2026-10-31' });
+  });
+
+  it('never keeps a second copy of a sector the new file already has', () => {
+    // A belt on top of the braces: whatever the two spans work out to, a flight the incoming
+    // import describes is not also kept from the old roster. The day here sits outside the
+    // archive's span entirely, so coverage alone would have let it through.
+    const strayDuty = roster({
+      period: { start: '2026-09-01', end: '2026-09-30' },
+      source: 'webarchive',
+      duties: [duty('2026-09-04', 'KC855', 'ALA', 'NQZ')],
+      activities: [{ date: '2026-10-17', code: 'OFF', type: '' }],
+    });
+    const withStray = { ...strayDuty, duties: [...strayDuty.duties, duty('2026-10-17', 'KC897', 'ALA', 'DXB')] };
+
+    expect(mergeAimsRoster(october, withStray).duties.filter((item) => item.date === '2026-10-17')).toHaveLength(1);
+  });
+
   it('leaves alone the months an import declares but says nothing about', () => {
     // AIMS' saved page declares the whole calendar window it had open, even when only one month
     // of it was ever loaded. Taking that period at its word would delete an October the pilot had

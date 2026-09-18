@@ -1,11 +1,48 @@
 import { describe, expect, it } from 'vitest';
-import { parseAimsArchive } from '../aims';
+import { loadAimsRoster, parseAimsArchive } from '../aims';
 
 const html = `<html><script>localStorage['PeriodStart'] = '2026-09-01';localStorage['PeriodEnd'] = '2026-09-30';var initialResult = {"SchedulerEvents":[{"start":"2026-09-12T07:00","end":"2026-09-12T14:00","report":"2026-09-12T06:00","debrief":"2026-09-12T14:30","type":"Flight","details":"922 - FRA (0830) - NQZ (0210⁺¹)","AircraftType":"A321"},{"start":"2026-09-15T00:00","type":"VAC","text":"VAC"},{"start":"2026-09-16T07:00","end":"2026-09-16T09:00","type":"Default","IsDeadhead":true,"details":"622 - NQZ (0800) - ALA (0940)"}],"elementList":[{"id":"hours","data":[{"desc":"Block","hours":"12:30"}]},{"id":"hotels","data":[{"port":"NQZ","addresses":"Hotel address","phones":"+7 700"}]}]};</script>CrewSchedule</html>`;
 
 function archiveFile(source: string): File {
   return { arrayBuffer: async () => new TextEncoder().encode(source).buffer } as File;
 }
+
+describe('loadAimsRoster', () => {
+  // A roster that already has the damage — stored before the merge stopped causing it — heals on
+  // the next load, so the pilot does not have to re-import to stop paying twice for a sector.
+  it('drops a duplicated sector a stored roster is already carrying', () => {
+    const sector = { flightNumber: 'KC187', date: '2026-10-02', origin: 'ALA', destination: 'CAN', departure: '20:40', arrival: '05:35', deadhead: false, actualTimes: false };
+    localStorage.setItem('pwaplog.aims-roster.v1', JSON.stringify({
+      period: { start: '2026-10-01', end: '2026-10-31' },
+      duties: [
+        { date: '2026-10-02', report: '2026-10-02T19:10', flights: [sector] },
+        { date: '2026-10-02', report: '2026-10-02T19:10', flights: [sector] },
+        { date: '2026-10-17', flights: [{ ...sector, flightNumber: 'KC897', date: '2026-10-17', destination: 'DXB' }] },
+      ],
+      hotels: [], totals: {}, importedAt: '2026-09-18T00:00:00.000Z',
+      absences: [{ code: 'VAC', date: '2026-10-05' }, { code: 'VAC', date: '2026-10-05' }],
+      activities: [{ date: '2026-10-18', code: 'OFF', type: '' }, { date: '2026-10-18', code: 'OFF', type: '' }],
+    }));
+
+    const roster = loadAimsRoster();
+
+    expect(roster?.duties.map((duty) => duty.date)).toEqual(['2026-10-02', '2026-10-17']);
+    expect(roster?.absences).toHaveLength(1);
+    expect(roster?.activities).toHaveLength(1);
+  });
+
+  it('keeps two real sectors that share a day', () => {
+    const leg = (flightNumber: string, origin: string, destination: string) =>
+      ({ flightNumber, date: '2026-10-17', origin, destination, departure: '08:50', arrival: '12:55', deadhead: false, actualTimes: false });
+    localStorage.setItem('pwaplog.aims-roster.v1', JSON.stringify({
+      period: { start: '2026-10-01', end: '2026-10-31' },
+      duties: [{ date: '2026-10-17', flights: [leg('KC897', 'ALA', 'DXB'), leg('KC898', 'DXB', 'ALA')] }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-18T00:00:00.000Z',
+    }));
+
+    expect(loadAimsRoster()?.duties[0].flights).toHaveLength(2);
+  });
+});
 
 describe('parseAimsArchive', () => {
   it('keeps operating, deadhead, absence and duty details locally', async () => {

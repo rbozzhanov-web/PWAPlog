@@ -29,7 +29,41 @@ const storageKey = 'pwaplog.aims-roster.v1';
 const sectorPattern = /\b(?:KC\s*)?(\d{1,5})\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)\s*-\s*([A-Z]{3,4})\s*\(([A]?)(\d{4})((?:⁺¹|\+\s*1)?)\)/g;
 
 export function loadAimsRoster(): AimsRoster | undefined {
-  try { const value = localStorage.getItem(storageKey); return value ? JSON.parse(value) as AimsRoster : undefined; } catch { return undefined; }
+  try { const value = localStorage.getItem(storageKey); return value ? dedupeRoster(JSON.parse(value) as AimsRoster) : undefined; } catch { return undefined; }
+}
+
+/** What makes two entries the same real sector, whichever file each of them arrived in. */
+export function flightIdentity(flight: AimsFlight) {
+  return `${flight.date}|${flight.flightNumber}|${flight.origin}|${flight.destination}`;
+}
+
+/**
+ * Drops anything the roster is holding twice.
+ *
+ * The merge is meant to make this impossible, and a bug in it once did not: an archive whose
+ * coverage stopped short of the days it actually carried added its reading of them beside the one
+ * already stored, and the Roster listed those days twice while Pay charged for them twice. This
+ * runs on every load as well as on every merge, so a roster that already has the damage heals
+ * itself rather than waiting for the next import to overwrite it.
+ */
+export function dedupeRoster(roster: AimsRoster): AimsRoster {
+  const flights = new Set<string>();
+  const duties = roster.duties.filter((duty) => {
+    const identities = duty.flights.map(flightIdentity);
+    if (identities.length && identities.every((identity) => flights.has(identity))) return false;
+    for (const identity of identities) flights.add(identity);
+    return true;
+  });
+  return {
+    ...roster,
+    duties,
+    absences: unique(roster.absences, (absence) => `${absence.date}|${absence.code}`),
+    activities: unique(roster.activities ?? [], (activity) => `${activity.date}|${activity.code}|${activity.start ?? ''}`),
+  };
+}
+function unique<T>(items: T[], key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => { const value = key(item); if (seen.has(value)) return false; seen.add(value); return true; });
 }
 export function saveAimsRoster(roster: AimsRoster) { localStorage.setItem(storageKey, JSON.stringify(roster)); }
 

@@ -1,4 +1,4 @@
-import { parseAimsArchive, type AimsDuty, type AimsHotel, type AimsRoster } from './aims';
+import { dedupeRoster, flightIdentity, parseAimsArchive, type AimsDuty, type AimsHotel, type AimsRoster } from './aims';
 
 /**
  * One way in for a roster, whichever file the pilot has to hand.
@@ -40,23 +40,35 @@ export function mergeAimsRoster(existing: AimsRoster | undefined, incoming: Aims
   if (!existing) return merged;
 
   const outside = (date: string) => date < coverage.start || date > coverage.end;
+  // A sector the incoming import carries is that import's to describe, whatever the spans say.
+  // Coverage decides which *days* the old roster keeps; this decides that it never keeps a second
+  // copy of a flight the new file already has.
+  const arriving = new Set(incoming.duties.flatMap((duty) => duty.flights.map(flightIdentity)));
+  const superseded = (duty: AimsDuty) => duty.flights.some((flight) => arriving.has(flightIdentity(flight)));
   // What the stored roster already covers is its own recorded span, not its period: after a merge
   // the period is only the last import's, while the days it can answer for run wider.
   const previous = existing.coverage ?? coverageOf(existing);
   merged.coverage = { start: min(previous.start, coverage.start), end: max(previous.end, coverage.end) };
-  merged.duties = sortDuties([...existing.duties.filter((duty) => outside(duty.date)), ...incoming.duties]);
+  merged.duties = sortDuties([...existing.duties.filter((duty) => outside(duty.date) && !superseded(duty)), ...incoming.duties]);
   merged.absences = [...existing.absences.filter((absence) => outside(absence.date)), ...incoming.absences].sort((a, b) => a.date.localeCompare(b.date));
   merged.activities = [...(existing.activities ?? []).filter((activity) => outside(activity.date)), ...(incoming.activities ?? [])].sort((a, b) => a.date.localeCompare(b.date));
   // Hotels are a per-station address book with no date on them, so a source that carries none —
   // the PDF, whose report prints no hotel section — keeps the ones already known rather than
   // clearing them.
   merged.hotels = mergeHotels(existing.hotels ?? [], incoming.hotels ?? []);
-  return merged;
+  return dedupeRoster(merged);
 }
 
 /**
- * The span an import actually says something about: its own entries, widened to the period printed
- * on it only where the entries agree it reaches.
+ * The span an import actually says something about: the days its own entries fall on, first to
+ * last.
+ *
+ * Not the period printed on it, which is only where AIMS' calendar window happened to be — an
+ * archive saved with one month loaded declares that month whether or not it loaded all of it, and
+ * carries the first days of the next month besides. Clamping the entries to that declared period
+ * is what let a September archive add its 2 and 4 October duties beside the ones an October PDF
+ * had already supplied: its coverage stopped on the 30th, so October was not its to replace, and
+ * both readings of those two days survived into the roster.
  */
 function coverageOf(roster: AimsRoster): { start: string; end: string } {
   // Both ends of everything, not just the day each entry is filed under: a duty reporting at 22:35
@@ -71,7 +83,7 @@ function coverageOf(roster: AimsRoster): { start: string; end: string } {
     ...(roster.activities ?? []).flatMap((activity) => [activity.date, day(activity.start), day(activity.end)]),
   ].filter((value): value is string => Boolean(value)).sort();
   if (!dates.length) return roster.period;
-  return { start: max(dates[0], roster.period.start), end: min(dates[dates.length - 1], roster.period.end) };
+  return { start: dates[0], end: dates[dates.length - 1] };
 }
 
 function mergeHotels(existing: AimsHotel[], incoming: AimsHotel[]): AimsHotel[] {
