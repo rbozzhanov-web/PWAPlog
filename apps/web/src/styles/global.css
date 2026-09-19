@@ -2915,38 +2915,49 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
    bare single-class rule, and it restates `border` besides, which resets any edge set here. */
 .roster-timeline__day .roster-timeline-card--report {
   background: linear-gradient(0deg, var(--tint-standby), var(--tint-standby)), var(--surface);
-  box-shadow: var(--shadow-card), inset 3px 0 0 var(--accent);
 }
 
-/* A duty that starts the evening before is two cards a day apart. The accent rail runs down the
-   leading edge of both and bridges the gap between them, so they read as one duty split by
-   midnight rather than as two unrelated days; the corners they face each other across are
-   tightened, the way grouped list items are. The bridge is `.68rem` because that is the gap the
-   timeline and its days both use. */
-.roster-timeline__day .roster-timeline-card--joins-up,
-.roster-timeline__day .roster-timeline-card--joins-down {
+/* A duty that starts the evening before is two cards a day apart. Rather than a mark on each,
+   one outline encloses the pair: the upper card closes at the top and opens at the bottom, the
+   lower one the other way round, and two stubs carry the outline's sides across the gap between
+   them. The seam where they meet is the midnight the duty crosses.
+
+   Drawn in the accent at the same hairline weight every card's border uses, so it reads as this
+   app's own outline rather than an annotation on top of it. Scoped through `.roster-timeline__day`
+   and set as longhands for the reason the tints above are: the shared card material restates
+   `border` and outranks a bare single-class rule. */
+.roster-timeline__day .roster-timeline-card--joins-down,
+.roster-timeline__day .roster-timeline-card--joins-up {
   position: relative;
-  box-shadow: var(--shadow-card), inset 3px 0 0 var(--accent);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  border-bottom-color: var(--accent);
+  border-left-color: var(--accent);
 }
 
-.roster-timeline-card--joins-down {
-  border-bottom-left-radius: .4rem;
-  border-bottom-right-radius: .4rem;
+.roster-timeline__day .roster-timeline-card--joins-down {
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
-.roster-timeline-card--joins-up {
-  border-top-left-radius: .4rem;
-  border-top-right-radius: .4rem;
+.roster-timeline__day .roster-timeline-card--joins-up {
+  border-top-color: transparent;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .roster-timeline-card--joins-down::after,
 .roster-timeline-card--joins-up::before {
   content: '';
   position: absolute;
-  left: 0;
-  width: 3px;
+  left: -1px;
+  right: -1px;
+  /* The gap the timeline and its days both use, plus the hairline each side of it. */
   height: calc(.68rem + 2px);
-  background: var(--accent);
+  border-right: 1px solid var(--accent);
+  border-left: 1px solid var(--accent);
+  pointer-events: none;
 }
 
 .roster-timeline-card--joins-down::after {
