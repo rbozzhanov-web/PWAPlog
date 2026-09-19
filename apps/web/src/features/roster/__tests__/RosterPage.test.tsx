@@ -75,6 +75,23 @@ describe('RosterPage AIMS import flow', () => {
     expect(screen.getByText('KC855')).toBeInTheDocument();
   });
 
+  // The timeline files a duty under the day it flies, so a report from the evening before has to
+  // say which evening — "27 OCT ... Report 22:35" otherwise reads as an evening report that day.
+  it('marks a report that happens the day before the flying', async () => {
+    saveAimsRoster({
+      period: { start: '2026-10-01', end: '2026-10-31' },
+      duties: [{
+        date: '2026-10-27', report: '2026-10-26T22:35', release: '2026-10-27T10:25',
+        flights: [{ flightNumber: 'KC909', date: '2026-10-27', origin: 'ALA', destination: 'ICN', departure: '00:05', arrival: '09:55', deadhead: false, actualTimes: false }],
+      }],
+      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-19T00:00:00.000Z',
+    });
+
+    render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
+
+    expect(await screen.findByText(/Report 22:35\u207b\u00b9/)).toBeInTheDocument();
+  });
+
   // The sector opens in place rather than on a route of its own, so this asserts both halves:
   // the times and crew appear, and the roster is still the page underneath.
   it('reveals a flight\'s times and crew in place, without navigating away', async () => {

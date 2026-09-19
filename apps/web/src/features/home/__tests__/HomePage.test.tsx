@@ -127,7 +127,9 @@ describe('HomePage hero', () => {
     // 19:40 is the first leg's off-blocks; the second leg's would only describe half the day. The
     // last column is the duty's release, not the 00:05 the aeroplane arrives — the pilot is not
     // free for another half hour.
-    expect(times).toEqual(['Report18:25L', 'Dep19:40L', 'Rel00:35L', 'Duty6:10']);
+    // The release is the morning after the day this duty is filed under, and says so the way AIMS
+    // marks a sector landing after midnight.
+    expect(times).toEqual(['Report18:25L', 'Dep19:40L', 'Rel00:35\u207a\u00b9L', 'Duty6:10']);
     // The clock carries an L rather than a LOCAL caption under every column. The duty length has
     // none: it is elapsed time, and belongs to no station's clock.
     expect(screen.queryByText('LOCAL')).toBeNull();
@@ -143,19 +145,21 @@ describe('HomePage hero', () => {
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Rel00:05L');
+    expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Rel00:05\u207a\u00b9L');
   });
 
-  it('names the day the duty starts, and the weekday with it', () => {
+  it('dates the card by the day it flies, and marks a report from the evening before', () => {
     vi.setSystemTime(BEFORE_THE_DUTY);
-    // Reports at 22:35 on the 26th for a departure at 00:05 on the 27th. The date on the card is
-    // the day the pilot has to be at the airport, which is the report's — the sector's would send
-    // them a day late.
+    // Reports at 22:35 on the 26th for a departure at 00:05 on the 27th. The card is about the
+    // flying, so it is the 27th; the report says on its own clock that it is the night before,
+    // which is what stops "27 OCT, report 22:35" reading as an evening report on the 27th.
     saveAimsRoster(dutyRoster('2026-10-26T22:35', '2026-10-27T10:25', leg('2026-10-27', 'KC909', 'ALA', 'ICN', '00:05', '09:55')));
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    expect(screen.getByText('26 OCT · MON')).toBeVisible();
+    expect(screen.getByText('27 OCT · TUE')).toBeVisible();
+    expect(document.querySelectorAll('.home-time-grid > div')[0]?.textContent).toBe('Report22:35\u207b\u00b9L');
+    expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Rel10:25L');
   });
 
   it('measures the duty as elapsed time, not as one clock minus another', () => {
@@ -201,7 +205,7 @@ describe('HomePage hero', () => {
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     const times = [...document.querySelectorAll('.home-time-grid > div')].map((cell) => cell.textContent);
-    expect(times).toEqual(['Report18:25L', 'Dep19:40L', 'Rel00:35L', 'Duty6:10']);
+    expect(times).toEqual(['Report18:25L', 'Dep19:40L', 'Rel00:35\u207a\u00b9L', 'Duty6:10']);
   });
 
   it('reads a single-sector day as a plain pair', () => {

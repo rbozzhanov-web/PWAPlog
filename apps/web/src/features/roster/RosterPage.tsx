@@ -10,6 +10,7 @@ import {
   type AimsHotel,
   type AimsRoster,
 } from './aims';
+import { dutyClock, dutyReleaseBoundary, dutyReportBoundary } from './dutyDay';
 import { mergeAimsRoster, parseAimsFile } from './importRoster';
 import { id } from './FlightDetailPage';
 import { localDateKey } from '../../platform/localDate';
@@ -215,7 +216,9 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                 </article>;
               }
               const { duty, flight, isFirstInDuty } = entry;
-              const report = isFirstInDuty ? shortTime(duty.report) ?? shortTime(duty.start) : undefined;
+              // Marked against the day this card sits on, so a report the evening before reads as
+              // one rather than as an evening report on the flying day.
+              const report = isFirstInDuty ? markedClock(dutyReportBoundary(duty), flight.date) : undefined;
               const status = [flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.actualTimes ? 'ACT' : undefined].filter(Boolean).join(' · ');
               const timing = [flight.departure + ' – ' + flight.arrival, report ? 'Report ' + report : undefined, flight.crew?.length ? 'Crew ' + (flight.crew?.length ?? 0) : undefined].filter(Boolean).join(' · ');
               return <button
@@ -335,10 +338,10 @@ function FlightPopup({ duty, flight, onClose }: { duty: AimsDuty; flight: AimsFl
   };
 
   const times: Array<[string, string | undefined]> = [
-    ['Report', shortTime(duty.report) ?? shortTime(duty.start)],
+    ['Report', markedClock(dutyReportBoundary(duty), flight.date)],
     ['Departure', flight.departure],
-    ['Landing', flight.arrival],
-    ['Release', shortTime(duty.release) ?? shortTime(duty.end)],
+    ['Landing', markedClock(`${flight.arrivalDate ?? flight.date}T${flight.arrival}`, flight.date)],
+    ['Release', markedClock(dutyReleaseBoundary(duty), flight.date)],
   ];
   const crew = flight.crew ?? [];
 
@@ -459,6 +462,11 @@ function rosterDate(value: string) { return new Date(`${value}T00:00:00Z`); }
 function weekday(value: string) { return new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'UTC' }).format(rosterDate(value)).toUpperCase(); }
 function displayDate(value: string) { return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(rosterDate(value)); }
 function compactDateLabel(value: string) { const date = rosterDate(value); const month = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(date).toUpperCase(); return String(date.getUTCDate()).padStart(2, '0') + ' ' + month + ' · ' + weekday(value); }
+/** A boundary's clock, carrying its day offset from the day the card is filed under. */
+function markedClock(boundary: string | undefined, onDate: string) {
+  const clock = dutyClock(boundary, onDate);
+  return clock ? clock.time + clock.offset : undefined;
+}
 function shortTime(value?: string) { return value?.includes('T') ? value.slice(11, 16) : undefined; }
 function dayTimeRange(day: RosterDay) {
   const first = day.entries[0];

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { formatLocalDateHeader, localMonthKey } from '../../platform/localDate';
 import { formatFlightMinutes } from '../logbook/totals';
 import { loadAimsRoster, type AimsDuty, type AimsRoster } from '../roster/aims';
+import { dutyClock, dutyReleaseBoundary, dutyReportBoundary, type DutyClock } from '../roster/dutyDay';
 import { rosterMonthTotals } from '../roster/completedSectors';
 import { layoverWindow, useArrivalWeather, weatherIcon, windDirectionLabel } from '../weather/weatherService';
 
@@ -43,7 +44,9 @@ export function HomePage() {
   }, [nextDuty]);
   const dayDeparture = dayRoute?.legs[0];
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
-  const dutyLength = useMemo(() => dutyClock(nextDuty), [nextDuty]);
+  const reportClock = nextDuty ? dutyClock(reportBoundary, nextDuty.date) : undefined;
+  const releaseClock = nextDuty ? dutyClock(dutyReleaseBoundary(nextDuty), nextDuty.date) : undefined;
+  const dutyLength = useMemo(() => dutyLengthClock(nextDuty), [nextDuty]);
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
   const today = formatLocalDateHeader(new Date(now));
 
@@ -57,10 +60,10 @@ export function HomePage() {
       <section className="home-hero home-hero--escrew">
         <div className="home-hero__lead">
           <p className="home-hero__eyebrow">{nextFlight ? 'NEXT DUTY' : 'PILOT LOGBOOK'}</p>
-          {/* The day the duty starts, which is the day the pilot has to be at the airport — so it
-              is the report's date, not the first sector's. They differ whenever a duty reports
-              late one evening for a departure after midnight. */}
-          {nextFlight && reportBoundary ? <p className="home-hero__when">{dutyDayLabel(reportBoundary.slice(0, 10))}</p> : null}
+          {/* The day the duty flies. A report the evening before belongs to this duty and is
+              marked as the day before on its own clock, rather than moving the whole card back a
+              day — the card is about the flying, and that is the date a pilot looks for. */}
+          {nextFlight && nextDuty ? <p className="home-hero__when">{dutyDayLabel(nextDuty.date)}</p> : null}
         </div>
         {nextFlight ? <>
           <div className={'home-route' + ((dayRoute?.legs.length ?? 0) > 1 ? ' home-route--chain' : '') + ((dayRoute?.legs.length ?? 0) > 2 ? ' home-route--dense' : '')}>
@@ -76,13 +79,13 @@ export function HomePage() {
               </Fragment>
             ))}
           </div>
-          <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock(nextDuty)}</strong></div>
+          <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock?.time ?? '—'}</strong></div>
           {/* Three clocks and a length. The clocks carry "L" because each is read at its own
               station; the duty is elapsed time and belongs to no station, so it carries none. */}
           <div className="home-time-grid">
-            <div><span>Report</span><strong>{reportClock(nextDuty)}<i>L</i></strong></div>
+            <div><span>Report</span><Clock at={reportClock} /></div>
             <div><span>Dep</span><strong>{(dayDeparture ?? nextFlight).departure}<i>L</i></strong></div>
-            <div><span>Rel</span><strong>{releaseClock(nextDuty)}<i>L</i></strong></div>
+            <div><span>Rel</span><Clock at={releaseClock} /></div>
             <div><span>Duty</span><strong>{dutyLength ?? '—'}</strong></div>
           </div>
         </> : <><h2>{roster ? 'Ready for your next sector.' : 'Bring in your AIMS roster.'}</h2><p>Private to this device. Designed for roster context and a clean flight record.</p></>}
@@ -121,20 +124,7 @@ function nextLayoverHours(roster: AimsRoster | undefined, flight: { destination:
 }
 function crewInitials(name: string) { return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2); }
 function countdownClock(value: number) { const seconds = Math.max(0, Math.floor(value / 1000)); return `${Math.floor(seconds / 86_400)}d ${String(Math.floor(seconds / 3_600) % 24).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
-function dutyReportBoundary(duty: AimsDuty) { return duty.report ?? duty.start ?? `${duty.date}T${duty.flights[0]?.departure ?? '00:00'}`; }
-/**
- * When the pilot is actually free — AIMS' debriefing time, which is what the roster's own release
- * column shows. The last leg's on-blocks is only a fallback for a duty AIMS gave no boundary for:
- * it is the wrong figure to plan an evening around, being half an hour or so early.
- */
-function dutyReleaseBoundary(duty: AimsDuty) {
-  const last = duty.flights.at(-1);
-  const onBlocks = last ? `${last.arrivalDate ?? last.date}T${last.arrival}:00` : dutyReportBoundary(duty);
-  return duty.release ?? duty.end ?? onBlocks;
-}
 function dutyEndTimestamp(duty: AimsDuty) { return Date.parse(dutyReleaseBoundary(duty)); }
-function reportClock(duty?: AimsDuty) { return duty ? dutyReportBoundary(duty).slice(11, 16) : '—'; }
-function releaseClock(duty?: AimsDuty) { return duty ? dutyReleaseBoundary(duty).slice(11, 16) : '—'; }
 /**
  * How long the duty runs, report to release, as real elapsed time.
  *
@@ -146,7 +136,7 @@ function releaseClock(duty?: AimsDuty) { return duty ? dutyReleaseBoundary(duty)
  * Undefined when either station is unknown, which the card shows as a dash: no figure is better
  * than a wrong one for a number a pilot might plan rest around.
  */
-function dutyClock(duty?: AimsDuty) {
+function dutyLengthClock(duty?: AimsDuty) {
   if (!duty?.flights.length) return undefined;
   const report = dutyReportBoundary(duty);
   const release = dutyReleaseBoundary(duty);
@@ -155,6 +145,11 @@ function dutyClock(duty?: AimsDuty) {
   if (!from || !to) return undefined;
   const minutes = Math.round((to.getTime() - from.getTime()) / 60_000);
   return minutes > 0 ? `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}` : undefined;
+}
+/** A boundary clock: the time, the day offset where the boundary is not on the duty's own day,
+ *  and the "L" that says every clock here is read at the station it happens at. */
+function Clock({ at }: { at?: DutyClock }) {
+  return <strong>{at?.time ?? '—'}{at ? <i>{at.offset}L</i> : null}</strong>;
 }
 /** "02 OCT · FRI", the same way the Roster timeline writes a day. */
 function dutyDayLabel(date: string) {
