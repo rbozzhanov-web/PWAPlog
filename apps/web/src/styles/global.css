@@ -2906,6 +2906,32 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   box-shadow: var(--shadow-card), var(--glow-today);
 }
 
+/* Roster: the evening a duty begins, on a day that would otherwise carry nothing. It marks a
+   boundary rather than describing a sector, so it takes the flight tint at a lighter weight and
+   an accent edge down its leading side, instead of the full flight material.
+
+   Scoped through `.roster-timeline__day` and drawn with an inset shadow rather than a border, for
+   the reason the flight tint above is: the shared card material is an :is() list that outranks a
+   bare single-class rule, and it restates `border` besides, which resets any edge set here. */
+.roster-timeline__day .roster-timeline-card--report {
+  background: linear-gradient(0deg, var(--tint-standby), var(--tint-standby)), var(--surface);
+  box-shadow: var(--shadow-card), inset 3px 0 0 var(--accent);
+}
+
+.roster-timeline-card--report h2 {
+  font-size: var(--header-size);
+  letter-spacing: -.03em;
+}
+
+.roster-timeline-card--report > p {
+  color: var(--muted);
+  font-size: var(--caption-size);
+}
+
+.roster-timeline-card--report .roster-timeline-card__top > span {
+  color: var(--accent);
+}
+
 /* The state code keeps its own colour rather than always reading green. */
 .roster-timeline__day--off .roster-timeline-card--activity .roster-timeline-card__top > span,
 .roster-timeline__day--doff .roster-timeline-card--activity .roster-timeline-card__top > span {

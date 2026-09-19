@@ -18,6 +18,7 @@ import { HOME_BASE, stationsByDay, useRosterWeather, weatherIcon, type ForecastD
 
 type RosterTimelineEntry =
   | { kind: 'activity'; activity: AimsActivity }
+  | { kind: 'report'; duty: AimsDuty; flight: AimsFlight }
   | { kind: 'flight'; duty: AimsDuty; flight: AimsFlight; isFirstInDuty: boolean };
 type RosterDay = { date: string; entries: RosterTimelineEntry[] };
 
@@ -213,6 +214,20 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                   </div> : null}
                   {!isHotel && time !== 'ALL DAY' ? <small>{time}</small> : null}
                   <CardWeather code={dayStation} date={day.date} forecast={byStationDate} />
+                </article>;
+              }
+              if (entry.kind === 'report') {
+                const { duty, flight } = entry;
+                // Everything here reads against this day: the report is on it, the flight it leads
+                // to is the next morning and says so.
+                const offBlocks = markedClock(`${flight.date}T${flight.departure}`, day.date);
+                return <article className="roster-timeline-card roster-timeline-card--report" key={'report-' + flight.date + '-' + flight.flightNumber + '-' + index}>
+                  <header className="roster-timeline-card__top">
+                    <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
+                    <span>REPORT</span>
+                  </header>
+                  <h2>Duty starts {markedClock(dutyReportBoundary(duty), day.date)}</h2>
+                  <p>{[flight.flightNumber, flight.origin + ' → ' + flight.destination, 'off ' + offBlocks].join(' · ')}</p>
                 </article>;
               }
               const { duty, flight, isFirstInDuty } = entry;
@@ -444,9 +459,17 @@ function buildRosterDays(roster: AimsRoster): RosterDay[] {
     byDate.set(date, created);
     return created;
   };
-  roster.duties.forEach((duty) => duty.flights.forEach((flight, index) => {
-    day(flight.date).entries.push({ kind: 'flight', duty, flight, isFirstInDuty: index === 0 });
-  }));
+  roster.duties.forEach((duty) => {
+    duty.flights.forEach((flight, index) => {
+      day(flight.date).entries.push({ kind: 'flight', duty, flight, isFirstInDuty: index === 0 });
+    });
+    // A duty that reports the evening before it flies starts on a day this list would otherwise
+    // leave empty — the pilot looks at that evening, sees nothing, and only finds the 22:35 report
+    // by opening the next day. The day the duty starts gets its own entry saying so.
+    const first = duty.flights[0];
+    const startDate = dutyReportBoundary(duty).slice(0, 10);
+    if (first && startDate < first.date) day(startDate).entries.push({ kind: 'report', duty, flight: first });
+  });
   (roster.activities ?? []).forEach((activity) => day(activity.date).entries.push({ kind: 'activity', activity }));
   (roster.absences ?? []).forEach((absence) => {
     const entry = day(absence.date);
@@ -475,15 +498,15 @@ function dayTimeRange(day: RosterDay) {
   const end = last ? shortTime(timelineEnd(last)) : undefined;
   return start || end ? (start ?? '—') + ' — ' + (end ?? '—') : 'FULL DAY';
 }
-function timelineStart(entry: RosterTimelineEntry) {
-  return entry.kind === 'flight'
-    ? entry.flight.date + 'T' + entry.flight.departure
-    : entry.activity.start ?? entry.activity.date + 'T00:00';
+function timelineStart(entry: RosterTimelineEntry): string {
+  if (entry.kind === 'flight') return entry.flight.date + 'T' + entry.flight.departure;
+  if (entry.kind === 'report') return dutyReportBoundary(entry.duty);
+  return entry.activity.start ?? entry.activity.date + 'T00:00';
 }
-function timelineEnd(entry: RosterTimelineEntry) {
-  return entry.kind === 'flight'
-    ? (entry.flight.arrivalDate ?? entry.flight.date) + 'T' + entry.flight.arrival
-    : entry.activity.end ?? timelineStart(entry);
+function timelineEnd(entry: RosterTimelineEntry): string {
+  if (entry.kind === 'flight') return (entry.flight.arrivalDate ?? entry.flight.date) + 'T' + entry.flight.arrival;
+  if (entry.kind === 'report') return timelineStart(entry);
+  return entry.activity.end ?? timelineStart(entry);
 }
 
 function activityTime(activity: AimsActivity) {

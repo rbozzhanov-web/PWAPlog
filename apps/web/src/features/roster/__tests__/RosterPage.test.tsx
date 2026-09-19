@@ -6,6 +6,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { RosterPage } from '../RosterPage';
 import { saveAimsRoster } from '../aims';
 
+/** Reports at 22:35 on the 26th, departs 00:05 on the 27th, released that morning in Seoul. */
+function overnightRoster() {
+  return {
+    period: { start: '2026-10-01', end: '2026-10-31' },
+    duties: [{
+      date: '2026-10-27', report: '2026-10-26T22:35', release: '2026-10-27T10:25',
+      flights: [{ flightNumber: 'KC909', date: '2026-10-27', origin: 'ALA', destination: 'ICN', departure: '00:05', arrival: '09:55', deadhead: false, actualTimes: false }],
+    }],
+    hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-19T00:00:00.000Z',
+  };
+}
+
 describe('RosterPage AIMS import flow', () => {
   beforeEach(() => localStorage.clear());
 
@@ -75,17 +87,26 @@ describe('RosterPage AIMS import flow', () => {
     expect(screen.getByText('KC855')).toBeInTheDocument();
   });
 
+  // A duty that reports the evening before it flies begins on a day the timeline would otherwise
+  // leave out of the list entirely — the pilot looks at that evening, sees nothing, and only finds
+  // the 22:35 report by opening the next day.
+  it('gives the evening a duty starts on its own entry', async () => {
+    saveAimsRoster(overnightRoster());
+
+    render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
+
+    const startDay = await screen.findByLabelText(/Schedule for Oct 26/);
+    expect(within(startDay).getByText('Duty starts 22:35')).toBeInTheDocument();
+    // What it leads to, read against the day the card sits on.
+    expect(within(startDay).getByText(/KC909 · ALA → ICN · off 00:05\u207a\u00b9/)).toBeInTheDocument();
+    // The flight itself stays on the day it departs, rather than moving back with the report.
+    expect(within(await screen.findByLabelText(/Schedule for Oct 27/)).getByText(/00:05 – 09:55/)).toBeInTheDocument();
+  });
+
   // The timeline files a duty under the day it flies, so a report from the evening before has to
   // say which evening — "27 OCT ... Report 22:35" otherwise reads as an evening report that day.
   it('marks a report that happens the day before the flying', async () => {
-    saveAimsRoster({
-      period: { start: '2026-10-01', end: '2026-10-31' },
-      duties: [{
-        date: '2026-10-27', report: '2026-10-26T22:35', release: '2026-10-27T10:25',
-        flights: [{ flightNumber: 'KC909', date: '2026-10-27', origin: 'ALA', destination: 'ICN', departure: '00:05', arrival: '09:55', deadhead: false, actualTimes: false }],
-      }],
-      hotels: [], absences: [], activities: [], totals: {}, importedAt: '2026-09-19T00:00:00.000Z',
-    });
+    saveAimsRoster(overnightRoster());
 
     render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
 
