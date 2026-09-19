@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
@@ -220,24 +220,31 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                 const { duty, flight } = entry;
                 // Everything here reads against this day: the report is on it, the flight it leads
                 // to is the next morning and says so.
-                const offBlocks = markedClock(`${flight.date}T${flight.departure}`, day.date);
-                return <article className="roster-timeline-card roster-timeline-card--report" key={'report-' + flight.date + '-' + flight.flightNumber + '-' + index}>
+                const offBlocks = dutyClock(`${flight.date}T${flight.departure}`, day.date);
+                return <article className="roster-timeline-card roster-timeline-card--report roster-timeline-card--joins-down" key={'report-' + flight.date + '-' + flight.flightNumber + '-' + index}>
                   <header className="roster-timeline-card__top">
                     <p>{dateLabel}{isToday ? <b className="roster-today-label">TODAY</b> : null}</p>
                     <span>REPORT</span>
                   </header>
-                  <h2>Duty starts {markedClock(dutyReportBoundary(duty), day.date)}</h2>
-                  <p>{[flight.flightNumber, flight.origin + ' → ' + flight.destination, 'off ' + offBlocks].join(' · ')}</p>
+                  <h2>Duty starts {dutyClock(dutyReportBoundary(duty), day.date)?.time}</h2>
+                  <p>{flight.flightNumber} · {flight.origin} → {flight.destination} · off {offBlocks?.time}<DayShift offset={offBlocks?.offset ?? ''} /></p>
                 </article>;
               }
               const { duty, flight, isFirstInDuty } = entry;
-              // Marked against the day this card sits on, so a report the evening before reads as
+              // Read against the day this card sits on, so a report the evening before shows as
               // one rather than as an evening report on the flying day.
-              const report = isFirstInDuty ? markedClock(dutyReportBoundary(duty), flight.date) : undefined;
+              const report = isFirstInDuty ? dutyClock(dutyReportBoundary(duty), flight.date) : undefined;
+              // The duty began on an earlier day, which put a card of its own up there. This one
+              // joins onto it, so the two read as the single duty they are.
+              const linked = Boolean(report?.offset.startsWith('⁻'));
               const status = [flight.flightNumber, flight.deadhead ? 'DHC' : undefined, flight.actualTimes ? 'ACT' : undefined].filter(Boolean).join(' · ');
-              const timing = [flight.departure + ' – ' + flight.arrival, report ? 'Report ' + report : undefined, flight.crew?.length ? 'Crew ' + (flight.crew?.length ?? 0) : undefined].filter(Boolean).join(' · ');
+              const timing = [
+                <>{flight.departure} – {flight.arrival}</>,
+                report ? <>Report {report.time}<DayShift offset={report.offset} /></> : undefined,
+                flight.crew?.length ? <>Crew {flight.crew.length}</> : undefined,
+              ].filter(Boolean);
               return <button
-                className="roster-timeline-card roster-timeline-card--flight"
+                className={'roster-timeline-card roster-timeline-card--flight' + (linked ? ' roster-timeline-card--joins-up' : '')}
                 onClick={() => setOpenFlight({ duty, flight })}
                 type="button"
                 aria-haspopup="dialog"
@@ -248,7 +255,7 @@ export function RosterPage({ isActive = true }: { isActive?: boolean }) {
                   <span>{status}</span>
                 </div>
                 <strong>{flight.origin} <i>→</i> {flight.destination}</strong>
-                <p>{timing}</p>
+                <p>{timing.map((part, at) => <Fragment key={at}>{at ? ' · ' : ''}{part}</Fragment>)}</p>
                 <CardWeather code={flight.destination} date={flight.arrivalDate ?? flight.date} forecast={byStationDate} />
               </button>;
             })}
@@ -485,6 +492,11 @@ function rosterDate(value: string) { return new Date(`${value}T00:00:00Z`); }
 function weekday(value: string) { return new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'UTC' }).format(rosterDate(value)).toUpperCase(); }
 function displayDate(value: string) { return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(rosterDate(value)); }
 function compactDateLabel(value: string) { const date = rosterDate(value); const month = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(date).toUpperCase(); return String(date.getUTCDate()).padStart(2, '0') + ' ' + month + ' · ' + weekday(value); }
+/** The day offset, shown rather than hidden: it is the difference between reporting tonight and
+ *  reporting tomorrow night, which is not something to spot in a superscript. */
+function DayShift({ offset }: { offset: string }) {
+  return offset ? <i className="roster-dayshift">{offset}</i> : null;
+}
 /** A boundary's clock, carrying its day offset from the day the card is filed under. */
 function markedClock(boundary: string | undefined, onDate: string) {
   const clock = dutyClock(boundary, onDate);

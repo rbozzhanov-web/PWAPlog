@@ -2918,6 +2918,55 @@ html.theme-dark, html.theme-dark body { color-scheme: dark; background: var(--bg
   box-shadow: var(--shadow-card), inset 3px 0 0 var(--accent);
 }
 
+/* A duty that starts the evening before is two cards a day apart. The accent rail runs down the
+   leading edge of both and bridges the gap between them, so they read as one duty split by
+   midnight rather than as two unrelated days; the corners they face each other across are
+   tightened, the way grouped list items are. The bridge is `.68rem` because that is the gap the
+   timeline and its days both use. */
+.roster-timeline__day .roster-timeline-card--joins-up,
+.roster-timeline__day .roster-timeline-card--joins-down {
+  position: relative;
+  box-shadow: var(--shadow-card), inset 3px 0 0 var(--accent);
+}
+
+.roster-timeline-card--joins-down {
+  border-bottom-left-radius: .4rem;
+  border-bottom-right-radius: .4rem;
+}
+
+.roster-timeline-card--joins-up {
+  border-top-left-radius: .4rem;
+  border-top-right-radius: .4rem;
+}
+
+.roster-timeline-card--joins-down::after,
+.roster-timeline-card--joins-up::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: calc(.68rem + 2px);
+  background: var(--accent);
+}
+
+.roster-timeline-card--joins-down::after {
+  top: 100%;
+}
+
+.roster-timeline-card--joins-up::before {
+  bottom: 100%;
+}
+
+/* The day a clock belongs to, when it is not the day the card is filed under. Small, but it is
+   the accent's job here to make sure it is not missed. */
+.roster-dayshift {
+  margin-left: .1rem;
+  color: var(--accent);
+  font-size: var(--body-size);
+  font-style: normal;
+  font-weight: 700;
+}
+
 .roster-timeline-card--report h2 {
   font-size: var(--header-size);
   letter-spacing: -.03em;

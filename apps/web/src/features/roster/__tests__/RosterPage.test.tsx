@@ -97,8 +97,10 @@ describe('RosterPage AIMS import flow', () => {
 
     const startDay = await screen.findByLabelText(/Schedule for Oct 26/);
     expect(within(startDay).getByText('Duty starts 22:35')).toBeInTheDocument();
-    // What it leads to, read against the day the card sits on.
-    expect(within(startDay).getByText(/KC909 · ALA → ICN · off 00:05\u207a\u00b9/)).toBeInTheDocument();
+    // What it leads to, read against the day the card sits on: it departs the next morning, and
+    // the offset is its own element so it can be coloured rather than lost in the sentence.
+    expect(within(startDay).getByText(/off 00:05/)).toHaveTextContent('00:05\u207a\u00b9');
+    expect(within(startDay).getByText('\u207a\u00b9')).toHaveClass('roster-dayshift');
     // The flight itself stays on the day it departs, rather than moving back with the report.
     expect(within(await screen.findByLabelText(/Schedule for Oct 27/)).getByText(/00:05 – 09:55/)).toBeInTheDocument();
   });
@@ -110,7 +112,38 @@ describe('RosterPage AIMS import flow', () => {
 
     render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
 
-    expect(await screen.findByText(/Report 22:35\u207b\u00b9/)).toBeInTheDocument();
+    const flightDay = await screen.findByLabelText(/Schedule for Oct 27/);
+    expect(within(flightDay).getByText(/Report 22:35/)).toHaveTextContent('Report 22:35\u207b\u00b9');
+    expect(within(flightDay).getByText('\u207b\u00b9')).toHaveClass('roster-dayshift');
+  });
+
+  // Two cards a day apart are one duty, and say so: the rail down their leading edge runs through
+  // both and bridges the gap, and the corners they face each other across are tightened.
+  it('joins the duty start to the flight it leads to', async () => {
+    saveAimsRoster(overnightRoster());
+
+    render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
+
+    const startDay = await screen.findByLabelText(/Schedule for Oct 26/);
+    const flightDay = await screen.findByLabelText(/Schedule for Oct 27/);
+    expect(startDay.querySelector('.roster-timeline-card--report')).toHaveClass('roster-timeline-card--joins-down');
+    expect(flightDay.querySelector('.roster-timeline-card--flight')).toHaveClass('roster-timeline-card--joins-up');
+  });
+
+  it('leaves a duty that starts on its own flying day unjoined', async () => {
+    saveAimsRoster({
+      ...overnightRoster(),
+      duties: [{
+        date: '2026-10-28', report: '2026-10-28T10:40', release: '2026-10-28T15:20',
+        flights: [{ flightNumber: 'KC910', date: '2026-10-28', origin: 'ICN', destination: 'ALA', departure: '11:40', arrival: '14:50', deadhead: false, actualTimes: false }],
+      }],
+    });
+
+    render(<MemoryRouter><RosterPage isActive /></MemoryRouter>);
+
+    expect(await screen.findByText(/Report 10:40/)).not.toHaveTextContent('\u207b');
+    expect(document.querySelector('.roster-timeline-card--joins-up')).toBeNull();
+    expect(document.querySelector('.roster-timeline-card--report')).toBeNull();
   });
 
   // The sector opens in place rather than on a route of its own, so this asserts both halves:
