@@ -237,24 +237,43 @@ function eventCode(event: RecordValue) { return /^([A-Z0-9]{2,8})\b/i.exec(text(
  * once we know self's crew id we prefer that over the event-level flag wherever it's available.
  */
 function attachCrew(duties: AimsDuty[], members: RecordValue | undefined, self: string | undefined) {
+  const records = crewRecords(members);
+  const flights = duties.flatMap((duty) => duty.flights);
+  const taken = new Set<CrewRecord>();
+  for (const flight of flights) {
+    const sameSector = (record: CrewRecord) => !taken.has(record)
+      && record.number === flight.flightNumber.replace(/^KC/i, '')
+      && record.origin === flight.origin
+      && record.destination === flight.destination;
+    // Exact date first, then a day either way. AIMS files a sector's crew under the date its
+    // departure falls on in UTC, while the sector itself is dated by the departure station's own
+    // clock — the two disagree for every flight leaving Almaty late enough in the evening, which
+    // is how a night departure came to show its times and no crew at all. Each record is used
+    // once, so a flight number the pilot flies twice in a week cannot take the other trip's list.
+    const match = records.find((record) => sameSector(record) && record.date === flight.date)
+      ?? records.find((record) => sameSector(record) && withinADay(record.date, flight.date));
+    if (!match) continue;
+    taken.add(match);
+    flight.crew = match.crew;
+    const own = match.crew.find((member) => member.id === self);
+    if (own) flight.deadhead = Boolean(own.deadhead);
+  }
+}
+interface CrewRecord { date: string; number: string; origin: string; destination: string; crew: AimsCrewMember[] }
+function crewRecords(members: RecordValue | undefined): CrewRecord[] {
   const groups = Array.isArray(members?.data) ? members.data : [];
-  for (const group of groups) {
-    if (!record(group) || !Array.isArray(group.data)) continue;
+  return groups.flatMap((group): CrewRecord[] => {
+    if (!record(group) || !Array.isArray(group.data)) return [];
     const key = /^(\d{2})\/(\d{2})\/(\d{4})\s*\|\s*([A-Z]?\d{1,5})\s*\|\s*([A-Z]{3,4})\s*-\s*([A-Z]{3,4})/i.exec(text(group.value).replace(/&emsp;|&#8195;|&#x2003;|\u2003/gi, ' | ').replace(/\s+/g, ' '));
-    if (!key) continue;
+    if (!key) return [];
     const [, day, month, year, number, origin, destination] = key;
     const crew = group.data.flatMap((item): AimsCrewMember[] => {
       if (!record(item)) return []; const name = text(item.value2).trim(); const position = text(item.value4).trim(); if (!name || !position) return [];
       const rank = position.split('-')[0]?.trim().toUpperCase(); return [{ id: scalar(item.value3) || undefined, name, position, role: crewRole(rank), deadhead: /\bDHC\b/i.test(position) || undefined }];
     });
-    if (!crew.length) continue;
-    const date = `${year}-${month}-${day}`; const normalizedNumber = number.replace(/^KC/i, '');
-    const flight = duties.flatMap((duty) => duty.flights).find((candidate) => candidate.date === date && candidate.flightNumber.replace(/^KC/i, '') === normalizedNumber && candidate.origin === origin.toUpperCase() && candidate.destination === destination.toUpperCase());
-    if (!flight) continue;
-    flight.crew = crew;
-    const own = crew.find((member) => member.id === self);
-    if (own) flight.deadhead = Boolean(own.deadhead);
-  }
+    if (!crew.length) return [];
+    return [{ date: `${year}-${month}-${day}`, number: number.replace(/^KC/i, ''), origin: origin.toUpperCase(), destination: destination.toUpperCase(), crew }];
+  });
 }
 /** The crew id every event in a personal AIMS schedule is filed under \u2014 AIMS names each event
  *  `<crewId>on<timestamp>_...`, so any event's id reveals whose schedule this is. */
@@ -318,6 +337,10 @@ function scalar(value: unknown) { return typeof value === 'string' || typeof val
 function clean(value: string) { return value.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').trim(); }
 function minutes(value: string) { const match = /^(\d{1,3}):(\d{2})$/.exec(value.trim()); return match && Number(match[2]) < 60 ? Number(match[1]) * 60 + Number(match[2]) : undefined; }
 function record(value: unknown): value is RecordValue { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
+/** The same real day, allowing for the one AIMS files a sector's crew under. */
+export function withinADay(a: string, b: string) {
+  return Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) <= 86_400_000;
+}
 function validDate(value?: string): value is string { return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value)); }
 function datePart(value: string) { const result = /^\d{4}-\d{2}-\d{2}/.exec(value); return result?.[0]; }
 function boundary(value: string, date?: string) { const result = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(value); if (result) return result.slice(1, 3).join('T'); return date && /^\d{2}:\d{2}/.test(value) ? `${date}T${value.slice(0, 5)}` : undefined; }

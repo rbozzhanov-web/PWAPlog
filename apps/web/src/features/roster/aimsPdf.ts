@@ -1,6 +1,6 @@
 import type { ExtractedPage, TextItem } from '@pilot-logbook/core/pdf-import';
 
-import { crewRole, type AimsAbsence, type AimsActivity, type AimsCrewMember, type AimsDuty, type AimsFlight, type AimsRoster } from './aims';
+import { crewRole, withinADay, type AimsAbsence, type AimsActivity, type AimsCrewMember, type AimsDuty, type AimsFlight, type AimsRoster } from './aims';
 
 /**
  * Reads Air Astana's "Personal Crew Schedule Report" PDF into the same `AimsRoster` the Web
@@ -505,7 +505,4 @@ function isRealDate(iso: string) {
 function addDays(iso: string, days: number) {
   const [year, month, day] = iso.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
-}
-function withinADay(a: string, b: string) {
-  return Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) <= 86_400_000;
 }

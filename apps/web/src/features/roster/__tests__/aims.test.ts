@@ -175,6 +175,57 @@ describe('parseAimsArchive', () => {
     expect((await parseAimsArchive(archiveFile(archive))).duties[0].release).toBe('2026-09-04T17:24');
   });
 
+  /**
+   * The real bug this guards: AIMS files a sector's crew under the date its departure falls on in
+   * UTC, while the sector itself is dated by the departure station's own clock. Almaty runs five
+   * hours ahead, so every flight leaving after 19:00 local is filed a day earlier than the sector
+   * it belongs to — and an exact date match found nothing, leaving those flights showing their
+   * times and no crew at all.
+   */
+  it("finds a night departure's crew, filed a day earlier than the sector", async () => {
+    const initialResult = {
+      SchedulerEvents: [{
+        id: '9871on2026-10-26T22:35:00_x',
+        start: '2026-10-26T22:35:00', end: '2026-10-27T10:25:00',
+        report: '22:35', debrief: '10:25', type: 'Flight', IsDeadhead: false,
+        details: '909  - ALA  (0005\u207a\u00b9) - ICN  (0955\u207a\u00b9) ',
+      }],
+      // 00:05 in Almaty on the 27th is 19:05 UTC on the 26th, which is the date AIMS files under.
+      elementList: [{ id: 'members', data: [
+        { value: '26/10/2026\u2003909\u2003ALA - ICN', data: [
+          { value2: 'SELF NAME', value3: 9871, value4: 'CP' },
+          { value2: 'OTHER PILOT', value3: 9180, value4: 'FO' },
+        ] },
+      ] }],
+    };
+    const archive = `<script>localStorage['PeriodStart']='2026-10-01';localStorage['PeriodEnd']='2026-10-31';var initialResult = ${JSON.stringify(initialResult)};</script>CrewSchedule`;
+    const roster = await parseAimsArchive(archiveFile(archive));
+
+    const flight = roster.duties[0].flights[0];
+    expect(flight.date).toBe('2026-10-27');
+    expect(flight.crew).toHaveLength(2);
+  });
+
+  it('does not hand one trip the crew list of another with the same flight number', async () => {
+    // KC187 flies twice this month. Allowing a day either way must not let the first trip take
+    // the second's list, so each record is used once and the exact date wins first.
+    const initialResult = {
+      SchedulerEvents: [
+        { id: '9871on2026-10-02T19:10:00_a', start: '2026-10-02T19:10:00', type: 'Flight', details: '187  - ALA  (2040) - CAN  (0535\u207a\u00b9) ' },
+        { id: '9871on2026-10-19T19:10:00_b', start: '2026-10-19T19:10:00', type: 'Flight', details: '187  - ALA  (2040) - CAN  (0535\u207a\u00b9) ' },
+      ],
+      elementList: [{ id: 'members', data: [
+        { value: '02/10/2026\u2003187\u2003ALA - CAN', data: [{ value2: 'FIRST TRIP', value3: 1111, value4: 'FO' }] },
+        { value: '19/10/2026\u2003187\u2003ALA - CAN', data: [{ value2: 'SECOND TRIP', value3: 2222, value4: 'FO' }] },
+      ] }],
+    };
+    const archive = `<script>localStorage['PeriodStart']='2026-10-01';localStorage['PeriodEnd']='2026-10-31';var initialResult = ${JSON.stringify(initialResult)};</script>CrewSchedule`;
+    const roster = await parseAimsArchive(archiveFile(archive));
+
+    const flights = roster.duties.flatMap((duty) => duty.flights);
+    expect(flights.map((flight) => flight.crew?.[0]?.name)).toEqual(['FIRST TRIP', 'SECOND TRIP']);
+  });
+
   // A long sector carries a third pilot, whose rank AIMS prints as "3P". Filed as cabin crew they
   // showed up under the flight attendants on the crew list, which is the wrong door.
   it('files a third pilot on the flight deck', async () => {
