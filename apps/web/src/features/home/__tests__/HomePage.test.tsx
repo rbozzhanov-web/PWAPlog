@@ -148,18 +148,18 @@ describe('HomePage hero', () => {
     expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Rel00:05\u207a\u00b9L');
   });
 
-  it('dates the card by the day it flies, and marks a report from the evening before', () => {
+  it('dates the card by the duty start, and offsets every later clock from it', () => {
     vi.setSystemTime(BEFORE_THE_DUTY);
-    // Reports at 22:35 on the 26th for a departure at 00:05 on the 27th. The card is about the
-    // flying, so it is the 27th; the report says on its own clock that it is the night before,
-    // which is what stops "27 OCT, report 22:35" reading as an evening report on the 27th.
+    // Reports at 22:35 on the 26th, departs 00:05 on the 27th, released 10:25 that morning. Three
+    // dates on one card: it is anchored on the day the duty starts, because that is the day the
+    // pilot has to be somewhere, and the two that follow say how far after it they fall.
     saveAimsRoster(dutyRoster('2026-10-26T22:35', '2026-10-27T10:25', leg('2026-10-27', 'KC909', 'ALA', 'ICN', '00:05', '09:55')));
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    expect(screen.getByText('27 OCT · TUE')).toBeVisible();
-    expect(document.querySelectorAll('.home-time-grid > div')[0]?.textContent).toBe('Report22:35\u207b\u00b9L');
-    expect(document.querySelectorAll('.home-time-grid > div')[2]?.textContent).toBe('Rel10:25L');
+    expect(screen.getByText('26 OCT · MON')).toBeVisible();
+    expect([...document.querySelectorAll('.home-time-grid > div')].map((cell) => cell.textContent))
+      .toEqual(['Report22:35L', 'Dep00:05\u207a\u00b9L', 'Rel10:25\u207a\u00b9L', 'Duty7:50']);
   });
 
   it('measures the duty as elapsed time, not as one clock minus another', () => {

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { formatLocalDateHeader, localMonthKey } from '../../platform/localDate';
 import { formatFlightMinutes } from '../logbook/totals';
 import { loadAimsRoster, type AimsDuty, type AimsRoster } from '../roster/aims';
-import { dutyClock, dutyReleaseBoundary, dutyReportBoundary, type DutyClock } from '../roster/dutyDay';
+import { clockAt, dutyClock, dutyReleaseBoundary, dutyReportBoundary, type DutyClock } from '../roster/dutyDay';
 import { rosterMonthTotals } from '../roster/completedSectors';
 import { layoverWindow, useArrivalWeather, weatherIcon, windDirectionLabel } from '../weather/weatherService';
 
@@ -44,8 +44,15 @@ export function HomePage() {
   }, [nextDuty]);
   const dayDeparture = dayRoute?.legs[0];
   const reportBoundary = nextDuty ? dutyReportBoundary(nextDuty) : undefined;
-  const reportClock = nextDuty ? dutyClock(reportBoundary, nextDuty.date) : undefined;
-  const releaseClock = nextDuty ? dutyClock(dutyReleaseBoundary(nextDuty), nextDuty.date) : undefined;
+  // The card is anchored on the day the duty starts — when the pilot is due at the airport — and
+  // every other clock on it is read against that day. A duty reporting at 22:35 departs at 00:05
+  // the next morning and is released the morning after that, which is three dates on one card;
+  // one of them has to be the anchor, and the one the pilot plans around is the first.
+  const dutyStart = reportBoundary?.slice(0, 10);
+  const reportClock = dutyStart ? dutyClock(reportBoundary, dutyStart) : undefined;
+  const departure = dayDeparture ?? nextFlight;
+  const departureClock = dutyStart && departure ? clockAt(departure.date, departure.departure, dutyStart) : undefined;
+  const releaseClock = nextDuty && dutyStart ? dutyClock(dutyReleaseBoundary(nextDuty), dutyStart) : undefined;
   const dutyLength = useMemo(() => dutyLengthClock(nextDuty), [nextDuty]);
   const countdown = reportBoundary ? Math.max(0, Date.parse(reportBoundary) - now) : 0;
   const today = formatLocalDateHeader(new Date(now));
@@ -60,10 +67,8 @@ export function HomePage() {
       <section className="home-hero home-hero--escrew">
         <div className="home-hero__lead">
           <p className="home-hero__eyebrow">{nextFlight ? 'NEXT DUTY' : 'PILOT LOGBOOK'}</p>
-          {/* The day the duty flies. A report the evening before belongs to this duty and is
-              marked as the day before on its own clock, rather than moving the whole card back a
-              day — the card is about the flying, and that is the date a pilot looks for. */}
-          {nextFlight && nextDuty ? <p className="home-hero__when">{dutyDayLabel(nextDuty.date)}</p> : null}
+          {/* The day the duty starts. */}
+          {nextFlight && dutyStart ? <p className="home-hero__when">{dutyDayLabel(dutyStart)}</p> : null}
         </div>
         {nextFlight ? <>
           <div className={'home-route' + ((dayRoute?.legs.length ?? 0) > 1 ? ' home-route--chain' : '') + ((dayRoute?.legs.length ?? 0) > 2 ? ' home-route--dense' : '')}>
@@ -81,10 +86,11 @@ export function HomePage() {
           </div>
           <div className="home-report-countdown"><span>{countdown > 0 ? 'REPORT IN' : 'REPORT TIME'}</span><strong>{countdown > 0 ? countdownClock(countdown) : reportClock?.time ?? '—'}</strong></div>
           {/* Three clocks and a length. The clocks carry "L" because each is read at its own
-              station; the duty is elapsed time and belongs to no station, so it carries none. */}
+              station, and a day offset where they fall on another date than the one above; the
+              duty is elapsed time, belongs to no station and no day, so it carries neither. */}
           <div className="home-time-grid">
             <div><span>Report</span><Clock at={reportClock} /></div>
-            <div><span>Dep</span><strong>{(dayDeparture ?? nextFlight).departure}<i>L</i></strong></div>
+            <div><span>Dep</span><Clock at={departureClock} /></div>
             <div><span>Rel</span><Clock at={releaseClock} /></div>
             <div><span>Duty</span><strong>{dutyLength ?? '—'}</strong></div>
           </div>
